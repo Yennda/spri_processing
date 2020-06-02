@@ -1,5 +1,6 @@
 import numpy as np
 
+from global_var import *
 import tools as tl
 
 
@@ -10,16 +11,25 @@ class Core(object):
 
         self._raw = None
         self._time_info = None
-
+        self._ref_frame = 0
         self.__video_stats = None
 
         self.k = 1
+        self.type = 'diff'
+        self.fouriere_level = 30
+        self.postprocessing = []
+
+        self.spr_time = None
+        self.spr_signal = None
+        self.reference = None
 
         self._load_data()
+        self.ref_frame = 0
 
     def _load_data(self):
         self.__video_stats = self._load_stats()
         self._raw = self._load_video()
+        self.spr_time, self.spr_signal = self._load_spr()
 
     def _load_stats(self):
         suffix = '.tsv'
@@ -46,25 +56,18 @@ class Core(object):
         return np.swapaxes(video, 0, 1)
 
     def _load_spr(self):
-        self.spr_signals = []
+        with open(self.folder + NAME_LOCAL_SPR + self.file[-5:] + '.tsv', 'r') as spr:
+            contents = spr.readlines()
 
-        for c in self._channels:
-            f = open(self.folder + NAME_GLOBAL_SPR + '_{}.tsv'.format(c + 1), 'r')
-            contents = f.readlines()
+        time = []
+        signal = []
 
-            time = []
-            signal = []
+        for line in contents[:-1]:
+            line_split = line.split('\t')
+            time.append(float(line_split[0]))
+            signal.append(float(line_split[1]))
 
-            for line in contents[:-1]:
-                line_split = line.split('\t')
-
-                if c == 0:
-                    time.append(float(line_split[0]))
-                signal.append(float(line_split[1]))
-
-            if c == 0:
-                self.spr_time = time
-            self.spr_signals.append(signal)
+        return time, signal
 
     def __len__(self):
         return self._raw.shape[2]
@@ -72,3 +75,51 @@ class Core(object):
     @property
     def shape(self):
         return self._raw.shape
+
+    @property
+    def ref_frame(self):
+        return self._ref_frame
+
+    @ref_frame.setter
+    def ref_frame(self, f):
+        self._ref_frame = f
+        self.reference = np.sum(
+            self._raw[:, :, self.ref_frame: self.ref_frame + self.k],
+            axis=2
+        ) / self.k
+
+    def frame(self, f):
+        if self.type == 'diff':
+            current = np.sum(
+                self._raw[:, :, f - self.k + 1: f + 1],
+                axis=2
+            ) / self.k
+            previous = np.sum(
+                self._raw[:, :, f - 2 * self.k + 1: f - self.k + 1],
+                axis=2
+            ) / self.k
+            image = current - previous
+
+        elif self.type == 'int':
+            current = np.average(
+                self._raw[:, :, f // self.k * self.k - self.k: f // self.k * self.k],
+                axis=2
+            )
+            image = current - self.reference
+
+        if len(self.postprocessing) != 0:
+            for p in self.postprocessing:
+                image = p(image)
+
+        return {
+            'time': self._time_info[f],
+            'image': image
+        }
+
+    def fourier(self, image):
+        f = np.fft.fft2(image)
+        # magnitude_spectrum = 20 * np.log(np.abs(f))
+        # mask = np.real(magnitude_spectrum) > self.fourier_level
+        mask = np.abs(f) > np.exp(self.fouriere_level / 20)
+        f[mask] = 0
+        return np.fft.ifft2(f)

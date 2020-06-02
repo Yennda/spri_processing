@@ -12,3 +12,6 @@ def frame_times(file_content):
         time_last = time_actual
 
     return time_info
+
+def SecToMin(sec):
+    return '{:.0f}:{:.1f}'.format(sec // 60, sec % 60)
