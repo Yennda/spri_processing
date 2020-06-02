@@ -19,7 +19,7 @@ class Core(object):
         self.k = 1
         self.type = 'diff'
         self.fouriere_level = 30
-        self.postprocessing = []
+        self.postprocessing = [self.fourier]
 
         self.spr_time = None
         self.spr_signal = None
@@ -138,4 +138,4 @@ class Core(object):
         # mask = np.real(magnitude_spectrum) > self.fourier_level
         mask = np.abs(f) > np.exp(self.fouriere_level / 20)
         f[mask] = 0
-        return np.fft.ifft2(f)
+        return np.real(np.fft.ifft2(f))

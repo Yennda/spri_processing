@@ -9,11 +9,15 @@ file = 'raw_01_2'
 core = Core(folder, file)
 core.k = 10
 
+folder = main_folder + '20_05_26_K5/'
+file = 'raw_02_2'
+
+core2 = Core(folder, file)
+core2.k = 10
 
 view = View()
 view.add_core(core)
-view.add_core(copy.deepcopy(core))
-view.orientation = False
+view.add_core(core2)
 view.show()
 
 

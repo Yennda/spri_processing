@@ -41,9 +41,24 @@ class View(object):
         self._f = (self._f + df) % self.length
 
     def show(self):
+        def frame_info():
+            return '{}/{}  t = {:.1f} s dt = {:.2f} s'.format(
+                self.f,
+                self.length,
+                self.core_list[0]._time_info[self.f][0],
+                self.core_list[0]._time_info[self.f][1],
+            )
+
         def next_frame(df):
             self.f = df
 
+        def change_type(event, itype):
+            if event.inaxes is not None:
+                event.inaxes.core.type = itype
+                if self.orientation:
+                    event.inaxes.set_ylabel('channel {}.; {}'.format(core.file[-1:], event.inaxes.core.type))
+                else:
+                    event.inaxes.set_xlabel('channel {}.; {}'.format(core.file[-1:], event.inaxes.core.type))
 
         def mouse_scroll(event):
             fig = event.canvas.figure
@@ -52,7 +67,8 @@ class View(object):
             elif event.button == 'up':
                 self.f = -1
 
-            fig.suptitle(self.f)
+            fig.suptitle(frame_info())
+
             for i, core in enumerate(self.core_list):
                 img_shown[i].set_array(core.frame(self.f)['image'])
             fig.canvas.draw()
@@ -71,22 +87,27 @@ class View(object):
                 self.f = 1
             elif event.key == '1':
                 self.f = -1
-            elif event.key == 'i':
-                event.inaxes.core.type = 'int'
-            elif event.key == 'd':
-                event.inaxes.core.type = 'diff'
+            elif event.key == 'ctrl+1':
+                change_type(event, 'int')
 
-            fig.suptitle(self.f)
+            elif event.key == 'ctrl+2':
+                change_type(event, 'diff')
+
+            elif event.key == 'i':
+                if event.inaxes is not None:
+                    event.inaxes.core.ref_frame = self.f
+
+            fig.suptitle(frame_info())
             for i, core in enumerate(self.core_list):
                 img_shown[i].set_array(core.frame(self.f)['image'])
             fig.canvas.draw()
 
         if self.orientation:
-            fig, axes = plt.subplots(nrows=len(self.core_list), ncols=1)
-        else:
             fig, axes = plt.subplots(ncols=len(self.core_list), nrows=1)
+        else:
+            fig, axes = plt.subplots(nrows=len(self.core_list), ncols=1)
 
-        fig.suptitle(self.f)
+        fig.suptitle(frame_info())
 
         img_shown = []
 
@@ -104,9 +125,11 @@ class View(object):
             axes[i].core = core
 
             if self.orientation:
-                axes[i].set_ylabel('{}; {}'.format(core.file[4:], core.type))
+                axes[i].set_ylabel('channel {}.; {}'.format(core.file[-1:], core.type))
             else:
-                axes[i].set_xlabel('{}; {}'.format(core.file[4:], core.type))
+                axes[i].set_xlabel('channel {}.; {}'.format(core.file[-1:], core.type))
+            for s in SIDES:
+                axes[i].spines[s].set_color(COLORS[i])
 
         fig.canvas.mpl_connect('key_press_event', button_press)
         fig.canvas.mpl_connect('scroll_event', mouse_scroll)
