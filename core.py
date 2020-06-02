@@ -12,6 +12,8 @@ class Core(object):
         self._raw = None
         self._time_info = None
         self._ref_frame = 0
+        self._range = [-0.01, 0.01]
+
         self.__video_stats = None
 
         self.k = 1
@@ -22,6 +24,7 @@ class Core(object):
         self.spr_time = None
         self.spr_signal = None
         self.reference = None
+
 
         self._load_data()
         self.ref_frame = 0
@@ -77,6 +80,10 @@ class Core(object):
         return self._raw.shape
 
     @property
+    def shape_img(self):
+        return self._raw.shape[:2]
+
+    @property
     def ref_frame(self):
         return self._ref_frame
 
@@ -89,6 +96,14 @@ class Core(object):
         ) / self.k
 
     def frame(self, f):
+        if f < 2 * self.k:
+            image = np.zeros(self.shape_img)
+            return {
+                'time': self._time_info[f],
+                'range': self._range,
+                'image': image
+            }
+
         if self.type == 'diff':
             current = np.sum(
                 self._raw[:, :, f - self.k + 1: f + 1],
@@ -113,6 +128,7 @@ class Core(object):
 
         return {
             'time': self._time_info[f],
+            'range': self._range,
             'image': image
         }
 

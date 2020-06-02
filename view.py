@@ -21,40 +21,92 @@ matplotlib.rcParams['mathtext.bf'] = 'BiPalatino Linotype:bold'
 
 
 class View(object):
-    def __init__(self, core):
-        self.core = core
-        self.f = 0
+    def __init__(self):
+        self.core_list = []
+        self._f = 0
+        self.orientation = True
+        self.length = 0
 
-    def frame_info(self, f):
+    def add_core(self, core):
+        self.core_list.append(core)
+        if self.length > len(core) or self.length == 0:
+            self.length = len(core)
 
-        return '{}: {}/{}  t= {} s dt= {:.2f} s'.format(
-            self.core.type,
-            f,
-            len(self.core),
-            tl.SecToMin(self.core._time_info[f][0]),
-            self.core._time_info[f][1]
-        )
+    @property
+    def f(self):
+        return self._f
+
+    @f.setter
+    def f(self, df):
+        self._f = (self._f + df) % self.length
 
     def show(self):
+        def next_frame(df):
+            self.f = df
+
+
+        def mouse_scroll(event):
+            fig = event.canvas.figure
+            if event.button == 'down':
+                self.f = 1
+            elif event.button == 'up':
+                self.f = -1
+
+            fig.suptitle(self.f)
+            for i, core in enumerate(self.core_list):
+                img_shown[i].set_array(core.frame(self.f)['image'])
+            fig.canvas.draw()
+
         def button_press(event):
             fig = event.canvas.figure
-            ax = fig.axes[0]
+            if event.key == '9':
+                self.f = 100
+            elif event.key == '7':
+                self.f = -100
+            elif event.key == '6':
+                self.f = 10
+            elif event.key == '4':
+                self.f = -10
+            elif event.key == '3':
+                self.f = 1
+            elif event.key == '1':
+                self.f = -1
+            elif event.key == 'i':
+                event.inaxes.core.type = 'int'
+            elif event.key == 'd':
+                event.inaxes.core.type = 'diff'
 
-            if event.key == '6':
-                self.f += 1
+            fig.suptitle(self.f)
+            for i, core in enumerate(self.core_list):
+                img_shown[i].set_array(core.frame(self.f)['image'])
+            fig.canvas.draw()
 
-                ax.set_title(self.frame_info(ax.index))
-                img.set_array(self.core.frame(self.f)['image'])
-                fig.canvas.draw()
+        if self.orientation:
+            fig, axes = plt.subplots(nrows=len(self.core_list), ncols=1)
+        else:
+            fig, axes = plt.subplots(ncols=len(self.core_list), nrows=1)
 
-        fig, ax = plt.subplots()
-        ax.index = 0
-        ax.set_title(self.core.frame(self.f)['time'])
+        fig.suptitle(self.f)
 
-        img = ax.imshow(
-            self.core.frame(self.f)['image'],
-            cmap='gray',
-            zorder=0
-        )
+        img_shown = []
+
+        for i, core in enumerate(self.core_list):
+            frame = core.frame(self.f)
+            img_shown.append(
+                axes[i].imshow(
+                    frame['image'],
+                    cmap='gray',
+                    zorder=0,
+                    vmin=frame['range'][0],
+                    vmax=frame['range'][1]
+                )
+            )
+            axes[i].core = core
+
+            if self.orientation:
+                axes[i].set_ylabel('{}; {}'.format(core.file[4:], core.type))
+            else:
+                axes[i].set_xlabel('{}; {}'.format(core.file[4:], core.type))
 
         fig.canvas.mpl_connect('key_press_event', button_press)
+        fig.canvas.mpl_connect('scroll_event', mouse_scroll)
