@@ -12,19 +12,19 @@ class Core(object):
         self._raw = None
         self._time_info = None
         self._ref_frame = 0
-        self._range = [-0.01, 0.01]
+        self.range = [-0.01, 0.01]
 
         self.__video_stats = None
 
         self.k = 1
         self.type = 'diff'
         self.fouriere_level = 30
-        self.postprocessing = [self.fourier]
+        self.postprocessing = []
 
         self.spr_time = None
         self.spr_signal = None
+        self.zero_time = None
         self.reference = None
-
 
         self._load_data()
         self.ref_frame = 0
@@ -70,7 +70,31 @@ class Core(object):
             time.append(float(line_split[0]))
             signal.append(float(line_split[1]))
 
-        return time, signal
+        return time, np.array(signal)
+
+    def synchronize(self):
+        try:
+            with open(self.folder + NAME_GLOBAL_SPR + self.file[-2:] + '.tsv', 'r') as spr:
+                contents = spr.readlines()
+        except:
+            self.zero_time = 0
+            return
+
+        time = []
+        signal = []
+
+        for line in contents[:-1]:
+            line_split = line.split('\t')
+            time.append(float(line_split[0]))
+            signal.append(float(line_split[1]))
+        beginning = list(self.spr_signal[:2])
+        for i in range(len(signal)):
+            if signal[i:i + 2] == beginning:
+                self.zero_time = time[i]
+                break
+            elif i == len(signal) - 2:
+                self.zero_time = 0
+                # raise Exception('Could not match global and local SPR signals.')
 
     def __len__(self):
         return self._raw.shape[2]
@@ -100,7 +124,7 @@ class Core(object):
             image = np.zeros(self.shape_img)
             return {
                 'time': self._time_info[f],
-                'range': self._range,
+                'range': self.range,
                 'image': image
             }
 
@@ -122,13 +146,15 @@ class Core(object):
             )
             image = current - self.reference
 
+        elif self.type == 'raw':
+            image = self._raw[:, :, f]
+
         if len(self.postprocessing) != 0:
             for p in self.postprocessing:
                 image = p(image)
 
         return {
             'time': self._time_info[f],
-            'range': self._range,
             'image': image
         }
 

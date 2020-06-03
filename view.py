@@ -26,8 +26,10 @@ class View(object):
         self._f = 0
         self.orientation = True
         self.length = 0
+        self.locations = []
 
     def add_core(self, core):
+        core.synchronize()
         self.core_list.append(core)
         if self.length > len(core) or self.length == 0:
             self.length = len(core)
@@ -42,15 +44,34 @@ class View(object):
 
     def show(self):
         def frame_info():
-            return '{}/{}  t = {:.1f} s dt = {:.2f} s'.format(
+            return '{}/{} |  t = {:.1f} s | dt = {:.2f} s | global time = {:.1f} min'.format(
                 self.f,
                 self.length,
                 self.core_list[0]._time_info[self.f][0],
                 self.core_list[0]._time_info[self.f][1],
+                self.core_list[0]._time_info[self.f][0]/60 + self.core_list[0].zero_time
             )
 
         def next_frame(df):
             self.f = df
+            for location in self.locations:
+                location.xy = [self.f, axes_info[0, 0].get_ylim()[0]]
+
+            fig_info.canvas.draw()
+
+        def add_time_bar(ax):
+            rectangle_height = np.abs(
+                ax.get_ylim()[1] -
+                ax.get_ylim()[0]
+            )
+            location = mpatches.Rectangle(
+                (self.f, ax.get_ylim()[0]),
+                1,
+                rectangle_height,
+                color=gray
+            )
+            self.locations.append(location)
+            ax.add_patch(location)
 
         def change_type(event, itype):
             if event.inaxes is not None:
@@ -63,9 +84,9 @@ class View(object):
         def mouse_scroll(event):
             fig = event.canvas.figure
             if event.button == 'down':
-                self.f = 1
+                next_frame(1)
             elif event.button == 'up':
-                self.f = -1
+                next_frame(-1)
 
             fig.suptitle(frame_info())
 
@@ -76,17 +97,25 @@ class View(object):
         def button_press(event):
             fig = event.canvas.figure
             if event.key == '9':
-                self.f = 100
+                next_frame(100)
             elif event.key == '7':
-                self.f = -100
+                next_frame(-100)
             elif event.key == '6':
-                self.f = 10
+                next_frame(10)
             elif event.key == '4':
-                self.f = -10
+                next_frame(-10)
             elif event.key == '3':
-                self.f = 1
+                next_frame(1)
             elif event.key == '1':
-                self.f = -1
+                next_frame(-1)
+            elif event.key == '5':
+                img = event.inaxes.get_images()[0]
+                lim = [i * 1.2 for i in img.get_clim()]
+                img.set_clim(lim)
+            elif event.key == '8':
+                img = event.inaxes.get_images()[0]
+                lim = [i / 1.2 for i in img.get_clim()]
+                img.set_clim(lim)
             elif event.key == 'ctrl+1':
                 change_type(event, 'int')
 
@@ -118,8 +147,8 @@ class View(object):
                     frame['image'],
                     cmap='gray',
                     zorder=0,
-                    vmin=frame['range'][0],
-                    vmax=frame['range'][1]
+                    vmin=core.range[0],
+                    vmax=core.range[1]
                 )
             )
             axes[i].core = core
@@ -133,3 +162,40 @@ class View(object):
 
         fig.canvas.mpl_connect('key_press_event', button_press)
         fig.canvas.mpl_connect('scroll_event', mouse_scroll)
+
+        fig_info, axes_info = plt.subplots(2, 2, figsize=(10, 3))
+
+        fig_info.suptitle('info')
+
+        axes_info[0 ,0].set_title('spr signal')
+        axes_info[0, 0].set_xlabel('frame')
+        axes_info[0, 0].set_ylabel('R [a.u.]')
+
+        for i, core in enumerate(self.core_list):
+            axes_info[0, 0].plot(
+                core.spr_signal - core.spr_signal[0] + 1,
+                linewidth=1,
+                color=COLORS[i],
+                alpha=0.5,
+                label='channel {}.'.format(i)
+            )
+
+        add_time_bar(axes_info[0, 0])
+
+
+
+
+        axes_info[0, 1].set_title('NP count')
+        axes_info[0, 1].set_xlabel('frame')
+        axes_info[0, 1].set_ylabel('#')
+
+        for i, core in enumerate(self.core_list):
+            axes_info[0, 1].plot(
+                core.spr_signal - core.spr_signal[0] + 1,
+                linewidth=1,
+                color=COLORS[i],
+                alpha=0.5,
+                label='channel {}.'.format(i)
+            )
+        add_time_bar(axes_info[0, 1])
+
