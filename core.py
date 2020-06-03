@@ -120,13 +120,13 @@ class Core(object):
         ) / self.k
 
     def frame(self, f):
-        if f < 2 * self.k:
-            image = np.zeros(self.shape_img)
-            return {
-                'time': self._time_info[f],
-                'range': self.range,
-                'image': image
-            }
+        # if f < 2 * self.k:
+        #     image = np.zeros(self.shape_img)
+        #     return {
+        #         'time': self._time_info[f],
+        #         'range': self.range,
+        #         'image': image
+        #     }
 
         if self.type == 'diff':
             current = np.sum(
@@ -153,15 +153,10 @@ class Core(object):
             for p in self.postprocessing:
                 image = p(image)
 
-        return {
-            'time': self._time_info[f],
-            'image': image
-        }
+        return image
 
     def fourier(self, image):
         f = np.fft.fft2(image)
-        # magnitude_spectrum = 20 * np.log(np.abs(f))
-        # mask = np.real(magnitude_spectrum) > self.fourier_level
         mask = np.abs(f) > np.exp(self.fouriere_level / 20)
         f[mask] = 0
         return np.real(np.fft.ifft2(f))

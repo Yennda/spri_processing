@@ -116,10 +116,14 @@ class View(object):
                 img = event.inaxes.get_images()[0]
                 lim = [i / 1.2 for i in img.get_clim()]
                 img.set_clim(lim)
+
             elif event.key == 'ctrl+1':
-                change_type(event, 'int')
+                change_type(event, 'raw')
 
             elif event.key == 'ctrl+2':
+                change_type(event, 'int')
+
+            elif event.key == 'ctrl+3':
                 change_type(event, 'diff')
 
             elif event.key == 'i':
@@ -128,7 +132,7 @@ class View(object):
 
             fig.suptitle(frame_info())
             for i, core in enumerate(self.core_list):
-                img_shown[i].set_array(core.frame(self.f)['image'])
+                img_shown[i].set_array(core.frame(self.f))
             fig.canvas.draw()
 
         if self.orientation:
@@ -141,10 +145,9 @@ class View(object):
         img_shown = []
 
         for i, core in enumerate(self.core_list):
-            frame = core.frame(self.f)
             img_shown.append(
                 axes[i].imshow(
-                    frame['image'],
+                    core.frame(self.f),
                     cmap='gray',
                     zorder=0,
                     vmin=core.range[0],

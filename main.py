@@ -13,9 +13,19 @@ file = 'raw_02_2'
 core2 = Core(folder, file)
 core2.k = 10
 
+# file = 'raw_02_3'
+# core3 = Core(folder, file)
+# core3.k = 10
+#
+# file = 'raw_02_4'
+# core4 = Core(folder, file)
+# core4.k = 10
+
 view = View()
 view.add_core(core)
 view.add_core(core2)
+# view.add_core(core3)
+# view.add_core(core4)
 view.show()
 
 
