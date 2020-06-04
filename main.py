@@ -7,8 +7,8 @@ from view import View
 t = time.time()
 
 main_folder = 'C:/SPRUP_data_Jenda/2019_03_13_Jenda_microscopy/'
-folder = main_folder + '20_06_03_K5_tomas/'
-file = 'raw_200603 cycle 1 strep 80nm PBS_1'
+folder = main_folder + '20_04_21_L3_tomas/'
+file = 'raw_01_1'
 
 core = Core(folder, file)
 core.k = 10

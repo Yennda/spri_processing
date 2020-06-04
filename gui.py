@@ -1,60 +1,74 @@
+from PyQt5 import QtWidgets, QtGui, QtCore
+
 import sys
-from PyQt5.QtWidgets import QApplication, QWidget, QInputDialog, QLineEdit, QFileDialog
+
 from core import Core
 from view import View
 
 
-class App(QWidget):
+class IntroForm(QtWidgets.QMainWindow):
 
-    def __init__(self):
-        super().__init__()
-        self.title = 'PyQt5 file dialogs - pythonspot.com'
-        self.left = 10
-        self.top = 10
-        self.width = 640
-        self.height = 480
-        self.file_name = None
-        self.initUI()
+    def __init__(self, **kwargs):
+        super(IntroForm, self).__init__(**kwargs)
+        self.setWindowTitle('SPRI browser')
+        self.setMinimumSize(300, 400)
 
-    def initUI(self):
-        self.setWindowTitle(self.title)
-        self.setGeometry(self.left, self.top, self.width, self.height)
+        form = QtWidgets.QWidget()
+        layout_form = QtWidgets.QVBoxLayout()
+        form.setLayout(layout_form)
+        self.setCentralWidget(form)
 
-        # self.openFileNameDialog()
-        self.openFileNamesDialog()
-        # self.saveFileDialog()
+        self.infoLayout = QtWidgets.QHBoxLayout()
+        layout_form.addLayout(self.infoLayout)
+        self.infoLayout.addWidget(QtWidgets.QLabel("Choose the files to browse:"))
+        self.chooseButton = QtWidgets.QPushButton("Find", self)
+        self.infoLayout.addWidget(self.chooseButton)
+
+
 
         self.show()
 
-    def openFileNamesDialog(self):
-        options = QFileDialog.Options()
-        options |= QFileDialog.DontUseNativeDialog
-        files, _ = QFileDialog.getOpenFileNames(self, "QFileDialog.getOpenFileNames()", "",
-                                                "All Files (*);;Python Files (*.py)", options=options)
-        if files:
-            self.files = files
-        self.close()
+    def setup(self):
+        self.open_form = root.open_from
+        # self.chooseButton.clicked(self.open_form)
+
+class OpenForm(QtWidgets.QFileDialog):
+
+    def __init__(self, **kwargs):
+        super(OpenForm, self).__init__(**kwargs)
+        pass
+
+    def setup(self):
+        pass
 
 
+class App(QtWidgets.QApplication):
+
+    def __init__(self):
+        super(App, self).__init__(sys.argv)
+
+    def build(self):
+        self.intro_form = IntroForm()
+        self.open_from = OpenForm()
+
+        self.intro_form.setup()
+        self.open_from.setup()
+        sys.exit(self.exec_())
 
 
-    app = QApplication(sys.argv)
-    ex = App()
-    # sys.exit(app.exec_())
+root = App()
+root.build()
 
-    print(ex.files)
 
-    view = View()
-
-    for fl in ex.files:
-        folder = fl.split('/')[:-1]
-        folder = '/'.join(folder) + '/'
-
-        file = fl.split('/')[-1]
-        file = file.split('.')[0]
-
-        core = Core(folder, file)
-        core.k = 10
-
-        view.add_core(core)
-    view.show()
+# for fl in ex.files:
+#     folder = fl.split('/')[:-1]
+#     folder = '/'.join(folder) + '/'
+#
+#     file = fl.split('/')[-1]
+#     file = file.split('.')[0]
+#
+#     core = Core(folder, file)
+#     core.k = 10
+#
+#     view.add_core(core)
+# view.show()
