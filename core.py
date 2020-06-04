@@ -59,7 +59,7 @@ class Core(object):
         return np.swapaxes(video, 0, 1)
 
     def _load_spr(self):
-        with open(self.folder + NAME_LOCAL_SPR + self.file[-5:] + '.tsv', 'r') as spr:
+        with open(self.folder + NAME_LOCAL_SPR + self.file[3:] + '.tsv', 'r') as spr:
             contents = spr.readlines()
 
         time = []
