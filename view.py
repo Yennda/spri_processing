@@ -28,6 +28,13 @@ class View(object):
         self.length = 0
         self.locations = []
 
+        self.fig_info = None
+        self.axes_info = None
+        self.fig = None
+        self.axes = None
+
+        self.img_shown = []
+
     def add_core(self, core):
         core.synchronize()
         self.core_list.append(core)
@@ -42,23 +49,112 @@ class View(object):
     def f(self, df):
         self._f = (self._f + df) % self.length
 
+    def next_frame(self, df):
+        self.f = df
+        for location in self.locations:
+            location.xy = [self.f, self.axes_info[0, 0].get_ylim()[0]]
+
+        self.fig.suptitle(self.frame_info())
+        for i, core in enumerate(self.core_list):
+            self.img_shown[i].set_array(core.frame(self.f))
+
+        self.fig.canvas.draw()
+        self.fig_info.canvas.draw()
+
+    def frame_info(self):
+        return '{}/{} |  t = {:.1f} s | dt = {:.2f} s | global time = {:.1f} min'.format(
+            self.f,
+            self.length,
+            self.core_list[0]._time_info[self.f][0],
+            self.core_list[0]._time_info[self.f][1],
+            self.core_list[0]._time_info[self.f][0] / 60 + self.core_list[0].zero_time
+        )
+
+    def change_type(self, event, itype):
+        if event.inaxes is not None:
+            event.inaxes.core.type = itype
+            if self.orientation:
+                event.inaxes.set_ylabel('channel {}.; {}'.format(self.core_list[0].file[-1:], event.inaxes.core.type))
+            else:
+                event.inaxes.set_xlabel('channel {}.; {}'.format(self.core_list[0].file[-1:], event.inaxes.core.type))
+
+    def mouse_scroll(self, event):
+        fig = event.canvas.figure
+        if event.button == 'down':
+            self.next_frame(1)
+        elif event.button == 'up':
+            self.next_frame(-1)
+
+    def button_press(self, event):
+        if event.key == '9':
+            self.next_frame(100)
+        elif event.key == '7':
+            self.next_frame(-100)
+        elif event.key == '6':
+            self.next_frame(10)
+        elif event.key == '4':
+            self.next_frame(-10)
+        elif event.key == '3':
+            self.next_frame(1)
+        elif event.key == '1':
+            self.next_frame(-1)
+
+        if event.canvas.figure is self.fig and event.inaxes is not None:
+            if event.key == '5':
+                img = event.inaxes.get_images()[0]
+                lim = [i * 1.2 for i in img.get_clim()]
+                img.set_clim(lim)
+
+            elif event.key == '8':
+                img = event.inaxes.get_images()[0]
+                lim = [i / 1.2 for i in img.get_clim()]
+                img.set_clim(lim)
+
+            elif event.key == 'ctrl+1':
+                self.change_type(event, 'raw')
+
+            elif event.key == 'ctrl+2':
+                self.change_type(event, 'int')
+
+            elif event.key == 'ctrl+3':
+                self.change_type(event, 'diff')
+
+            elif event.key == 'i':
+                event.inaxes.core.ref_frame = self.f
+
+        self.fig.canvas.draw()
+
     def show(self):
-        def frame_info():
-            return '{}/{} |  t = {:.1f} s | dt = {:.2f} s | global time = {:.1f} min'.format(
-                self.f,
-                self.length,
-                self.core_list[0]._time_info[self.f][0],
-                self.core_list[0]._time_info[self.f][1],
-                self.core_list[0]._time_info[self.f][0]/60 + self.core_list[0].zero_time
+        if self.orientation:
+            self.fig, self.axes = plt.subplots(ncols=len(self.core_list), nrows=1)
+        else:
+            self.fig, self.axes = plt.subplots(nrows=len(self.core_list), ncols=1)
+
+        self.fig.suptitle(self.frame_info())
+
+        for i, core in enumerate(self.core_list):
+            self.img_shown.append(
+                self.axes[i].imshow(
+                    core.frame(self.f),
+                    cmap='gray',
+                    zorder=0,
+                    vmin=core.range[0],
+                    vmax=core.range[1]
+                )
             )
+            self.axes[i].core = core
 
-        def next_frame(df):
-            self.f = df
-            for location in self.locations:
-                location.xy = [self.f, axes_info[0, 0].get_ylim()[0]]
+            if self.orientation:
+                self.axes[i].set_ylabel('channel {}.; {}'.format(core.file[-1:], core.type))
+            else:
+                self.axes[i].set_xlabel('channel {}.; {}'.format(core.file[-1:], core.type))
+            for s in SIDES:
+                self.axes[i].spines[s].set_color(COLORS[i])
 
-            fig_info.canvas.draw()
+        self.fig.canvas.mpl_connect('key_press_event', self.button_press)
+        self.fig.canvas.mpl_connect('scroll_event', self.mouse_scroll)
 
+    def show_plots(self):
         def add_time_bar(ax):
             rectangle_height = np.abs(
                 ax.get_ylim()[1] -
@@ -73,109 +169,16 @@ class View(object):
             self.locations.append(location)
             ax.add_patch(location)
 
-        def change_type(event, itype):
-            if event.inaxes is not None:
-                event.inaxes.core.type = itype
-                if self.orientation:
-                    event.inaxes.set_ylabel('channel {}.; {}'.format(core.file[-1:], event.inaxes.core.type))
-                else:
-                    event.inaxes.set_xlabel('channel {}.; {}'.format(core.file[-1:], event.inaxes.core.type))
+        self.fig_info, self.axes_info = plt.subplots(2, 2, figsize=(10, 3))
 
-        def mouse_scroll(event):
-            fig = event.canvas.figure
-            if event.button == 'down':
-                next_frame(1)
-            elif event.button == 'up':
-                next_frame(-1)
+        self.fig_info.suptitle('info')
 
-            fig.suptitle(frame_info())
-
-            for i, core in enumerate(self.core_list):
-                img_shown[i].set_array(core.frame(self.f)['image'])
-            fig.canvas.draw()
-
-        def button_press(event):
-            fig = event.canvas.figure
-            if event.key == '9':
-                next_frame(100)
-            elif event.key == '7':
-                next_frame(-100)
-            elif event.key == '6':
-                next_frame(10)
-            elif event.key == '4':
-                next_frame(-10)
-            elif event.key == '3':
-                next_frame(1)
-            elif event.key == '1':
-                next_frame(-1)
-            elif event.key == '5':
-                img = event.inaxes.get_images()[0]
-                lim = [i * 1.2 for i in img.get_clim()]
-                img.set_clim(lim)
-            elif event.key == '8':
-                img = event.inaxes.get_images()[0]
-                lim = [i / 1.2 for i in img.get_clim()]
-                img.set_clim(lim)
-
-            elif event.key == 'ctrl+1':
-                change_type(event, 'raw')
-
-            elif event.key == 'ctrl+2':
-                change_type(event, 'int')
-
-            elif event.key == 'ctrl+3':
-                change_type(event, 'diff')
-
-            elif event.key == 'i':
-                if event.inaxes is not None:
-                    event.inaxes.core.ref_frame = self.f
-
-            fig.suptitle(frame_info())
-            for i, core in enumerate(self.core_list):
-                img_shown[i].set_array(core.frame(self.f))
-            fig.canvas.draw()
-
-        if self.orientation:
-            fig, axes = plt.subplots(ncols=len(self.core_list), nrows=1)
-        else:
-            fig, axes = plt.subplots(nrows=len(self.core_list), ncols=1)
-
-        fig.suptitle(frame_info())
-
-        img_shown = []
+        self.axes_info[0, 0].set_title('spr signal')
+        self.axes_info[0, 0].set_xlabel('frame')
+        self.axes_info[0, 0].set_ylabel('R [a.u.]')
 
         for i, core in enumerate(self.core_list):
-            img_shown.append(
-                axes[i].imshow(
-                    core.frame(self.f),
-                    cmap='gray',
-                    zorder=0,
-                    vmin=core.range[0],
-                    vmax=core.range[1]
-                )
-            )
-            axes[i].core = core
-
-            if self.orientation:
-                axes[i].set_ylabel('channel {}.; {}'.format(core.file[-1:], core.type))
-            else:
-                axes[i].set_xlabel('channel {}.; {}'.format(core.file[-1:], core.type))
-            for s in SIDES:
-                axes[i].spines[s].set_color(COLORS[i])
-
-        fig.canvas.mpl_connect('key_press_event', button_press)
-        fig.canvas.mpl_connect('scroll_event', mouse_scroll)
-
-        fig_info, axes_info = plt.subplots(2, 2, figsize=(10, 3))
-
-        fig_info.suptitle('info')
-
-        axes_info[0 ,0].set_title('spr signal')
-        axes_info[0, 0].set_xlabel('frame')
-        axes_info[0, 0].set_ylabel('R [a.u.]')
-
-        for i, core in enumerate(self.core_list):
-            axes_info[0, 0].plot(
+            self.axes_info[0, 0].plot(
                 core.spr_signal - core.spr_signal[0] + 1,
                 linewidth=1,
                 color=COLORS[i],
@@ -183,22 +186,21 @@ class View(object):
                 label='channel {}.'.format(i)
             )
 
-        add_time_bar(axes_info[0, 0])
+        add_time_bar(self.axes_info[0, 0])
 
-
-
-
-        axes_info[0, 1].set_title('NP count')
-        axes_info[0, 1].set_xlabel('frame')
-        axes_info[0, 1].set_ylabel('#')
+        self.axes_info[0, 1].set_title('NP count')
+        self.axes_info[0, 1].set_xlabel('frame')
+        self.axes_info[0, 1].set_ylabel('#')
 
         for i, core in enumerate(self.core_list):
-            axes_info[0, 1].plot(
+            self.axes_info[0, 1].plot(
                 core.spr_signal - core.spr_signal[0] + 1,
                 linewidth=1,
                 color=COLORS[i],
                 alpha=0.5,
                 label='channel {}.'.format(i)
             )
-        add_time_bar(axes_info[0, 1])
+        add_time_bar(self.axes_info[0, 1])
 
+        self.fig_info.canvas.mpl_connect('scroll_event', self.mouse_scroll)
+        self.fig_info.canvas.mpl_connect('key_press_event', self.button_press)

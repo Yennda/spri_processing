@@ -27,6 +27,7 @@ view.add_core(core2)
 # view.add_core(core3)
 # view.add_core(core4)
 view.show()
+view.show_plots()
 
 
 print(core.shape)
