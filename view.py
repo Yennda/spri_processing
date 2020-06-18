@@ -52,7 +52,8 @@ class View(object):
     def next_frame(self, df):
         self.f = df
         for location in self.locations:
-            location.xy = [self.f, self.axes_info[0, 0].get_ylim()[0]]
+            y = location.get_y()
+            location.xy = [self.f, y]
 
         self.fig.suptitle(self.frame_info())
         for i, core in enumerate(self.core_list):
@@ -79,13 +80,17 @@ class View(object):
                 event.inaxes.set_xlabel('channel {}.; {}'.format(self.core_list[0].file[-1:], event.inaxes.core.type))
 
     def mouse_scroll(self, event):
-        fig = event.canvas.figure
+        # fig = event.canvas.figure
         if event.button == 'down':
             self.next_frame(1)
         elif event.button == 'up':
             self.next_frame(-1)
 
     def button_press(self, event):
+        def set_range(range):
+            img = event.inaxes.get_images()[0]
+            img.set_clim(event.inaxes.core.range)
+
         if event.key == '9':
             self.next_frame(100)
         elif event.key == '7':
@@ -101,23 +106,27 @@ class View(object):
 
         if event.canvas.figure is self.fig and event.inaxes is not None:
             if event.key == '5':
-                img = event.inaxes.get_images()[0]
-                lim = [i * 1.2 for i in img.get_clim()]
-                img.set_clim(lim)
+                event.inaxes.core.range = [i * 1.2 for i in event.inaxes.core.range]
+                set_range(event.inaxes.core.range)
 
             elif event.key == '8':
-                img = event.inaxes.get_images()[0]
-                lim = [i / 1.2 for i in img.get_clim()]
-                img.set_clim(lim)
+                event.inaxes.core.range = [i / 1.2 for i in event.inaxes.core.range]
+                set_range(event.inaxes.core.range)
 
             elif event.key == 'ctrl+1':
                 self.change_type(event, 'raw')
+                set_range(event.inaxes.core.range)
+                self.next_frame(0)
 
             elif event.key == 'ctrl+2':
                 self.change_type(event, 'int')
+                set_range(event.inaxes.core.range)
+                self.next_frame(0)
 
             elif event.key == 'ctrl+3':
                 self.change_type(event, 'diff')
+                set_range(event.inaxes.core.range)
+                self.next_frame(0)
 
             elif event.key == 'i':
                 event.inaxes.core.ref_frame = self.f
@@ -150,6 +159,8 @@ class View(object):
                 self.axes[i].set_xlabel('channel {}.; {}'.format(core.file[-1:], core.type))
             for s in SIDES:
                 self.axes[i].spines[s].set_color(COLORS[i])
+                self.axes[i].spines[s].set_linewidth(3)
+
 
         self.fig.canvas.mpl_connect('key_press_event', self.button_press)
         self.fig.canvas.mpl_connect('scroll_event', self.mouse_scroll)
@@ -179,7 +190,7 @@ class View(object):
 
         for i, core in enumerate(self.core_list):
             self.axes_info[0, 0].plot(
-                core.spr_signal - core.spr_signal[0] + 1,
+                core.graphs['spr_signal'] - core.graphs['spr_signal'][0] + 1,
                 linewidth=1,
                 color=COLORS[i],
                 alpha=0.5,
@@ -188,19 +199,47 @@ class View(object):
 
         add_time_bar(self.axes_info[0, 0])
 
-        self.axes_info[0, 1].set_title('NP count')
+        self.axes_info[0, 1].set_title('Raw intensity per px')
         self.axes_info[0, 1].set_xlabel('frame')
-        self.axes_info[0, 1].set_ylabel('#')
+        self.axes_info[0, 1].set_ylabel('I/area [a.u./px]')
 
         for i, core in enumerate(self.core_list):
             self.axes_info[0, 1].plot(
-                core.spr_signal - core.spr_signal[0] + 1,
+                core.graphs['intensity_raw'],
                 linewidth=1,
                 color=COLORS[i],
                 alpha=0.5,
                 label='channel {}.'.format(i)
             )
         add_time_bar(self.axes_info[0, 1])
+
+        self.axes_info[1, 0].set_title('Int. intensity per px, normalized by laser intensity')
+        self.axes_info[1, 0].set_xlabel('frame')
+        self.axes_info[1, 0].set_ylabel('I/area [a.u./px]')
+
+        for i, core in enumerate(self.core_list):
+            self.axes_info[1, 0].plot(
+                core.graphs['intensity_int'],
+                linewidth=1,
+                color=COLORS[i],
+                alpha=0.5,
+                label='channel {}.'.format(i)
+            )
+        add_time_bar(self.axes_info[1, 0])
+
+        self.axes_info[1, 1].set_title('Std of int., normalized by laser intensity')
+        self.axes_info[1, 1].set_xlabel('frame')
+        self.axes_info[1, 1].set_ylabel('std [a.u./]')
+
+        for i, core in enumerate(self.core_list):
+            self.axes_info[1, 1].plot(
+                core.graphs['std_int'],
+                linewidth=1,
+                color=COLORS[i],
+                alpha=0.5,
+                label='channel {}.'.format(i)
+            )
+        add_time_bar(self.axes_info[1, 1])
 
         self.fig_info.canvas.mpl_connect('scroll_event', self.mouse_scroll)
         self.fig_info.canvas.mpl_connect('key_press_event', self.button_press)

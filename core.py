@@ -12,17 +12,21 @@ class Core(object):
         self._raw = None
         self._time_info = None
         self._ref_frame = 0
-        self.range = [-0.01, 0.01]
-
+        self._range = {
+            'diff': [-0.01, 0.01],
+            'raw': [0, 1],
+            'int': [-0.01, 0.01]
+        }
         self.__video_stats = None
 
         self.k = 1
         self.type = 'diff'
-        self.fouriere_level = 30
+        self.fourier_level = 30
         self.postprocessing = []
 
+        self.graphs = dict()
         self.spr_time = None
-        self.spr_signal = None
+        # self.spr_signal = None
         self.zero_time = None
         self.reference = None
 
@@ -32,7 +36,8 @@ class Core(object):
     def _load_data(self):
         self.__video_stats = self._load_stats()
         self._raw = self._load_video()
-        self.spr_time, self.spr_signal = self._load_spr()
+        self.spr_time, self.graphs['spr_signal'] = self._load_spr()
+        # self.graphs['spr_signal'] = spr_signal
 
     def _load_stats(self):
         suffix = '.tsv'
@@ -87,7 +92,7 @@ class Core(object):
             line_split = line.split('\t')
             time.append(float(line_split[0]))
             signal.append(float(line_split[1]))
-        beginning = list(self.spr_signal[:2])
+        beginning = list(self.graphs['spr_signal'][:2])
         for i in range(len(signal)):
             if signal[i:i + 2] == beginning:
                 self.zero_time = time[i]
@@ -102,6 +107,10 @@ class Core(object):
     @property
     def shape(self):
         return self._raw.shape
+
+    @property
+    def area(self):
+        return self._raw.shape[0] * self._raw.shape[1]
 
     @property
     def shape_img(self):
@@ -119,6 +128,22 @@ class Core(object):
             axis=2
         ) / self.k
 
+    @property
+    def range(self):
+        return self._range[self.type]
+
+    @range.setter
+    def range(self, r):
+        self._range[self.type] = r
+
+    @property
+    def intensity(self):
+        type_buffer = self.type
+        self.type = 'raw'
+        intensity = np.sum(self.frame(0))
+        self.type = type_buffer
+        return intensity
+
     def frame(self, f):
         # if f < 2 * self.k:
         #     image = np.zeros(self.shape_img)
@@ -127,7 +152,6 @@ class Core(object):
         #         'range': self.range,
         #         'image': image
         #     }
-
         if self.type == 'diff':
             current = np.sum(
                 self._raw[:, :, f - self.k + 1: f + 1],
@@ -157,6 +181,36 @@ class Core(object):
 
     def fourier(self, image):
         f = np.fft.fft2(image)
-        mask = np.abs(f) > np.exp(self.fouriere_level / 20)
+        mask = np.abs(f) > np.exp(self.fourier_level / 20)
         f[mask] = 0
         return np.real(np.fft.ifft2(f))
+
+    def apply_function(self, fn):
+        out = []
+        for f in range(len(self)):
+            out.append(fn(self.frame(f)))
+            print('\r\t{}/ {}'.format(f + 1, len(self)), end='')
+
+        print(' DONE')
+        return np.array(out)
+
+    def make_intensity_raw(self):
+        print('Processing raw intensity')
+        type_buffer = self.type
+        self.type = 'raw'
+        self.graphs['intensity_raw'] = self.apply_function(np.sum) / self.area
+        self.type = type_buffer
+
+    def make_intensity_int(self):
+        print('Processing int. intensity')
+        type_buffer = self.type
+        self.type = 'int'
+        self.graphs['intensity_int'] = self.apply_function(np.sum) / self.area / self.intensity
+        self.type = type_buffer
+
+    def make_std_int(self):
+        print('Processing int. std')
+        type_buffer = self.type
+        self.type = 'int'
+        self.graphs['std_int'] = self.apply_function(np.std) / self.intensity
+        self.type = type_buffer
