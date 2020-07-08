@@ -79,6 +79,10 @@ class View(object):
             else:
                 event.inaxes.set_xlabel('channel {}.; {}'.format(self.core_list[0].file[-1:], event.inaxes.core.type))
 
+    def mouse_click_spr(self, event):
+        if event.button == 1:
+            self.next_frame(int(round(event.xdata)) - self.f)
+
     def mouse_scroll(self, event):
         # fig = event.canvas.figure
         if event.button == 'down':
@@ -130,6 +134,7 @@ class View(object):
 
             elif event.key == 'i':
                 event.inaxes.core.ref_frame = self.f
+                self.next_frame(0)
 
         self.fig.canvas.draw()
 
@@ -243,3 +248,4 @@ class View(object):
 
         self.fig_info.canvas.mpl_connect('scroll_event', self.mouse_scroll)
         self.fig_info.canvas.mpl_connect('key_press_event', self.button_press)
+        self.fig_info.canvas.mpl_connect('button_press_event', self.mouse_click_spr)
