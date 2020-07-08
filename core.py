@@ -31,7 +31,7 @@ class Core(object):
         self.reference = None
 
         self._load_data()
-        self.ref_frame = 0
+        self.ref_frame = 10
 
     def _load_data(self):
         self.__video_stats = self._load_stats()
@@ -122,9 +122,13 @@ class Core(object):
 
     @ref_frame.setter
     def ref_frame(self, f):
-        self._ref_frame = f
+        if f > self.k:
+            self._ref_frame = f //self.k * self.k
+        else:
+            self._ref_frame = self.k
+
         self.reference = np.sum(
-            self._raw[:, :, self.ref_frame: self.ref_frame + self.k],
+            self._raw[:, :, self.ref_frame - self.k: self.ref_frame],
             axis=2
         ) / self.k
 
