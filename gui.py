@@ -10,24 +10,6 @@ from core import Core
 from view import View
 
 
-class CustomDialog(QDialog):
-
-    def __init__(self, *args, **kwargs):
-        super(CustomDialog, self).__init__(*args, **kwargs)
-
-        self.setWindowTitle("HELLO!")
-
-        QBtn = QDialogButtonBox.Open | QDialogButtonBox.Cancel
-
-        self.buttonBox = QDialogButtonBox(QBtn)
-        self.buttonBox.accepted.connect(self.accept)
-        self.buttonBox.rejected.connect(self.reject)
-
-        self.layout = QVBoxLayout()
-        self.layout.addWidget(self.buttonBox)
-        self.setLayout(self.layout)
-
-
 class MainWindow(QMainWindow):
 
     def __init__(self, *args, **kwargs):
@@ -37,13 +19,17 @@ class MainWindow(QMainWindow):
         self.file = str()
         self.folder = str()
 
-        self.setWindowTitle("My Awesome App")
+
+
+        self.setWindowTitle("SPRI Data Viewer")
+        self.setWindowIcon(QIcon('icons/film.png'))
 
         self.open_button = QPushButton(QIcon('icons/folder-open.png'), 'Open file')
-        self.open_button.setStatusTip(
-            'Open one of the files from the desired measurement. In this stage, the specific channel does not matter. ')
         font = self.open_button.font()
         font.setPointSize(15)
+
+        self.open_button.setStatusTip(
+            'Open one of the files from the desired measurement. In this stage, the specific channel does not matter. ')
         self.open_button.setFont(font)
         self.open_button.clicked.connect(self.OpenButtonClick)
 
@@ -54,11 +40,9 @@ class MainWindow(QMainWindow):
 
         self.spr_checkbox = QCheckBox('SPR')
         self.spr_checkbox.setChecked(True)
-
         self.int_checkbox = QCheckBox('intensity')
         self.nint_checkbox = QCheckBox('norm. int.')
         self.std_checkbox = QCheckBox('std')
-
 
         self.channel_checkbox_list = []
         for i in range(1, 5):
@@ -123,6 +107,8 @@ class MainWindow(QMainWindow):
         widget.setLayout(layout)
 
         self.setStatusBar(QStatusBar(self))
+        self.statusBar().setMinimumSize(400, 40)
+        self.statusBar().setStyleSheet("border :1px solid gray;")
         self.setCentralWidget(widget)
 
     def ProcessPath(self, path):
@@ -154,8 +140,15 @@ class MainWindow(QMainWindow):
                 core.k = 10
                 core_list.append(core)
         print('Core, successful')
-        # view = View()
-        # view.add_core(core)
+        view = View()
+        view.add_core(core)
+
+        for i, core in enumerate(view.core_list):
+            print('channel {}.'.format(i))
+            core.make_intensity_raw()
+            core.make_intensity_int()
+            core.make_std_int()
+        print('processing finished')
         # view.show()
 
 
