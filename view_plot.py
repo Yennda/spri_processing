@@ -23,7 +23,7 @@ matplotlib.rcParams['mathtext.it'] = 'Palatino Linotype:italic'
 matplotlib.rcParams['mathtext.bf'] = 'BiPalatino Linotype:bold'
 
 
-class View(FigureCanvasQTAgg):
+class View():
     def __init__(self):
 
 
@@ -149,7 +149,6 @@ class View(FigureCanvasQTAgg):
         else:
             self.fig, self.axes = plt.subplots(nrows=len(self.core_list), ncols=1)
 
-        super(View, self).__init__(self.fig)
 
         self.fig.suptitle(self.frame_info())
 

@@ -16,7 +16,7 @@ from matplotlib.figure import Figure
 import sys
 import os
 from core import Core
-from view_ import View
+from view_plot import View
 
 class MplCanvas(FigureCanvasQTAgg):
 
@@ -171,27 +171,29 @@ class MainWindow(QMainWindow):
         self.build_button.setDisabled(False)
 
     def BuildButtonClick(self, s):
-        if self.plot_window is None:
-            self.plot_window = PlotWindow()
-        self.plot_window.show()
 
-        # core_list = []
-        # for i, channel in enumerate(self.channel_checkbox_list):
-        #     if channel.checkState() == 2:
-        #         core = Core(self.folder, self.file + '_{}'.format(i + 1))
-        #         core.k = 10
-        #         core_list.append(core)
-        # print('Core, successful')
-        # view = View()
-        # view.add_core(core)
-        #
+
+        core_list = []
+        for i, channel in enumerate(self.channel_checkbox_list):
+            if channel.checkState() == 2:
+                core = Core(self.folder, self.file + '_{}'.format(i + 1))
+                core.k = 10
+                core_list.append(core)
+        print('Core, successful')
+        view = View()
+        view.add_core(core)
+
         # for i, core in enumerate(view.core_list):
         #     print('channel {}.'.format(i))
         #     core.make_intensity_raw()
         #     core.make_intensity_int()
         #     core.make_std_int()
         # print('processing finished')
-        # view.show()
+        view.show_img()
+
+        if self.plot_window is None:
+            self.plot_window = PlotWindow()
+        self.plot_window.show()
 
 
 app = QApplication(sys.argv)
