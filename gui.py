@@ -4,10 +4,49 @@ from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import QFrame
 
+
+import matplotlib
+matplotlib.use('Qt5Agg')
+
+from PyQt5 import QtCore, QtGui, QtWidgets
+
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg, NavigationToolbar2QT as NavigationToolbar
+from matplotlib.figure import Figure
+
 import sys
 import os
 from core import Core
-from view import View
+from view_ import View
+
+class MplCanvas(FigureCanvasQTAgg):
+
+    def __init__(self, parent=None, width=5, height=4, dpi=100):
+        fig = Figure(figsize=(width, height), dpi=dpi)
+        self.axes = fig.add_subplot(111)
+        super(MplCanvas, self).__init__(fig)
+
+
+class PlotWindow(QtWidgets.QMainWindow):
+
+    def __init__(self, *args, **kwargs):
+        super(PlotWindow, self).__init__(*args, **kwargs)
+
+        sc = MplCanvas(self, width=5, height=4, dpi=100)
+        sc.axes.plot([0,1,2,3,4], [10,1,20,3,40])
+
+        # Create toolbar, passing canvas as first parament, parent (self, the MainWindow) as second.
+        toolbar = NavigationToolbar(sc, self)
+
+        layout = QtWidgets.QVBoxLayout()
+        layout.addWidget(toolbar)
+        layout.addWidget(sc)
+
+        # Create a placeholder widget to hold our toolbar and canvas.
+        widget = QtWidgets.QWidget()
+        widget.setLayout(layout)
+        self.setCentralWidget(widget)
+        self.show()
+
 
 
 class MainWindow(QMainWindow):
@@ -15,11 +54,11 @@ class MainWindow(QMainWindow):
     def __init__(self, *args, **kwargs):
         super(MainWindow, self).__init__(*args, **kwargs)
 
+        self.plot_window = None
+
         self.file_path = str()
         self.file = str()
         self.folder = str()
-
-
 
         self.setWindowTitle("SPRI Data Viewer")
         self.setWindowIcon(QIcon('icons/film.png'))
@@ -100,7 +139,6 @@ class MainWindow(QMainWindow):
         plot_layout.addWidget(self.std_checkbox, 1, 1)
         layout.addLayout(plot_layout)
 
-
         layout.addWidget(self.build_button)
 
         widget = QWidget()
@@ -133,22 +171,26 @@ class MainWindow(QMainWindow):
         self.build_button.setDisabled(False)
 
     def BuildButtonClick(self, s):
-        core_list = []
-        for i, channel in enumerate(self.channel_checkbox_list):
-            if channel.checkState() == 2:
-                core = Core(self.folder, self.file + '_{}'.format(i + 1))
-                core.k = 10
-                core_list.append(core)
-        print('Core, successful')
-        view = View()
-        view.add_core(core)
+        if self.plot_window is None:
+            self.plot_window = PlotWindow()
+        self.plot_window.show()
 
-        for i, core in enumerate(view.core_list):
-            print('channel {}.'.format(i))
-            core.make_intensity_raw()
-            core.make_intensity_int()
-            core.make_std_int()
-        print('processing finished')
+        # core_list = []
+        # for i, channel in enumerate(self.channel_checkbox_list):
+        #     if channel.checkState() == 2:
+        #         core = Core(self.folder, self.file + '_{}'.format(i + 1))
+        #         core.k = 10
+        #         core_list.append(core)
+        # print('Core, successful')
+        # view = View()
+        # view.add_core(core)
+        #
+        # for i, core in enumerate(view.core_list):
+        #     print('channel {}.'.format(i))
+        #     core.make_intensity_raw()
+        #     core.make_intensity_int()
+        #     core.make_std_int()
+        # print('processing finished')
         # view.show()
 
 

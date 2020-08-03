@@ -39,7 +39,7 @@ for i, core in enumerate(view.core_list):
     core.make_std_int()
 
 view.orientation = False
-view.show()
+view.show_img()
 view.show_plots()
 
 

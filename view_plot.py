@@ -3,6 +3,9 @@ import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
+from matplotlib.figure import Figure
+
 from matplotlib.ticker import MaxNLocator
 import matplotlib.font_manager as fm
 from matplotlib.widgets import RectangleSelector
@@ -20,8 +23,10 @@ matplotlib.rcParams['mathtext.it'] = 'Palatino Linotype:italic'
 matplotlib.rcParams['mathtext.bf'] = 'BiPalatino Linotype:bold'
 
 
-class View(object):
+class View(FigureCanvasQTAgg):
     def __init__(self):
+
+
         self.core_list = []
         self._f = 0
         self.orientation = True
@@ -143,6 +148,8 @@ class View(object):
             self.fig, self.axes = plt.subplots(ncols=len(self.core_list), nrows=1)
         else:
             self.fig, self.axes = plt.subplots(nrows=len(self.core_list), ncols=1)
+
+        super(View, self).__init__(self.fig)
 
         self.fig.suptitle(self.frame_info())
 
