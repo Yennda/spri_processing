@@ -9,6 +9,8 @@ from matplotlib.figure import Figure
 from matplotlib.ticker import MaxNLocator
 import matplotlib.font_manager as fm
 from matplotlib.widgets import RectangleSelector
+import matplotlib.image as mpimg
+from PyQt5 import QtCore
 
 from global_var import *
 import tools as tl
@@ -23,13 +25,26 @@ matplotlib.rcParams['mathtext.it'] = 'Palatino Linotype:italic'
 matplotlib.rcParams['mathtext.bf'] = 'BiPalatino Linotype:bold'
 
 
-class View():
+class Canvas(FigureCanvasQTAgg):
+    def __init__(self, view):
+        fig = view.fig
+        # self.axes = view.axes
+
+        super(Canvas, self).__init__(fig)
+        # self.mpl_connect('key_press_event', self.button_press)
+        # self.mpl_connect('scroll_event', self.button_press)
+        # self.setFocusPolicy(QtCore.Qt.ClickFocus)
+        # self.setFocus()
+
+
+    # def button_press(self, event):
+    #     print('ej, press')
+
+class View(object):
     def __init__(self):
-
-
         self.core_list = []
         self._f = 0
-        self.orientation = True
+        self.orientation = False
         self.length = 0
         self.locations = []
 
@@ -89,6 +104,7 @@ class View():
             self.next_frame(int(round(event.xdata)) - self.f)
 
     def mouse_scroll(self, event):
+        print('scroll')
         # fig = event.canvas.figure
         if event.button == 'down':
             self.next_frame(1)
@@ -96,7 +112,8 @@ class View():
             self.next_frame(-1)
 
     def button_press(self, event):
-        def set_range(range):
+        print('press')
+        def set_range():
             img = event.inaxes.get_images()[0]
             img.set_clim(event.inaxes.core.range)
 
@@ -149,7 +166,6 @@ class View():
         else:
             self.fig, self.axes = plt.subplots(nrows=len(self.core_list), ncols=1)
 
-
         self.fig.suptitle(self.frame_info())
 
         for i, core in enumerate(self.core_list):
@@ -172,9 +188,10 @@ class View():
                 self.axes[i].spines[s].set_color(COLORS[i])
                 self.axes[i].spines[s].set_linewidth(3)
 
-
         self.fig.canvas.mpl_connect('key_press_event', self.button_press)
         self.fig.canvas.mpl_connect('scroll_event', self.mouse_scroll)
+
+        return self.fig.canvas
 
     def show_plots(self):
         def add_time_bar(ax):

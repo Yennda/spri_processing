@@ -1,52 +1,52 @@
+import sys
+import os
+
 from PyQt5.QtWidgets import *
 from PyQt5.Qt import QVBoxLayout, QIcon
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import QFrame
 
-
 import matplotlib
+
 matplotlib.use('Qt5Agg')
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg, NavigationToolbar2QT as NavigationToolbar
+
 from matplotlib.figure import Figure
+import matplotlib.pyplot as plt
+import matplotlib.image as mpimg
 
-import sys
-import os
 from core import Core
-from view_plot import View
+from view_pyqt import View
 
-class MplCanvas(FigureCanvasQTAgg):
 
-    def __init__(self, parent=None, width=5, height=4, dpi=100):
-        fig = Figure(figsize=(width, height), dpi=dpi)
-        self.axes = fig.add_subplot(111)
-        super(MplCanvas, self).__init__(fig)
+def BoolFromCheckBox(value):
+    if value.checkState() == 0:
+        return False
+    else:
+        return True
 
 
 class PlotWindow(QtWidgets.QMainWindow):
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, canvas, *args, **kwargs):
         super(PlotWindow, self).__init__(*args, **kwargs)
-
-        sc = MplCanvas(self, width=5, height=4, dpi=100)
-        sc.axes.plot([0,1,2,3,4], [10,1,20,3,40])
-
-        # Create toolbar, passing canvas as first parament, parent (self, the MainWindow) as second.
-        toolbar = NavigationToolbar(sc, self)
+        print('plotwindow')
+        toolbar = NavigationToolbar(canvas, self)
 
         layout = QtWidgets.QVBoxLayout()
         layout.addWidget(toolbar)
-        layout.addWidget(sc)
+        layout.addWidget(canvas)
 
         # Create a placeholder widget to hold our toolbar and canvas.
         widget = QtWidgets.QWidget()
         widget.setLayout(layout)
         self.setCentralWidget(widget)
-        self.show()
 
+        self.show()
 
 
 class MainWindow(QMainWindow):
@@ -54,9 +54,9 @@ class MainWindow(QMainWindow):
     def __init__(self, *args, **kwargs):
         super(MainWindow, self).__init__(*args, **kwargs)
 
+        self.img_window = None
         self.plot_window = None
 
-        self.file_path = str()
         self.file = str()
         self.folder = str()
 
@@ -74,8 +74,9 @@ class MainWindow(QMainWindow):
 
         self.file_name_label = QLabel()
 
-        self.orientation_checkbox = QCheckBox('Change the orientation')
-        self.orientation_checkbox.setStatusTip('Check to rotate the orientation by 90 degrees.')
+        self.orientation_checkbox = QCheckBox('Horizontal layout')
+        self.orientation_checkbox.clicked.connect(self.RefreshOrientationInfo)
+        self.orientation_checkbox.setChecked(True)
 
         self.spr_checkbox = QCheckBox('SPR')
         self.spr_checkbox.setChecked(True)
@@ -131,6 +132,9 @@ class MainWindow(QMainWindow):
         label = QLabel('-- Data to plot --')
         label.setAlignment(Qt.AlignCenter)
         layout.addWidget(label)
+        label = QLabel('(takes a while)')
+        label.setAlignment(Qt.AlignCenter)
+        layout.addWidget(label)
 
         plot_layout = QGridLayout()
         plot_layout.addWidget(self.spr_checkbox, 0, 0)
@@ -163,37 +167,67 @@ class MainWindow(QMainWindow):
     def RefreshSliderInfo(self):
         self.slider_info.setText(str(self.k_slider.value()))
 
+    def RefreshOrientationInfo(self):
+        if self.orientation_checkbox.checkState() == 0:
+            self.orientation_checkbox.setText('Vertical layout')
+        else:
+            self.orientation_checkbox.setText('Horizontal layout')
+
     def OpenButtonClick(self, s):
         dlg = QFileDialog(self)
 
         self.ProcessPath(dlg.getOpenFileName()[0])
-        self.file_name_label.setText(self.file_path)
+        self.file_name_label.setText(self.folder + self.file)
         self.build_button.setDisabled(False)
 
     def BuildButtonClick(self, s):
-
+        view = View()
 
         core_list = []
         for i, channel in enumerate(self.channel_checkbox_list):
             if channel.checkState() == 2:
                 core = Core(self.folder, self.file + '_{}'.format(i + 1))
-                core.k = 10
+                core.k = self.k_slider.value()
                 core_list.append(core)
-        print('Core, successful')
-        view = View()
-        view.add_core(core)
+                view.add_core(core)
 
-        # for i, core in enumerate(view.core_list):
-        #     print('channel {}.'.format(i))
-        #     core.make_intensity_raw()
-        #     core.make_intensity_int()
-        #     core.make_std_int()
-        # print('processing finished')
-        view.show_img()
+        view.orientation = BoolFromCheckBox(self.orientation_checkbox)
 
-        if self.plot_window is None:
-            self.plot_window = PlotWindow()
+        canvas_img = view.show_img()
+        # if self.img_window is None:
+        self.img_window = PlotWindow(canvas_img)
+        self.img_window.show()
+
+        canvas_img.setFocusPolicy(QtCore.Qt.ClickFocus)
+        canvas_img.setFocus()
+
+        chosen_plots = [
+            BoolFromCheckBox(self.spr_checkbox),
+            BoolFromCheckBox(self.int_checkbox),
+            BoolFromCheckBox(self.nint_checkbox),
+            BoolFromCheckBox(self.std_checkbox)
+        ]
+
+        print(chosen_plots)
+        for i, core in enumerate(view.core_list):
+            print('channel {}.'.format(i))
+            if chosen_plots[1]:
+                core.make_intensity_raw()
+
+            if chosen_plots[2]:
+                core.make_intensity_int()
+
+            if chosen_plots[3]:
+                core.make_std_int()
+
+        canvas_plot = view.show_plots(chosen_plots)
+
+        # if self.plot_window is None:
+        self.plot_window = PlotWindow(canvas_plot)
         self.plot_window.show()
+
+        canvas_plot.setFocusPolicy(QtCore.Qt.ClickFocus)
+        canvas_plot.setFocus()
 
 
 app = QApplication(sys.argv)

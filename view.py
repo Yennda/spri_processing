@@ -143,7 +143,7 @@ class View(object):
             self.fig, self.axes = plt.subplots(ncols=len(self.core_list), nrows=1)
         else:
             self.fig, self.axes = plt.subplots(nrows=len(self.core_list), ncols=1)
-        print(type(self.fig))
+
         self.fig.suptitle(self.frame_info())
 
         for i, core in enumerate(self.core_list):
