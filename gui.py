@@ -163,6 +163,7 @@ class MainWindow(QMainWindow):
                 self.channel_checkbox_list[i].setDisabled(False)
             else:
                 self.channel_checkbox_list[i].setDisabled(True)
+                self.channel_checkbox_list[i].setChecked(False)
 
     def RefreshSliderInfo(self):
         self.slider_info.setText(str(self.k_slider.value()))
