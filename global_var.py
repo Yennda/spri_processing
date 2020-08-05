@@ -17,3 +17,31 @@ purple = '#DD84C0'
 COLORS = [yellow, blue, red, green, purple, black]
 
 SIDES = ['left', 'right', 'bottom', 'top']
+
+HELP = '''
+---------------------
+FILE NAMES CONVENTION
+---------------------
+    - the raw file starts with 'raw' and ends with the underscore and a nuber of the channel (1 - 4). Different formats do not work.
+        eg. raw_02_1, raw_200603 cycle 2 1kDa 60nm PBS_4, etc.
+        
+    - the spr data files have to be named exactly the same as the corresponding raw files, starting with 'spr' instead of 'raw'.
+        eg. spr_02_1, spr_200603 cycle 2 1kDa 60nm PBS_4, etc.
+
+------------------
+KEYBOARD SHORTCUTS
+---------------------
+'8'/'5' increases/decreases contrast
+Mouse scrolling moves the time 
+'1' and '3' jumps 1 frames in time
+'4' and '6' jumps 10 frames in time
+'7' and '9' jumps 100 frames in time
+'8' and '5' increase or decrease contrast
+'ctrl + 1 or 2 or 3' switches to raw, integral or differential image
+'i' sets the current frame as a reference for the integral image
+
+Official MATPLOTLIB shortcuts at https://matplotlib.org/users/navigation_toolbar.html
+
+'''
+
+

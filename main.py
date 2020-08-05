@@ -34,9 +34,9 @@ view.add_core(core2)
 
 for i, core in enumerate(view.core_list):
     print('channel {}.'.format(i))
-    core.make_intensity_raw()
-    core.make_intensity_int()
-    core.make_std_int()
+    # core.make_intensity_raw()
+    # core.make_intensity_int()
+    # core.make_std_int()
 
 view.orientation = False
 view.show_img()

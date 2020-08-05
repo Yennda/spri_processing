@@ -47,8 +47,9 @@ class Canvas(FigureCanvasQTAgg):
         for i, core in enumerate(self.view.core_list):
             self.view.img_shown[i].set_array(core.frame(self.view.f))
 
-        self.view.canvas_plot.draw()
         self.view.canvas_img.draw()
+        if not self.view.canvas_plot is None:
+            self.view.canvas_plot.draw()
 
     def mouse_click_spr(self, event):
         if event.button == 1:
@@ -104,7 +105,7 @@ class Canvas(FigureCanvasQTAgg):
                 self.next_frame(0)
 
             elif event.key == 'i':
-                event.inaxes.core.ref_frame = self.f
+                event.inaxes.core.ref_frame = self.view.f
                 self.next_frame(0)
 
         self.draw()

@@ -146,13 +146,6 @@ class Core(object):
         return intensity
 
     def frame(self, f):
-        # if f < 2 * self.k:
-        #     image = np.zeros(self.shape_img)
-        #     return {
-        #         'time': self._time_info[f],
-        #         'range': self.range,
-        #         'image': image
-        #     }
         if self.type == 'diff':
             current = np.sum(
                 self._raw[:, :, f - self.k + 1: f + 1],
@@ -186,32 +179,34 @@ class Core(object):
         f[mask] = 0
         return np.real(np.fft.ifft2(f))
 
-    def apply_function(self, fn):
+    def apply_function(self, fn, progress_callback):
         out = []
         for f in range(len(self)):
             out.append(fn(self.frame(f)))
-            print('\r\t{}/ {}'.format(f + 1, len(self)), end='')
-
-        print(' DONE')
+            # print('\r\t{}/ {}'.format(f + 1, len(self)), end='')
+            progress_callback.emit((f + 1)/len(self)*100)
         return np.array(out)
 
-    def make_intensity_raw(self):
-        print('Processing raw intensity')
+    def make_intensity_raw(self, progress_callback):
+        # print('Processing raw intensity')
         type_buffer = self.type
         self.type = 'raw'
-        self.graphs['intensity_raw'] = self.apply_function(np.sum) / self.area
+        self.graphs['intensity_raw'] = self.apply_function(np.sum, progress_callback) / self.area
         self.type = type_buffer
+        return 'done'
 
-    def make_intensity_int(self):
-        print('Processing int. intensity')
+    def make_intensity_int(self, progress_callback):
+        # print('Processing int. intensity')
         type_buffer = self.type
         self.type = 'int'
-        self.graphs['intensity_int'] = self.apply_function(np.sum) / self.area / self.intensity
+        self.graphs['intensity_int'] = self.apply_function(np.sum, progress_callback) / self.area / self.intensity
         self.type = type_buffer
+        return 'done'
 
-    def make_std_int(self):
-        print('Processing int. std')
+    def make_std_int(self, progress_callback):
+        # print('Processing int. std')
         type_buffer = self.type
         self.type = 'int'
-        self.graphs['std_int'] = self.apply_function(np.std) / self.intensity
+        self.graphs['std_int'] = self.apply_function(np.std, progress_callback) / self.intensity
         self.type = type_buffer
+        return 'done'
