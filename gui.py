@@ -1,23 +1,17 @@
 import sys
 import os
+import re
 
 from PyQt5.QtWidgets import *
 from PyQt5.Qt import QVBoxLayout, QIcon
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
-from PyQt5.QtWidgets import QFrame
+from PyQt5 import QtCore, QtWidgets
 
 import matplotlib
 
 matplotlib.use('Qt5Agg')
-
-from PyQt5 import QtCore, QtGui, QtWidgets
-
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg, NavigationToolbar2QT as NavigationToolbar
-
-from matplotlib.figure import Figure
-import matplotlib.pyplot as plt
-import matplotlib.image as mpimg
+from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 
 from core import Core
 from view_pyqt import View
@@ -30,18 +24,45 @@ def BoolFromCheckBox(value):
         return True
 
 
+class ErrorDialog(QDialog):
+
+    def __init__(self, error_message, *args, **kwargs):
+        super(ErrorDialog, self).__init__(*args, **kwargs)
+
+        self.setWindowTitle("Error")
+
+        QBtn = QDialogButtonBox.Ok
+
+        self.buttonBox = QDialogButtonBox(QBtn)
+        self.buttonBox.accepted.connect(self.accept)
+
+        self.layout = QVBoxLayout()
+
+        label = QLabel('An error has occured:')
+        label.setAlignment(Qt.AlignCenter)
+        self.layout.addWidget(label)
+
+        label_err = QLabel(error_message)
+        label_err.setAlignment(Qt.AlignCenter)
+        self.layout.addWidget(label_err)
+
+        self.layout.addWidget(self.buttonBox)
+        self.setLayout(self.layout)
+
+    def accept(self):
+        self.close()
+
+
 class PlotWindow(QtWidgets.QMainWindow):
 
     def __init__(self, canvas, *args, **kwargs):
         super(PlotWindow, self).__init__(*args, **kwargs)
-        print('plotwindow')
         toolbar = NavigationToolbar(canvas, self)
 
         layout = QtWidgets.QVBoxLayout()
         layout.addWidget(toolbar)
         layout.addWidget(canvas)
 
-        # Create a placeholder widget to hold our toolbar and canvas.
         widget = QtWidgets.QWidget()
         widget.setLayout(layout)
         self.setCentralWidget(widget)
@@ -155,7 +176,14 @@ class MainWindow(QMainWindow):
 
     def ProcessPath(self, path):
         splitted = path.split('/')
-        self.file = splitted[-1].split('.')[0][:-2]
+        file = splitted[-1].split('.')[0]
+
+        if not re.search('^raw.*[1-4]$', file):
+            dlg = ErrorDialog('File name has a wrong format.', self)
+            dlg.exec_()
+            return False
+
+        self.file = file[:-2]
         self.folder = '/'.join(splitted[:-1]) + '/'
 
         for i in range(4):
@@ -164,6 +192,7 @@ class MainWindow(QMainWindow):
             else:
                 self.channel_checkbox_list[i].setDisabled(True)
                 self.channel_checkbox_list[i].setChecked(False)
+        return True
 
     def RefreshSliderInfo(self):
         self.slider_info.setText(str(self.k_slider.value()))
@@ -177,9 +206,9 @@ class MainWindow(QMainWindow):
     def OpenButtonClick(self, s):
         dlg = QFileDialog(self)
 
-        self.ProcessPath(dlg.getOpenFileName()[0])
-        self.file_name_label.setText(self.folder + self.file)
-        self.build_button.setDisabled(False)
+        if self.ProcessPath(dlg.getOpenFileName()[0]):
+            self.file_name_label.setText('folder path: {}\nfile name: {}'.format(self.folder, self.file))
+            self.build_button.setDisabled(False)
 
     def BuildButtonClick(self, s):
         view = View()
@@ -195,7 +224,6 @@ class MainWindow(QMainWindow):
         view.orientation = BoolFromCheckBox(self.orientation_checkbox)
 
         canvas_img = view.show_img()
-        # if self.img_window is None:
         self.img_window = PlotWindow(canvas_img)
         self.img_window.show()
 
@@ -223,7 +251,6 @@ class MainWindow(QMainWindow):
 
         canvas_plot = view.show_plots(chosen_plots)
 
-        # if self.plot_window is None:
         self.plot_window = PlotWindow(canvas_plot)
         self.plot_window.show()
 
@@ -234,7 +261,5 @@ class MainWindow(QMainWindow):
 app = QApplication(sys.argv)
 
 window = MainWindow()
-window.show()  # IMPORTANT!!!!! Windows are hidden by default.
-
-# Start the event loop.
+window.show()
 app.exec_()

@@ -166,7 +166,6 @@ class View(object):
                 self.axes[i].spines[s].set_color(COLORS[i])
                 self.axes[i].spines[s].set_linewidth(3)
 
-
         self.fig.canvas.mpl_connect('key_press_event', self.button_press)
         self.fig.canvas.mpl_connect('scroll_event', self.mouse_scroll)
 

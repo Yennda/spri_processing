@@ -26,7 +26,6 @@ class Core(object):
 
         self.graphs = dict()
         self.spr_time = None
-        # self.spr_signal = None
         self.zero_time = None
         self.reference = None
 
@@ -37,7 +36,6 @@ class Core(object):
         self.__video_stats = self._load_stats()
         self._raw = self._load_video()
         self.spr_time, self.graphs['spr_signal'] = self._load_spr()
-        # self.graphs['spr_signal'] = spr_signal
 
     def _load_stats(self):
         suffix = '.tsv'
@@ -64,9 +62,8 @@ class Core(object):
         return np.swapaxes(video, 0, 1)
 
     def _load_spr(self):
-        with open(self.folder + NAME_LOCAL_SPR + self.file[-5:] + '.tsv', 'r') as spr:
+        with open(self.folder + self.file.replace(NAME_RAW, NAME_LOCAL_SPR) + '.tsv', 'r') as spr:
             contents = spr.readlines()
-
         time = []
         signal = []
 
@@ -123,7 +120,7 @@ class Core(object):
     @ref_frame.setter
     def ref_frame(self, f):
         if f > self.k:
-            self._ref_frame = f //self.k * self.k
+            self._ref_frame = f // self.k * self.k
         else:
             self._ref_frame = self.k
 
