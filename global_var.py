@@ -37,10 +37,27 @@ Mouse scrolling moves the time
 '4' and '6' jumps 10 frames in time
 '7' and '9' jumps 100 frames in time
 '8' and '5' increase or decrease contrast
-'ctrl + 1 or 2 or 3' switches to raw, integral or differential image
+'ctrl + 1 or 2 or 3' switches to raw, integral or differential image of channel with the mouse pointer
 'i' sets the current frame as a reference for the integral image
 
+Clicking into graphs also works as a navigation.
+
 Official MATPLOTLIB shortcuts at https://matplotlib.org/users/navigation_toolbar.html
+
+-------
+LICENCE
+-------
+This work is licensed under a Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License.
+Jan Bukáček, bukacek@ufe.cz
+https://github.com/Yennda/spri_processing
+
+Institute of Photonics and Elctronics, Czech Academy of Sciences
+www.ufe.cz
+
+2020
+
+
+
 
 '''
 

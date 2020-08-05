@@ -142,8 +142,8 @@ class MainWindow(QMainWindow):
         self.threadpool = QThreadPool()
         print("Multithreading with maximum %d threads" % self.threadpool.maxThreadCount())
 
-        self.setWindowTitle("SPRI Data Viewer")
-        self.setWindowIcon(QIcon('icons/film.png'))
+        self.setWindowTitle("Cvetka")
+        self.setWindowIcon(QIcon('icons/cat-icon-2.png'))
 
         self.open_button = QPushButton(QIcon('icons/folder-open.png'), 'Open')
         font = self.open_button.font()
