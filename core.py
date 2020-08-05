@@ -184,7 +184,7 @@ class Core(object):
         for f in range(len(self)):
             out.append(fn(self.frame(f)))
             # print('\r\t{}/ {}'.format(f + 1, len(self)), end='')
-            progress_callback.emit((f + 1)/len(self)*100)
+            progress_callback.emit((f + 1) / len(self) * 100)
         return np.array(out)
 
     def make_intensity_raw(self, progress_callback):

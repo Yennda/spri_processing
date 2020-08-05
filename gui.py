@@ -18,8 +18,6 @@ import global_var as gv
 from core import Core
 from view_pyqt import View
 
-import time
-
 
 def BoolFromCheckBox(value):
     if value.checkState() == 0:
@@ -311,7 +309,8 @@ class MainWindow(QMainWindow):
         if self.ProcessPath(dlg.getOpenFileName()[0]):
             self.file_name_label.setText('folder path: {}\nfile name: {}'.format(self.folder, self.file))
             self.build_button.setDisabled(False)
-            self.tool_file_info.setDisabled(False)
+            for chch in self.channel_checkbox_list:
+                chch.setChecked(False)
 
     def progress_fn(self, n):
         self.progress_bar.setValue(n)
@@ -384,8 +383,7 @@ class MainWindow(QMainWindow):
             if self.chosen_plots[0]:
                 self.thread_complete()
 
-        self.channel_checkbox_list[i].setChecked(False)
-
+        self.tool_file_info.setDisabled(False)
 
 app = QApplication(sys.argv)
 app.setFont(QFont('Courier', 10))

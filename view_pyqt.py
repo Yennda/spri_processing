@@ -4,15 +4,8 @@ import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
-from matplotlib.figure import Figure
-
-from matplotlib.ticker import MaxNLocator
-import matplotlib.font_manager as fm
-from matplotlib.widgets import RectangleSelector
-import matplotlib.image as mpimg
 
 from global_var import *
-import tools as tl
 
 matplotlib.rc('font', family='serif')
 matplotlib.rc('font', serif='Palatino Linotype')
@@ -240,6 +233,7 @@ class View(object):
             )
             self.locations.append(location)
             ax.add_patch(location)
+
         chosen_plot_indices = [i for i in range(len(chosen_plots)) if chosen_plots[i]]
         number_of_plots = len(chosen_plot_indices)
 
@@ -257,7 +251,6 @@ class View(object):
             axes_plot_list = list(self.axes_info[0, :]) + list(self.axes_info[1, :])
 
         self.fig_info.suptitle('info')
-
 
         for k, axes in enumerate(axes_plot_list):
             i = chosen_plot_indices[k]
