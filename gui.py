@@ -140,7 +140,7 @@ class MainWindow(QMainWindow):
         self.threadpool = QThreadPool()
         print("Multithreading with maximum %d threads" % self.threadpool.maxThreadCount())
 
-        self.setWindowTitle("Cvetka")
+        self.setWindowTitle("Black Cat")
         self.setWindowIcon(QIcon('icons/cat-icon-2.png'))
 
         self.open_button = QPushButton(QIcon('icons/folder-open.png'), 'Open')
@@ -316,7 +316,9 @@ class MainWindow(QMainWindow):
         self.progress_bar.setValue(n)
 
     def thread_complete(self):
+        print(self.threadpool.activeThreadCount())
         if self.threadpool.activeThreadCount() == 0:
+            print('konec')
             if True in self.chosen_plots:
                 canvas_plot = self.view.show_plots(self.chosen_plots)
 
@@ -380,8 +382,8 @@ class MainWindow(QMainWindow):
                 worker3.signals.progress.connect(self.progress_fn)
                 self.threadpool.start(worker3)
 
-            if self.chosen_plots[0]:
-                self.thread_complete()
+        if self.chosen_plots[0]:
+            self.thread_complete()
 
         self.tool_file_info.setDisabled(False)
 
