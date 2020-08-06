@@ -338,7 +338,6 @@ class MainWindow(QMainWindow):
 
     def BuildButtonClick(self, s):
         self.view = View()
-
         core_list = []
         for i, channel in enumerate(self.channel_checkbox_list):
             if channel.checkState() == 2:
