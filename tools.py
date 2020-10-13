@@ -16,3 +16,7 @@ def frame_times(file_content):
 
 def SecToMin(sec):
     return '{:.0f}:{:.1f}'.format(sec // 60, sec % 60)
+
+
+def closest(lst, K):
+    return min(range(lst), key=lambda i: abs(i - K))
