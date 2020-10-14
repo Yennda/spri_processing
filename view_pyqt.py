@@ -1,10 +1,11 @@
 import numpy as np
+from PIL import Image
+import os
 
 import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
-
 from global_var import *
 
 matplotlib.rc('font', family='serif')
@@ -54,6 +55,55 @@ class Canvas(FigureCanvasQTAgg):
         elif event.button == 'up':
             self.next_frame(-1)
 
+    def save_frame(self, ax):
+            """
+            checks and eventually creates the folder
+            'export_image' in the folder of data
+            """
+            if not os.path.isdir(ax.core.folder + FOLDER_EXPORTS):
+                os.mkdir(ax.core.folder + FOLDER_EXPORTS)
+
+            # creates the name, appends the rigth numeb at the end
+
+            name = '{}/{}_f{:04.0f}'.format(
+                ax.core.folder + FOLDER_EXPORTS,
+                ax.core.file,
+                self.view.f
+            )
+
+            i = 1
+            while os.path.isfile(name + '_{:02d}.png'.format(i)):
+                i += 1
+            name += '_{:02d}'.format(i)
+
+            # fig.savefig(
+            #     name + '.png',
+            #     bbox_inches='tight',
+            #     transparent=True,
+            #     pad_inches=0,
+            #     pi=300
+            # )
+            img = ax.get_images()[0]
+            xlim = [int(i) for i in ax.get_xlim()]
+            ylim = [int(i) for i in ax.get_ylim()]
+
+            current = img.get_array()[
+                      ylim[1]: ylim[0],
+                      xlim[0]: xlim[1]
+                      ]
+
+            current = (current - img.get_clim()[0]) / (img.get_clim()[1] - img.get_clim()[0]) * 256
+            current = current.astype(np.uint8)
+
+            print(current[20, 20])
+
+            pilimage = Image.fromarray(current)
+            pilimage.convert("L")
+
+            pilimage.save(name + '.png', 'png')
+
+            print('File SAVED @{}'.format(name))
+
     def button_press(self, event):
 
         def set_range(rng):
@@ -101,6 +151,8 @@ class Canvas(FigureCanvasQTAgg):
                 event.inaxes.core.ref_frame = self.view.f
                 self.next_frame(0)
 
+            elif event.key == 'a':
+                self.save_frame(event.inaxes)
         self.draw()
 
 
