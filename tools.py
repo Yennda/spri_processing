@@ -16,3 +16,13 @@ def frame_times(file_content):
 
 def SecToMin(sec):
     return '{:.0f}:{:.1f}'.format(sec // 60, sec % 60)
+
+
+def read_file_info(path):
+    with open(path + '.tsv') as f:
+        next(f)
+        lines = f.readlines()
+    t0, width, height, __, ets, avg, ___ = lines[0].split('\t')
+    t2, *_ = lines[1].split('\t')
+
+    return int(width), int(height), (int(t2) - int(t0)) / 1e7, int(avg), int(len(lines))

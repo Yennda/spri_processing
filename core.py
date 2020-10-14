@@ -13,9 +13,9 @@ class Core(object):
         self._time_info = None
         self._ref_frame = 0
         self._range = {
-            'diff': [-0.01, 0.01],
+            'diff': INIT_RANGE,
             'raw': [0, 1],
-            'int': [-0.01, 0.01]
+            'int': INIT_RANGE
         }
         self.__video_stats = None
 

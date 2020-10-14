@@ -14,6 +14,7 @@ import matplotlib
 matplotlib.use('Qt5Agg')
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 
+import tools as tl
 import global_var as gv
 from core import Core
 from view_pyqt import View
@@ -135,10 +136,16 @@ class MainWindow(QMainWindow):
         self.file = str()
         self.folder = str()
         self.chosen_plots = []
+        self.width = []
+        self.height = []
+        self.channels = []
+        self.ets = None
+        self.avg = None
+        self.num_of_frames = None
 
         self.loading_window = None
         self.threadpool = QThreadPool()
-        print("Multithreading with maximum %d threads" % self.threadpool.maxThreadCount())
+        # print("Multithreading with maximum %d threads" % self.threadpool.maxThreadCount())
 
         self.setWindowTitle("Black Cat")
         self.setWindowIcon(QIcon('icons/cat-icon-2.png'))
@@ -271,10 +278,19 @@ class MainWindow(QMainWindow):
 
         self.file = file[:-2]
         self.folder = '/'.join(splitted[:-1]) + '/'
-
+        self.width = []
+        self.height = []
+        self.channels = []
         for i in range(4):
             if os.path.isfile(self.folder + self.file + '_{}.tsv'.format(i + 1)):
                 self.channel_checkbox_list[i].setDisabled(False)
+
+                w, h, self.ets, self.avg, self.num_of_frames = tl.read_file_info(
+                    self.folder + self.file + '_{}'.format(i + 1))
+
+                self.channels.append(i + 1)
+                self.width.append(w)
+                self.height.append(h)
             else:
                 self.channel_checkbox_list[i].setDisabled(True)
         return True
@@ -283,15 +299,18 @@ class MainWindow(QMainWindow):
         OKDialog('help', gv.HELP, self)
 
     def fileInfo(self):
-        core = self.view.core_list[0]
         fi = str()
         fi += 'file name: {}\n'.format(self.file)
         fi += 'directory: {}\n'.format(self.folder)
         fi += '-' * 40 + '\n'
-        fi += 'number of frames: {}\n'.format(len(core))
-        fi += 'duration: {:.1f} s\n'.format(len(core) * core._time_info[1][0])
-        fi += 'frame time: {:.4f} s\n'.format(core._time_info[1][0])
-        fi += 'frame rate: {:.1f} fps\n'.format(1 / core._time_info[1][0])
+        fi += 'number of frames: {}\n'.format(self.num_of_frames)
+        fi += 'duration: {:.1f} s\n'.format(self.num_of_frames * self.ets)
+        fi += 'frame time: {:.4f} s\n'.format(self.ets)
+        fi += 'frame rate: {:.1f} fps\n'.format(1 / self.ets)
+        fi += 'channel\twidth\theight\n\n'
+        for c, w, h in zip(self.channels, self.width, self.height):
+            fi += '{} \t{} \t{}\n'.format(c, w, h)
+
         OKDialog('file info', fi, self)
 
     def RefreshSliderInfo(self):
@@ -309,6 +328,13 @@ class MainWindow(QMainWindow):
         if self.ProcessPath(dlg.getOpenFileName()[0]):
             self.file_name_label.setText('folder path: {}\nfile name: {}'.format(self.folder, self.file))
             self.build_button.setDisabled(False)
+            self.tool_file_info.setDisabled(False)
+
+            if self.width[0] < self.height[0]:
+                self.orientation_checkbox.setChecked(True)
+            else:
+                self.orientation_checkbox.setChecked(False)
+
             for chch in self.channel_checkbox_list:
                 chch.setChecked(False)
 
@@ -316,9 +342,9 @@ class MainWindow(QMainWindow):
         self.progress_bar.setValue(n)
 
     def thread_complete(self):
-        print(self.threadpool.activeThreadCount())
+        # print(self.threadpool.activeThreadCount())
         if self.threadpool.activeThreadCount() == 0:
-            print('konec')
+            # print('konec')
             if True in self.chosen_plots:
                 canvas_plot = self.view.show_plots(self.chosen_plots)
 
@@ -384,7 +410,6 @@ class MainWindow(QMainWindow):
         if self.chosen_plots[0]:
             self.thread_complete()
 
-        self.tool_file_info.setDisabled(False)
 
 app = QApplication(sys.argv)
 app.setFont(QFont('Courier', 10))

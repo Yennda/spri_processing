@@ -126,10 +126,12 @@ class Canvas(FigureCanvasQTAgg):
         if event.canvas.figure is self.view.fig and event.inaxes is not None:
             if event.key == '5':
                 event.inaxes.core.range = [i * 1.2 for i in event.inaxes.core.range]
+                print('core: {}, range: {}'.format(event.inaxes.core.file, event.inaxes.core.range))
                 set_range(event.inaxes.core.range)
 
             elif event.key == '8':
                 event.inaxes.core.range = [i / 1.2 for i in event.inaxes.core.range]
+                print('core: {}, range: {}'.format(event.inaxes.core.file, event.inaxes.core.range))
                 set_range(event.inaxes.core.range)
 
             elif event.key == 'ctrl+1':

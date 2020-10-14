@@ -6,6 +6,9 @@ NAME_RAW = 'raw'
 NAME_LOCAL_SPR = 'spr'
 NAME_GLOBAL_SPR = 'spr_integral'
 
+# INIT_RANGE = [-0.01. 0.01]
+INIT_RANGE = [-0.003, 0.003]
+
 yellow = '#ffb200'
 red = '#DD5544'
 blue = '#0284C0'
