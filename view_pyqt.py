@@ -2,10 +2,14 @@ import numpy as np
 from PIL import Image
 import os
 
+
 import matplotlib
+import matplotlib.font_manager as fm
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
+from mpl_toolkits.axes_grid1.anchored_artists import AnchoredSizeBar
+
 from global_var import *
 
 matplotlib.rc('font', family='serif')
@@ -261,6 +265,17 @@ class View(object):
                 )
             )
             self.axes[i].core = core
+
+            fontprops = fm.FontProperties(size=20)
+            show_scalebar = AnchoredSizeBar(self.axes[i].transData,
+                           34, '100 $\mu m$', 'lower right',
+                           pad=0.1,
+                           color='black',
+                           frameon=False,
+                           size_vertical=1,
+                           fontproperties=fontprops)
+
+            self.axes[i].add_artist(show_scalebar)
 
             if self.orientation:
                 self.axes[i].set_ylabel('channel {}.; {}'.format(core.file[-1:], core.type))
