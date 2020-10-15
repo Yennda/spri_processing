@@ -61,6 +61,7 @@ class PlotWindow(QtWidgets.QMainWindow):
         self.setWindowTitle(canvas.view.core_list[0].file[:-2])
 
         toolbar = NavigationToolbar(canvas, self)
+        canvas.nav_toolbar = toolbar
 
         layout = QtWidgets.QVBoxLayout()
         layout.addWidget(toolbar)
