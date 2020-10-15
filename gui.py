@@ -209,13 +209,13 @@ class MainWindow(QMainWindow):
         self.addToolBar(toolbar)
 
         self.tool_file_info = QAction("File info", self)
-        self.tool_file_info.setStatusTip("This is your button")
+        self.tool_file_info.setStatusTip("Info about loaded file.")
         self.tool_file_info.triggered.connect(self.fileInfo)
         toolbar.addAction(self.tool_file_info)
         self.tool_file_info.setDisabled(True)
 
         self.tool_help = QAction("Help", self)
-        self.tool_help.setStatusTip("This is your button")
+        self.tool_help.setStatusTip("[help]")
         self.tool_help.triggered.connect(self.toolbarHelp)
         toolbar.addAction(self.tool_help)
 
@@ -307,8 +307,8 @@ class MainWindow(QMainWindow):
         fi += 'number of frames: {}\n'.format(self.num_of_frames)
         fi += 'duration: {:.1f} s\n'.format(self.num_of_frames * self.ets)
         fi += 'frame time: {:.4f} s\n'.format(self.ets)
-        fi += 'frame rate: {:.1f} fps\n'.format(1 / self.ets)
-        fi += 'channel\twidth\theight\n\n'
+        fi += 'frame rate: {:.1f} fps\n\n'.format(1 / self.ets)
+        fi += 'channel\twidth\theight\n'
         for c, w, h in zip(self.channels, self.width, self.height):
             fi += '{} \t{} \t{}\n'.format(c, w, h)
 
@@ -327,7 +327,7 @@ class MainWindow(QMainWindow):
         dlg = QFileDialog(self)
 
         if self.ProcessPath(dlg.getOpenFileName()[0]):
-            self.file_name_label.setText('folder path: {}\nfile name: {}'.format(self.folder, self.file))
+            self.file_name_label.setText('folder path: ... {}\nfile name: {}'.format(self.folder[-20:], self.file))
             self.build_button.setDisabled(False)
             self.tool_file_info.setDisabled(False)
 
