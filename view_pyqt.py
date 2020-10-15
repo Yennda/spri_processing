@@ -236,9 +236,9 @@ class View(object):
         if event.inaxes is not None:
             event.inaxes.core.type = itype
             if self.orientation:
-                event.inaxes.set_ylabel('channel {}.; {}'.format(self.core_list[0].file[-1:], event.inaxes.core.type))
+                event.inaxes.set_ylabel('channel {}.; {}'.format(event.inaxes.core.file[-1:], event.inaxes.core.type))
             else:
-                event.inaxes.set_xlabel('channel {}.; {}'.format(self.core_list[0].file[-1:], event.inaxes.core.type))
+                event.inaxes.set_xlabel('channel {}.; {}'.format(event.inaxes.core.file[-1:], event.inaxes.core.type))
 
     def mouse_click_spr(self, event):
         if event.button == 1:

@@ -148,7 +148,7 @@ class MainWindow(QMainWindow):
         self.threadpool = QThreadPool()
         # print("Multithreading with maximum %d threads" % self.threadpool.maxThreadCount())
 
-        self.setWindowTitle("Black Cat")
+        self.setWindowTitle("Crnka")
         self.setWindowIcon(QIcon('icons/cat-icon-2.png'))
 
         self.open_button = QPushButton(QIcon('icons/folder-open.png'), 'Open')
