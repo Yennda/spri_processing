@@ -7,6 +7,7 @@ main_folder = 'C:/SPRUP_data_Jenda/2019_03_13_Jenda_microscopy/'
 folder = main_folder + '20_04_21_L3_tomas/'
 folder = main_folder + '20_04_20_Q4/'
 
+folder = r'C:\SPRUP_data_Jenda\2020_09_25_Jenda_prism_grating\20_10_16_L3/'.replace('\\', '/')
 
 file = 'raw_02_1'
 core = Core(folder, file)
@@ -34,9 +35,9 @@ view.add_core(core2)
 
 for i, core in enumerate(view.core_list):
     print('channel {}.'.format(i))
-    # core.make_intensity_raw()
-    # core.make_intensity_int()
-    # core.make_std_int()
+    core.make_intensity_raw()
+    core.make_intensity_int()
+    core.make_std_int()
 
 view.orientation = False
 view.show_img()

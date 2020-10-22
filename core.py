@@ -137,11 +137,10 @@ class Core(object):
     def range(self, r):
         self._range[self.type] = r
 
-    @property
-    def intensity(self):
+    def intensity(self, f):
         type_buffer = self.type
         self.type = 'raw'
-        intensity = np.sum(self.frame(0))
+        intensity = np.sum(self.frame(f))
         self.type = type_buffer
         return intensity
 
@@ -199,7 +198,7 @@ class Core(object):
         # print('Processing int. intensity')
         type_buffer = self.type
         self.type = 'int'
-        self.graphs['intensity_int'] = self.apply_function(np.sum, progress_callback) / self.area / self.intensity
+        self.graphs['intensity_int'] = self.apply_function(np.sum, progress_callback) / self.area / self.intensity(0)
         self.type = type_buffer
         return 'done'
 
@@ -207,6 +206,6 @@ class Core(object):
         # print('Processing int. std')
         type_buffer = self.type
         self.type = 'int'
-        self.graphs['std_int'] = self.apply_function(np.std, progress_callback) / self.intensity
+        self.graphs['std_int'] = self.apply_function(np.std, progress_callback) / self.intensity(0)
         self.type = type_buffer
         return 'done'

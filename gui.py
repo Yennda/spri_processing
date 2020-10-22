@@ -58,7 +58,7 @@ class PlotWindow(QtWidgets.QMainWindow):
 
     def __init__(self, canvas, *args, **kwargs):
         super(PlotWindow, self).__init__(*args, **kwargs)
-        self.setWindowTitle(canvas.view.core_list[0].file[:-2])
+        self.setWindowTitle(canvas.view.core_list[0].folder + '/' + canvas.view.core_list[0].file[:-2])
 
         toolbar = NavigationToolbar(canvas, self)
         canvas.nav_toolbar = toolbar
@@ -388,6 +388,7 @@ class MainWindow(QMainWindow):
         self.progress_bar.setVisible(True)
 
         # self.info.setVisible(True)
+        # self.threadpool.stackSize(0)
 
         for i, core in enumerate(self.view.core_list):
             if self.chosen_plots[1]:
@@ -395,6 +396,7 @@ class MainWindow(QMainWindow):
                 worker.signals.finished.connect(self.thread_complete)
                 worker.signals.progress.connect(self.progress_fn)
                 self.threadpool.start(worker)
+                self.threadpool.waitForDone(100000)
 
             if self.chosen_plots[2]:
                 worker2 = Worker(core.make_intensity_int)
