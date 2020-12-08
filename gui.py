@@ -282,12 +282,15 @@ class MainWindow(QMainWindow):
         self.width = []
         self.height = []
         self.channels = []
+
+        info_done = False
         for i in range(4):
             if os.path.isfile(self.folder + self.file + '_{}.tsv'.format(i + 1)):
                 self.channel_checkbox_list[i].setDisabled(False)
-
-                w, h, self.ets, self.avg, self.num_of_frames = tl.read_file_info(
-                    self.folder + self.file + '_{}'.format(i + 1))
+                if not info_done:
+                    w, h, self.ets, self.avg, self.num_of_frames = tl.read_file_info(
+                        self.folder + self.file + '_{}'.format(i + 1))
+                    info_done = True
 
                 self.channels.append(i + 1)
                 self.width.append(w)
