@@ -29,13 +29,17 @@ class Canvas(FigureCanvasQTAgg):
         self.nav_toolbar = None
         if img:
             super(Canvas, self).__init__(view.fig)
+            self.mpl_connect('axes_enter_event', self.mouse_enter)
+            self.mpl_connect('axes_leave_event', self.mouse_leave)
+
+
         else:
             super(Canvas, self).__init__(view.fig_info)
+            self.mpl_connect('button_press_event', self.mouse_click_spr)
 
         self.mpl_connect('key_press_event', self.button_press)
         self.mpl_connect('scroll_event', self.mouse_scroll)
-        if not img:
-            self.mpl_connect('button_press_event', self.mouse_click_spr)
+
 
     def next_frame(self, df):
         self.view.f = df
@@ -54,6 +58,18 @@ class Canvas(FigureCanvasQTAgg):
     def mouse_click_spr(self, event):
         if event.button == 1:
             self.next_frame(int(round(event.xdata)) - self.view.f)
+
+    def mouse_enter(self, event):
+        if event.inaxes is not None:
+            for s in SIDES:
+                event.inaxes.spines[s].set_linewidth(4)
+        self.draw()
+
+    def mouse_leave(self, event):
+        if event.inaxes is not None:
+            for s in SIDES:
+                event.inaxes.spines[s].set_linewidth(2)
+        self.draw()
 
     def mouse_scroll(self, event):
         if event.button == 'down':
@@ -286,7 +302,7 @@ class View(object):
                 self.axes[i].set_xlabel('channel {}.; {}'.format(core.file[-1:], core.type))
             for s in SIDES:
                 self.axes[i].spines[s].set_color(COLORS[i])
-                self.axes[i].spines[s].set_linewidth(3)
+                self.axes[i].spines[s].set_linewidth(2)
 
         self.canvas_img = Canvas(self)
         return self.canvas_img
