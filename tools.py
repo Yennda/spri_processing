@@ -25,4 +25,4 @@ def read_file_info(path):
     t0, width, height, __, ets, avg, ___ = lines[0].split('\t')
     t2, *_ = lines[1].split('\t')
 
-    return int(width), int(height), (int(t2) - int(t0)) / 1e7, int(avg), int(len(lines))
+    return int(width), int(height), (int(t2) - int(t0)) / 1e7, int(avg), int(len(lines)), float(ets)

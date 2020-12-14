@@ -142,6 +142,7 @@ class MainWindow(QMainWindow):
         self.channels = []
         self.ets = None
         self.avg = None
+        self.frame_time = None
         self.num_of_frames = None
 
         self.loading_window = None
@@ -288,7 +289,7 @@ class MainWindow(QMainWindow):
             if os.path.isfile(self.folder + self.file + '_{}.tsv'.format(i + 1)):
                 self.channel_checkbox_list[i].setDisabled(False)
                 if not info_done:
-                    w, h, self.ets, self.avg, self.num_of_frames = tl.read_file_info(
+                    w, h, self.frame_time, self.avg, self.num_of_frames, self.ets = tl.read_file_info(
                         self.folder + self.file + '_{}'.format(i + 1))
                     info_done = True
 
@@ -308,9 +309,12 @@ class MainWindow(QMainWindow):
         fi += 'directory: {}\n'.format(self.folder)
         fi += '-' * 40 + '\n'
         fi += 'number of frames: {}\n'.format(self.num_of_frames)
-        fi += 'duration: {:.1f} s\n'.format(self.num_of_frames * self.ets)
-        fi += 'frame time: {:.4f} s\n'.format(self.ets)
-        fi += 'frame rate: {:.1f} fps\n\n'.format(1 / self.ets)
+        fi += 'duration: {:.1f} s\n'.format(self.num_of_frames * self.frame_time)
+        fi += '\n'
+        fi += 'ETS: {:.1f} ms\n'.format(self.ets*1e3)
+        fi += 'AVG: {} \n'.format(self.avg)
+        fi += 'frame time: {:.4f} s\n'.format(self.frame_time)
+        fi += 'frame rate: {:.1f} fps\n\n'.format(1 / self.frame_time)
         fi += 'channel\twidth\theight\n'
         for c, w, h in zip(self.channels, self.width, self.height):
             fi += '{} \t{} \t{}\n'.format(c, w, h)
