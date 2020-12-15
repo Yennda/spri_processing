@@ -32,7 +32,6 @@ class Canvas(FigureCanvasQTAgg):
             self.mpl_connect('axes_enter_event', self.mouse_enter)
             self.mpl_connect('axes_leave_event', self.mouse_leave)
 
-
         else:
             super(Canvas, self).__init__(view.fig_info)
             self.mpl_connect('button_press_event', self.mouse_click_spr)
