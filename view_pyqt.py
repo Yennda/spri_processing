@@ -130,6 +130,8 @@ class Canvas(FigureCanvasQTAgg):
         def set_range(rng, axes):
             img = axes.get_images()[0]
             img.set_clim(axes.core.range)
+            for txt, c in zip(self.view.text, self.view.core_list):
+                txt.set_text('rng = {:.4f}'.format(c.range[1]))
 
         if event.key == '9':
             self.next_frame(100)
@@ -201,6 +203,7 @@ class View(object):
         self.axes_info = None
         self.fig = None
         self.axes = None
+        self.text = []
 
         self.img_shown = []
         self.canvas_img = None
@@ -272,6 +275,7 @@ class View(object):
         if len(self.core_list) == 1:
             self.fig, axes = plt.subplots()
             self.axes = [axes]
+
         else:
             if self.orientation:
                 self.fig, self.axes = plt.subplots(ncols=len(self.core_list), nrows=1)
@@ -301,7 +305,20 @@ class View(object):
                                             size_vertical=1,
                                             fontproperties=fontprops)
 
+            self.text.append(self.axes[i].text(
+                0.1,
+                0.1,
+                'rng = {}'.format(core.range[1]),
+                color='white',
+                backgroundcolor='black',
+                fontsize=10,
+                horizontalalignment='center',
+                verticalalignment='center',
+                transform=self.axes[i].transAxes
+            ))
+
             self.axes[i].add_artist(show_scalebar)
+            # self.axes[i].add_artist(text)
 
             axis_font = {'size': '14'}
 
