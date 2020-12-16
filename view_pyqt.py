@@ -295,10 +295,13 @@ class View(object):
 
             self.axes[i].add_artist(show_scalebar)
 
+            axis_font = {'size':'14'}
+
             if self.orientation:
-                self.axes[i].set_ylabel('channel {}.; {}'.format(core.file[-1:], core.type))
+                self.axes[i].set_ylabel('channel {}.; {}'.format(core.file[-1:], core.type), **axis_font)
             else:
-                self.axes[i].set_xlabel('channel {}.; {}'.format(core.file[-1:], core.type))
+                self.axes[i].set_xlabel('channel {}.; {}'.format(core.file[-1:], core.type), **axis_font)
+
             for s in SIDES:
                 self.axes[i].spines[s].set_color(COLORS[i])
                 self.axes[i].spines[s].set_linewidth(2)
