@@ -39,7 +39,6 @@ class Canvas(FigureCanvasQTAgg):
         self.mpl_connect('key_press_event', self.button_press)
         self.mpl_connect('scroll_event', self.mouse_scroll)
 
-
     def next_frame(self, df):
         self.view.f = df
         for location in self.view.locations:
@@ -128,9 +127,9 @@ class Canvas(FigureCanvasQTAgg):
     def button_press(self, event):
         key_press_handler(event, self, self.toolbar)
 
-        def set_range(rng):
-            img = event.inaxes.get_images()[0]
-            img.set_clim(event.inaxes.core.range)
+        def set_range(rng, axes):
+            img = axes.get_images()[0]
+            img.set_clim(axes.core.range)
 
         if event.key == '9':
             self.next_frame(100)
@@ -146,37 +145,46 @@ class Canvas(FigureCanvasQTAgg):
             self.next_frame(-1)
 
         if event.canvas.figure is self.view.fig and event.inaxes is not None:
+            core_list = [event.inaxes.core]
+            axes_list = [event.inaxes]
+
+            if event.key == 'a':
+                self.save_frame(event.inaxes)
+        else:
+            core_list = self.view.core_list
+            axes_list = self.view.axes
+
+        for axes, core in zip(axes_list, core_list):
+
             if event.key == '5':
-                event.inaxes.core.range = [i * 1.2 for i in event.inaxes.core.range]
-                print('core: {}, range: {}'.format(event.inaxes.core.file, event.inaxes.core.range))
-                set_range(event.inaxes.core.range)
+                core.range = [i * 1.2 for i in core.range]
+                print('core: {}, range: {}'.format(core.file, core.range))
+                set_range(core.range, axes)
 
             elif event.key == '8':
-                event.inaxes.core.range = [i / 1.2 for i in event.inaxes.core.range]
-                print('core: {}, range: {}'.format(event.inaxes.core.file, event.inaxes.core.range))
-                set_range(event.inaxes.core.range)
+                core.range = [i / 1.2 for i in core.range]
+                print('core: {}, range: {}'.format(core.file, core.range))
+                set_range(core.range, axes)
 
             elif event.key == 'ctrl+1':
-                self.view.change_type(event, 'raw')
-                set_range(event.inaxes.core.range)
+                self.view.change_type(axes, 'raw')
+                set_range(core.range, axes)
                 self.next_frame(0)
 
             elif event.key == 'ctrl+2':
-                self.view.change_type(event, 'int')
-                set_range(event.inaxes.core.range)
+                self.view.change_type(axes, 'int')
+                set_range(core.range, axes)
                 self.next_frame(0)
 
             elif event.key == 'ctrl+3':
-                self.view.change_type(event, 'diff')
-                set_range(event.inaxes.core.range)
+                self.view.change_type(axes, 'diff')
+                set_range(core.range, axes)
                 self.next_frame(0)
 
             elif event.key == 'i':
-                event.inaxes.core.ref_frame = self.view.f
+                core.ref_frame = self.view.f
                 self.next_frame(0)
 
-            elif event.key == 'a':
-                self.save_frame(event.inaxes)
         self.draw()
 
 
@@ -247,13 +255,13 @@ class View(object):
             self.core_list[0]._time_info[self.f][0] / 60 + self.core_list[0].zero_time
         )
 
-    def change_type(self, event, itype):
-        if event.inaxes is not None:
-            event.inaxes.core.type = itype
+    def change_type(self, axes, itype):
+        if axes is not None:
+            axes.core.type = itype
             if self.orientation:
-                event.inaxes.set_ylabel('channel {}.; {}'.format(event.inaxes.core.file[-1:], event.inaxes.core.type))
+                axes.set_ylabel('channel {}.; {}'.format(axes.core.file[-1:], axes.core.type))
             else:
-                event.inaxes.set_xlabel('channel {}.; {}'.format(event.inaxes.core.file[-1:], event.inaxes.core.type))
+                axes.set_xlabel('channel {}.; {}'.format(axes.core.file[-1:], axes.core.type))
 
     def mouse_click_spr(self, event):
         if event.button == 1:
@@ -295,7 +303,7 @@ class View(object):
 
             self.axes[i].add_artist(show_scalebar)
 
-            axis_font = {'size':'14'}
+            axis_font = {'size': '14'}
 
             if self.orientation:
                 self.axes[i].set_ylabel('channel {}.; {}'.format(core.file[-1:], core.type), **axis_font)
