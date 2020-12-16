@@ -40,8 +40,10 @@ Mouse scrolling moves the time
 '4' and '6' jumps 10 frames in time
 '7' and '9' jumps 100 frames in time
 '8' and '5' increase or decrease contrast
-'ctrl + 1 or 2 or 3' switches to raw, integral or differential image of channel with the mouse pointer
+'ctrl + 1 or 2 or 3' switches to raw, integral or differential image
 'i' sets the current frame as a reference for the integral image
+
+The shortcuts work locally for the active channel (mouse within its area) or globally for all the channels (mouse outside any channel).
 
 Clicking into graphs also works as a navigation.
 
