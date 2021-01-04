@@ -22,7 +22,7 @@ class Core(object):
         self.k = 1
         self.type = 'diff'
         self.fourier_level = 30
-        self.postprocessing = []
+        self.postprocessing = dict()
 
         self.graphs = dict()
         self.spr_time = None
@@ -167,7 +167,7 @@ class Core(object):
             image = self._raw[:, :, f]
 
         if len(self.postprocessing) != 0:
-            for p in self.postprocessing:
+            for p in self.postprocessing.values():
                 image = p(image)
 
         return image

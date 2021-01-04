@@ -206,6 +206,7 @@ class MainWindow(QMainWindow):
         self.slider_gauss.valueChanged.connect(self.RefreshSliderGaussInfo)
 
         self.filter_fourier_checkbox = QCheckBox('fourier')
+        self.filter_fourier_checkbox.setStatusTip('short pass')
         self.filter_fourier_checkbox.setChecked(False)
         self.filter_fourier_checkbox.clicked.connect(self.RunFilterFourier)
         self.slider_fourier = QSlider(Qt.Horizontal)
@@ -284,17 +285,11 @@ class MainWindow(QMainWindow):
         plot_layout.addWidget(self.std_checkbox, 1, 1)
         layout.addLayout(plot_layout)
 
+        layout.addWidget(self.build_button)
+
         label = QLabel('-- Image filters --')
         label.setAlignment(Qt.AlignCenter)
         layout.addWidget(label)
-
-        "gauss"
-        gauss_layout = QHBoxLayout()
-        gauss_layout.addWidget(self.filter_gauss_checkbox)
-        gauss_layout.addWidget(self.slider_gauss)
-        gauss_layout.addWidget(self.slider_gauss_info)
-
-        layout.addLayout(gauss_layout)
 
         "fourier"
         fourier_layout = QHBoxLayout()
@@ -304,7 +299,13 @@ class MainWindow(QMainWindow):
 
         layout.addLayout(fourier_layout)
 
-        layout.addWidget(self.build_button)
+        "gauss"
+        gauss_layout = QHBoxLayout()
+        gauss_layout.addWidget(self.filter_gauss_checkbox)
+        gauss_layout.addWidget(self.slider_gauss)
+        gauss_layout.addWidget(self.slider_gauss_info)
+
+        layout.addLayout(gauss_layout)
 
         layout.addWidget(self.info)
         layout.addWidget(self.progress_bar)
@@ -377,7 +378,7 @@ class MainWindow(QMainWindow):
 
     def RefreshSliderFourierInfo(self):
         self.slider_fourier_info.setText(str(self.slider_fourier.value()))
-        self.RunFilterGaussian()
+        self.RunFilterFourier()
 
     def RefreshOrientationInfo(self):
         if self.orientation_checkbox.checkState() == 0:
@@ -388,7 +389,10 @@ class MainWindow(QMainWindow):
     def RunFilterGaussian(self):
         if not self.filter_gauss_checkbox.isChecked():
             for core in self.view.core_list:
-                core.postprocessing = []
+                try:
+                    del core.postprocessing['b_gauss']
+                except KeyError:
+                    print('posprocessing key not found')
         else:
 
             if self.view is None:
@@ -397,13 +401,17 @@ class MainWindow(QMainWindow):
 
             else:
                 for core in self.view.core_list:
-                    core.postprocessing = [lambda img: gaussian_filter(img, self.slider_gauss.value() / 10)]
+                    core.postprocessing['b_gauss'] = lambda img: gaussian_filter(img, self.slider_gauss.value() / 10)
+        dict(sorted(core.postprocessing.items()))
         self.view.draw()
 
     def RunFilterFourier(self):
         if not self.filter_fourier_checkbox.isChecked():
             for core in self.view.core_list:
-                core.postprocessing = []
+                try:
+                    del core.postprocessing['a_fourier']
+                except KeyError:
+                    print('posprocessing key not found')
         else:
 
             if self.view is None:
@@ -412,7 +420,8 @@ class MainWindow(QMainWindow):
 
             else:
                 for core in self.view.core_list:
-                    core.postprocessing = [lambda img: tl.fourier_filter(img, self.slider_fourier.value())]
+                    core.postprocessing['a_fourier'] = lambda img: tl.fourier_filter(img, self.slider_fourier.value())
+        dict(sorted(core.postprocessing.items()))
         self.view.draw()
 
     def OpenButtonClick(self, s):

@@ -39,6 +39,18 @@ def fourier_filter(img, level):
     print(np.min(magnitude_spectrum))
     print(np.max(magnitude_spectrum))
 
-    mask = np.real(magnitude_spectrum) > level
+    mask = np.abs(magnitude_spectrum) > level
+
+    mask = np.full(magnitude_spectrum.shape, False, dtype=bool)
+
+    print(img.shape)
+    print(int(img.shape[1] / 2 * (1 - level / 100)))
+    print(int(img.shape[1] / 2 * (1 + level / 100)))
+
+    mask[
+    int(img.shape[0] / 2 * (1 - level / 100)): int(img.shape[0] / 2 * (1 + level / 100)),
+    int(img.shape[1] / 2 * (1 - level / 100)): int(img.shape[1] / 2 * (1 + level / 100))
+    ] = True
+
     f[mask] = 0
     return np.real(np.fft.ifft2(f))
