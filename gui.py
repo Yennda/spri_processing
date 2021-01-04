@@ -10,6 +10,7 @@ from PyQt5.QtGui import *
 from PyQt5 import QtCore, QtWidgets
 
 import matplotlib
+from scipy.ndimage import gaussian_filter
 
 matplotlib.use('Qt5Agg')
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
@@ -167,6 +168,21 @@ class MainWindow(QMainWindow):
         self.orientation_checkbox.clicked.connect(self.RefreshOrientationInfo)
         self.orientation_checkbox.setChecked(True)
 
+        self.channel_checkbox_list = []
+        for i in range(1, 5):
+            self.channel_checkbox_list.append(QCheckBox('channel {}'.format(i)))
+
+        self.slider_k = QSlider(Qt.Horizontal)
+        self.slider_k.setStatusTip(
+            'Number of integrated frames. Recommended value is 10 for 10 fps.')
+        self.slider_k.setMinimum(1)
+        self.slider_k.setMaximum(100)
+        self.slider_k.setSingleStep(1)
+        self.slider_k.setValue(10)
+        self.slider_k.valueChanged.connect(self.RefreshSliderInfo)
+
+        self.slider_k_info = QLabel('10')
+
         self.spr_checkbox = QCheckBox('SPR')
         self.spr_checkbox.setChecked(True)
         self.int_checkbox = QCheckBox('intensity')
@@ -176,20 +192,31 @@ class MainWindow(QMainWindow):
         self.std_checkbox = QCheckBox('std')
         self.std_checkbox.setStatusTip('Takes a while')
 
-        self.channel_checkbox_list = []
-        for i in range(1, 5):
-            self.channel_checkbox_list.append(QCheckBox('channel {}'.format(i)))
-
-        self.k_slider = QSlider(Qt.Horizontal)
-        self.k_slider.setStatusTip(
+        self.filter_gauss_checkbox = QCheckBox('gaussian')
+        self.filter_gauss_checkbox.setChecked(False)
+        self.filter_gauss_checkbox.clicked.connect(self.RunFilterGaussian)
+        self.slider_gauss = QSlider(Qt.Horizontal)
+        self.slider_gauss.setStatusTip(
             'Number of integrated frames. Recommended value is 10 for 10 fps.')
-        self.k_slider.setMinimum(1)
-        self.k_slider.setMaximum(100)
-        self.k_slider.setSingleStep(1)
-        self.k_slider.setValue(10)
-        self.k_slider.valueChanged.connect(self.RefreshSliderInfo)
+        self.slider_gauss.setMinimum(0)
+        self.slider_gauss.setMaximum(50)
+        self.slider_gauss.setSingleStep(1)
+        self.slider_gauss.setValue(10)
+        self.slider_gauss_info = QLabel('1')
+        self.slider_gauss.valueChanged.connect(self.RefreshSliderGaussInfo)
 
-        self.slider_info = QLabel('10')
+        self.filter_fourier_checkbox = QCheckBox('fourier')
+        self.filter_fourier_checkbox.setChecked(False)
+        self.filter_fourier_checkbox.clicked.connect(self.RunFilterFourier)
+        self.slider_fourier = QSlider(Qt.Horizontal)
+        self.slider_fourier.setStatusTip(
+            'Number of integrated frames. Recommended value is 10 for 10 fps.')
+        self.slider_fourier.setMinimum(0)
+        self.slider_fourier.setMaximum(100)
+        self.slider_fourier.setSingleStep(1)
+        self.slider_fourier.setValue(10)
+        self.slider_fourier_info = QLabel('10')
+        self.slider_fourier.valueChanged.connect(self.RefreshSliderFourierInfo)
 
         self.build_button = QPushButton(QIcon('icons/arrow.png'), 'Build')
         self.build_button.setStatusTip('Builds the view of the data. It usually takes a while.')
@@ -242,8 +269,8 @@ class MainWindow(QMainWindow):
 
         slider_layout = QHBoxLayout()
         slider_layout.addWidget(QLabel('Integration number:'))
-        slider_layout.addWidget(self.k_slider)
-        slider_layout.addWidget(self.slider_info)
+        slider_layout.addWidget(self.slider_k)
+        slider_layout.addWidget(self.slider_k_info)
         layout.addLayout(slider_layout)
 
         label = QLabel('-- Data to plot --')
@@ -256,6 +283,26 @@ class MainWindow(QMainWindow):
         plot_layout.addWidget(self.nint_checkbox, 0, 1)
         plot_layout.addWidget(self.std_checkbox, 1, 1)
         layout.addLayout(plot_layout)
+
+        label = QLabel('-- Image filters --')
+        label.setAlignment(Qt.AlignCenter)
+        layout.addWidget(label)
+
+        "gauss"
+        gauss_layout = QHBoxLayout()
+        gauss_layout.addWidget(self.filter_gauss_checkbox)
+        gauss_layout.addWidget(self.slider_gauss)
+        gauss_layout.addWidget(self.slider_gauss_info)
+
+        layout.addLayout(gauss_layout)
+
+        "fourier"
+        fourier_layout = QHBoxLayout()
+        fourier_layout.addWidget(self.filter_fourier_checkbox)
+        fourier_layout.addWidget(self.slider_fourier)
+        fourier_layout.addWidget(self.slider_fourier_info)
+
+        layout.addLayout(fourier_layout)
 
         layout.addWidget(self.build_button)
 
@@ -311,7 +358,7 @@ class MainWindow(QMainWindow):
         fi += 'number of frames: {}\n'.format(self.num_of_frames)
         fi += 'duration: {:.1f} s\n'.format(self.num_of_frames * self.frame_time)
         fi += '\n'
-        fi += 'ETS: {:.1f} ms\n'.format(self.ets*1e3)
+        fi += 'ETS: {:.1f} ms\n'.format(self.ets * 1e3)
         fi += 'AVG: {} \n'.format(self.avg)
         fi += 'frame time: {:.4f} s\n'.format(self.frame_time)
         fi += 'frame rate: {:.1f} fps\n\n'.format(1 / self.frame_time)
@@ -322,13 +369,51 @@ class MainWindow(QMainWindow):
         OKDialog('file info', fi, self)
 
     def RefreshSliderInfo(self):
-        self.slider_info.setText(str(self.k_slider.value()))
+        self.slider_k_info.setText(str(self.slider_k.value()))
+
+    def RefreshSliderGaussInfo(self):
+        self.slider_gauss_info.setText(str(self.slider_gauss.value() / 10))
+        self.RunFilterGaussian()
+
+    def RefreshSliderFourierInfo(self):
+        self.slider_fourier_info.setText(str(self.slider_fourier.value()))
+        self.RunFilterGaussian()
 
     def RefreshOrientationInfo(self):
         if self.orientation_checkbox.checkState() == 0:
             self.orientation_checkbox.setText('Vertical layout')
         else:
             self.orientation_checkbox.setText('Horizontal layout')
+
+    def RunFilterGaussian(self):
+        if not self.filter_gauss_checkbox.isChecked():
+            for core in self.view.core_list:
+                core.postprocessing = []
+        else:
+
+            if self.view is None:
+                OKDialog('error', 'no image data to work on')
+                return
+
+            else:
+                for core in self.view.core_list:
+                    core.postprocessing = [lambda img: gaussian_filter(img, self.slider_gauss.value() / 10)]
+        self.view.draw()
+
+    def RunFilterFourier(self):
+        if not self.filter_fourier_checkbox.isChecked():
+            for core in self.view.core_list:
+                core.postprocessing = []
+        else:
+
+            if self.view is None:
+                OKDialog('error', 'no image data to work on')
+                return
+
+            else:
+                for core in self.view.core_list:
+                    core.postprocessing = [lambda img: tl.fourier_filter(img, self.slider_fourier.value())]
+        self.view.draw()
 
     def OpenButtonClick(self, s):
         dlg = QFileDialog(self)
@@ -376,7 +461,7 @@ class MainWindow(QMainWindow):
         for i, channel in enumerate(self.channel_checkbox_list):
             if channel.checkState() == 2:
                 core = Core(self.folder, self.file + '_{}'.format(i + 1))
-                core.k = self.k_slider.value()
+                core.k = self.slider_k.value()
                 core_list.append(core)
                 self.view.add_core(core)
         if len(self.view.core_list) == 0:

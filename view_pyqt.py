@@ -249,6 +249,10 @@ class View(object):
     def f(self, df):
         self._f = (self._f + df) % self.length
 
+    def draw(self):
+        self.canvas_plot.next_frame(0)
+        self.canvas_img.next_frame(0)
+
     def frame_info(self):
         return '{}/{} |  t = {:.1f} s | dt = {:.2f} s | global time = {:.1f} min'.format(
             self.f,

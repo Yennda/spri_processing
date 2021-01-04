@@ -1,3 +1,6 @@
+import numpy as np
+
+
 def frame_times(file_content):
     time0 = int(file_content[1].split()[0])
     time_info = []
@@ -26,3 +29,16 @@ def read_file_info(path):
     t2, *_ = lines[1].split('\t')
 
     return int(width), int(height), (int(t2) - int(t0)) / 1e7, int(avg), int(len(lines)), float(ets)
+
+
+def fourier_filter(img, level):
+    f = np.fft.fft2(img)
+    magnitude_spectrum = 20 * np.log(np.abs(f))
+
+    print(np.average(magnitude_spectrum))
+    print(np.min(magnitude_spectrum))
+    print(np.max(magnitude_spectrum))
+
+    mask = np.real(magnitude_spectrum) > level
+    f[mask] = 0
+    return np.real(np.fft.ifft2(f))
