@@ -134,13 +134,13 @@ class Canvas(FigureCanvasQTAgg):
                 txt.set_text('rng = {:.4f}'.format(c.range[1]))
 
         if event.key == '9':
-            self.next_frame(100)
+            self.next_frame(self.view.core_list[0].k*10)
         elif event.key == '7':
-            self.next_frame(-100)
+            self.next_frame(-self.view.core_list[0].k*10)
         elif event.key == '6':
-            self.next_frame(10)
+            self.next_frame(self.view.core_list[0].k)
         elif event.key == '4':
-            self.next_frame(-10)
+            self.next_frame(-self.view.core_list[0].k)
         elif event.key == '3':
             self.next_frame(1)
         elif event.key == '1':
