@@ -8,10 +8,15 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 from matplotlib.backend_bases import key_press_handler
+from matplotlib.widgets import RectangleSelector
 
 from mpl_toolkits.axes_grid1.anchored_artists import AnchoredSizeBar
+from PyQt5 import QtCore
 
 from global_var import *
+from gui_windows import SelectWindow
+
+import tools as tl
 
 matplotlib.rc('font', family='serif')
 matplotlib.rc('font', serif='Palatino Linotype')
@@ -27,6 +32,8 @@ class Canvas(FigureCanvasQTAgg):
     def __init__(self, view, img=True):
         self.view = view
         self.nav_toolbar = None
+        self.plot_select_window = None
+
         if img:
             super(Canvas, self).__init__(view.fig)
             self.mpl_connect('axes_enter_event', self.mouse_enter)
@@ -75,19 +82,19 @@ class Canvas(FigureCanvasQTAgg):
         elif event.button == 'up':
             self.next_frame(-1)
 
-    def save_frame(self, ax):
+    def save_frame(self, axes):
         """
         checks and eventually creates the folder
         'export_image' in the folder of data
         """
-        if not os.path.isdir(ax.core.folder + FOLDER_EXPORTS):
-            os.mkdir(ax.core.folder + FOLDER_EXPORTS)
+        if not os.path.isdir(axes.core.folder + FOLDER_EXPORTS):
+            os.mkdir(axes.core.folder + FOLDER_EXPORTS)
 
         # creates the name, appends the rigth numeb at the end
 
         name = '{}/{}_f{:04.0f}'.format(
-            ax.core.folder + FOLDER_EXPORTS,
-            ax.core.file,
+            axes.core.folder + FOLDER_EXPORTS,
+            axes.core.file,
             self.view.f
         )
 
@@ -103,9 +110,9 @@ class Canvas(FigureCanvasQTAgg):
         #     pad_inches=0,
         #     pi=300
         # )
-        img = ax.get_images()[0]
-        xlim = [int(i) for i in ax.get_xlim()]
-        ylim = [int(i) for i in ax.get_ylim()]
+        img = axes.get_images()[0]
+        xlim = [int(i) for i in axes.get_xlim()]
+        ylim = [int(i) for i in axes.get_ylim()]
 
         current = img.get_array()[
                   ylim[1]: ylim[0],
@@ -124,6 +131,75 @@ class Canvas(FigureCanvasQTAgg):
 
         print('File SAVED @{}'.format(name))
 
+    def select_np_pattern(self, axes):
+        xlim = [int(i) for i in axes.get_xlim()]
+        ylim = [int(i) for i in axes.get_ylim()]
+
+        img = axes.get_images()[0]
+        raw_idea = img.get_array()[
+                   ylim[1]: ylim[0],
+                   xlim[0]: xlim[1]
+                   ]
+
+        def toggle_selector(event):
+            pass
+
+        fig_idea, axes_idea = plt.subplots()
+        axes_idea.imshow(
+            raw_idea,
+            cmap='gray'
+        )
+
+        canvas_plot_select = FigureCanvasQTAgg(fig_idea)
+
+        toggle_selector.RS = RectangleSelector(
+            axes_idea,
+            lambda eclick, erelease: self.handle_choose_idea(
+                axes,
+                (ylim[1], xlim[0]),
+                eclick,
+                erelease
+            ),
+            drawtype='box', useblit=True,
+            button=[1, 3],  # don't use middle button
+            minspanx=5,
+            minspany=5,
+            spancoords='pixels',
+            interactive=True
+        )
+
+        plt.connect('key_press_event', toggle_selector)
+
+
+        self.plot_select_window = SelectWindow(canvas_plot_select)
+        self.plot_select_window.show()
+        self.plot_select_window.activateWindow()
+
+    def handle_choose_idea(self, axes, shift, eclick, erelease):
+        corner_1 = [tl.true_coordinate(b) for b in (eclick.xdata, eclick.ydata)]
+        corner_2 = [tl.true_coordinate(e) for e in (erelease.xdata, erelease.ydata)]
+
+        span_x = np.array([
+            shift[1] + corner_1[0] + 1 - 2,
+            shift[1] + corner_2[0] + 2
+        ])
+        span_y = np.array([
+            shift[0] + corner_1[1] + 1 - 2,
+            shift[0] + corner_2[1] + 2
+        ])
+
+        idea3d = np.zeros((span_y[1] - span_y[0], span_x[1] - span_x[0], 2 * axes.core.k))
+
+        for i in range(2 * axes.core.k):
+            idea3d[:, :, i] = axes.core.frame(self.view.f + axes.core.k - i)[
+                              span_x[0]: span_x[1],
+                              span_y[0]: span_y[1]]
+
+        axes.core.idea3d = idea3d
+        print('Pattern chosen')
+
+        axes.core.save_idea()
+
     def button_press(self, event):
         key_press_handler(event, self, self.toolbar)
 
@@ -134,9 +210,9 @@ class Canvas(FigureCanvasQTAgg):
                 txt.set_text('rng = {:.4f}'.format(c.range[1]))
 
         if event.key == '9':
-            self.next_frame(self.view.core_list[0].k*10)
+            self.next_frame(self.view.core_list[0].k * 10)
         elif event.key == '7':
-            self.next_frame(-self.view.core_list[0].k*10)
+            self.next_frame(-self.view.core_list[0].k * 10)
         elif event.key == '6':
             self.next_frame(self.view.core_list[0].k)
         elif event.key == '4':
@@ -152,6 +228,9 @@ class Canvas(FigureCanvasQTAgg):
 
             if event.key == 'a':
                 self.save_frame(event.inaxes)
+            elif event.key == 'd':
+                self.select_np_pattern(event.inaxes)
+
         else:
             core_list = self.view.core_list
             axes_list = self.view.axes
@@ -183,6 +262,11 @@ class Canvas(FigureCanvasQTAgg):
                 set_range(core.range, axes)
                 self.next_frame(0)
 
+            elif event.key == 'ctrl+4':
+                self.view.change_type(axes, 'corr')
+                set_range(core.range, axes)
+                self.next_frame(0)
+
             elif event.key == 'i':
                 core.ref_frame = self.view.f
                 self.next_frame(0)
@@ -204,6 +288,8 @@ class View(object):
         self.fig = None
         self.axes = None
         self.text = []
+
+        self.idea3d = None
 
         self.img_shown = []
         self.canvas_img = None

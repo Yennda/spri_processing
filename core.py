@@ -1,4 +1,8 @@
+import os
+
 import numpy as np
+import scipy as sc
+import scipy.signal
 
 from global_var import *
 import tools as tl
@@ -15,7 +19,8 @@ class Core(object):
         self._range = {
             'diff': INIT_RANGE,
             'raw': [0, 1],
-            'int': INIT_RANGE
+            'int': INIT_RANGE,
+            'corr': INIT_CORR
         }
         self.__video_stats = None
 
@@ -29,7 +34,10 @@ class Core(object):
         self.zero_time = None
         self.reference = None
 
+        self.idea3d = None
+
         self._load_data()
+        self.load_idea()
         self.ref_frame = 10
 
     def _load_data(self):
@@ -144,17 +152,51 @@ class Core(object):
         self.type = type_buffer
         return intensity
 
+    def save_idea(self, name=None):
+        if not os.path.isdir(self.folder + FOLDER_IDEAS):
+            os.mkdir(self.folder + FOLDER_IDEAS)
+
+        if name == None:
+            name = self.file
+
+        file_name = self.folder + FOLDER_IDEAS + '/' + name
+
+        if tl.before_save_file(file_name) or name == self.file:
+            np.save(file_name + '.npy', self.idea3d)
+            # np.save(file_name + '_frame' + '.npy', np.array(self._idea_frame))
+            # np.save(file_name + '_spanx' + '.npy', self._idea_span_x)
+            # np.save(file_name + '_spany' + '.npy', self._idea_span_y)
+
+            print('Pattern saved')
+
+        else:
+            print('Could not save the pattern.')
+
+    def load_idea(self, name=None):
+        if name == None:
+            name = self.file
+
+        file_name = self.folder + FOLDER_IDEAS + '/' + name
+        try:
+            self.idea3d = np.load(file_name + '.npy')
+            return True
+        except FileNotFoundError:
+            return False
+
+    def frame_diff(self, f):
+        current = np.sum(
+            self._raw[:, :, f - self.k + 1: f + 1],
+            axis=2
+        ) / self.k
+        previous = np.sum(
+            self._raw[:, :, f - 2 * self.k + 1: f - self.k + 1],
+            axis=2
+        ) / self.k
+        return current - previous
+
     def frame(self, f):
         if self.type == 'diff':
-            current = np.sum(
-                self._raw[:, :, f - self.k + 1: f + 1],
-                axis=2
-            ) / self.k
-            previous = np.sum(
-                self._raw[:, :, f - 2 * self.k + 1: f - self.k + 1],
-                axis=2
-            ) / self.k
-            image = current - previous
+            image = self.frame_diff(f)
 
         elif self.type == 'int':
             current = np.average(
@@ -165,6 +207,25 @@ class Core(object):
 
         elif self.type == 'raw':
             image = self._raw[:, :, f]
+
+        elif self.type == 'corr':
+            if self.idea3d is None:
+                image = np.zeros(self.shape_img[0])
+                print('No selected NP patter for file {}'.format(self.file))
+                return image
+
+            sequence_diff = np.zeros((self.shape_img[0], self.shape_img[1], 2 * self.k))
+            for i in range(2 * self.k):
+                sequence_diff[:, :, i] = self.frame_diff(f + self.k - i)
+
+            out = scipy.signal.correlate(
+                sequence_diff,
+                self.idea3d,
+                mode='same'
+            ) * 1e5
+
+            image = out[:, :, self.k]
+            self.range = [np.min(image), np.max(image)]
 
         if len(self.postprocessing) != 0:
             for p in self.postprocessing.values():

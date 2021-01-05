@@ -1,5 +1,5 @@
 import numpy as np
-
+import os
 
 def frame_times(file_content):
     time0 = int(file_content[1].split()[0])
@@ -21,6 +21,13 @@ def SecToMin(sec):
     return '{:.0f}:{:.1f}'.format(sec // 60, sec % 60)
 
 
+def BoolFromCheckBox(value):
+    if value.checkState() == 0:
+        return False
+    else:
+        return True
+
+
 def read_file_info(path):
     with open(path + '.tsv') as f:
         next(f)
@@ -31,26 +38,42 @@ def read_file_info(path):
     return int(width), int(height), (int(t2) - int(t0)) / 1e7, int(avg), int(len(lines)), float(ets)
 
 
-def fourier_filter(img, level):
+def fourier_filter(img, level, longpass):
     f = np.fft.fft2(img)
     magnitude_spectrum = 20 * np.log(np.abs(f))
 
-    print(np.average(magnitude_spectrum))
-    print(np.min(magnitude_spectrum))
-    print(np.max(magnitude_spectrum))
-
-    mask = np.abs(magnitude_spectrum) > level
-
-    mask = np.full(magnitude_spectrum.shape, False, dtype=bool)
-
-    print(img.shape)
-    print(int(img.shape[1] / 2 * (1 - level / 100)))
-    print(int(img.shape[1] / 2 * (1 + level / 100)))
-
+    # mask = np.abs(magnitude_spectrum) > level
+    mask = np.full(magnitude_spectrum.shape, longpass, dtype=bool)
     mask[
     int(img.shape[0] / 2 * (1 - level / 100)): int(img.shape[0] / 2 * (1 + level / 100)),
     int(img.shape[1] / 2 * (1 - level / 100)): int(img.shape[1] / 2 * (1 + level / 100))
-    ] = True
+    ] = not longpass
 
     f[mask] = 0
     return np.real(np.fft.ifft2(f))
+
+
+def true_coordinate(x):
+    return int((x + 0.5) // 1)
+
+
+def before_save_file(path):
+    if os.path.isfile(path):
+        print('=' * 80)
+
+        print(
+            'Old data in {} will be overwriten.'
+            'Type "y" as yes or "n"'
+            'as no bellow in the command line.'.format(path))
+
+        print('=' * 80)
+        result = input()
+
+        if result == 'y':
+            os.remove(path)
+
+            return True
+
+        return False
+
+    return True

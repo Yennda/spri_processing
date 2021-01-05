@@ -13,83 +13,12 @@ import matplotlib
 from scipy.ndimage import gaussian_filter
 
 matplotlib.use('Qt5Agg')
-from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 
 import tools as tl
 import global_var as gv
 from core import Core
 from view_pyqt import View
-
-
-def BoolFromCheckBox(value):
-    if value.checkState() == 0:
-        return False
-    else:
-        return True
-
-
-class OKDialog(QDialog):
-
-    def __init__(self, title, message, *args, **kwargs):
-        super(OKDialog, self).__init__(*args, **kwargs)
-
-        self.setWindowTitle(title)
-
-        QBtn = QDialogButtonBox.Ok
-
-        self.buttonBox = QDialogButtonBox(QBtn)
-        self.buttonBox.accepted.connect(self.accept)
-
-        self.layout = QVBoxLayout()
-
-        label_err = QLabel(message)
-        label_err.setWordWrap(True)
-        # label_err.setAlignment(Qt.AlignCenter)
-        self.layout.addWidget(label_err)
-
-        self.layout.addWidget(self.buttonBox)
-        self.setLayout(self.layout)
-        self.exec_()
-
-    def accept(self):
-        self.close()
-
-
-class PlotWindow(QtWidgets.QMainWindow):
-
-    def __init__(self, canvas, *args, **kwargs):
-        super(PlotWindow, self).__init__(*args, **kwargs)
-        self.setWindowTitle(canvas.view.core_list[0].folder + '/' + canvas.view.core_list[0].file[:-2])
-
-        toolbar = NavigationToolbar(canvas, self)
-        canvas.nav_toolbar = toolbar
-
-        layout = QtWidgets.QVBoxLayout()
-        layout.addWidget(toolbar)
-        layout.addWidget(canvas)
-
-        widget = QtWidgets.QWidget()
-        widget.setLayout(layout)
-        self.setCentralWidget(widget)
-
-        self.show()
-
-
-class LoadingWindow(QtWidgets.QMainWindow):
-
-    def __init__(self, *args, **kwargs):
-        super(LoadingWindow, self).__init__(*args, **kwargs)
-        self.setWindowTitle('loading')
-
-        self.progress_bar = QProgressBar(self)
-        self.progress_bar.setGeometry(20, 20, 250, 20)
-        self.progress_bar.setValue(50)
-        self.info = QLabel('Info:')
-
-        self.layout = QVBoxLayout()
-        self.layout.addWidget(self.info)
-        self.layout.addWidget(self.progress_bar)
-        self.setLayout(self.layout)
+from gui_windows import OKDialog, PlotWindow, LoadingWindow
 
 
 class WorkerSignals(QObject):
@@ -180,24 +109,26 @@ class MainWindow(QMainWindow):
         self.slider_k.setSingleStep(1)
         self.slider_k.setValue(10)
         self.slider_k.valueChanged.connect(self.RefreshSliderInfo)
-
         self.slider_k_info = QLabel('10')
 
-        self.spr_checkbox = QCheckBox('SPR')
-        self.spr_checkbox.setChecked(True)
-        self.int_checkbox = QCheckBox('intensity')
-        self.int_checkbox.setStatusTip('Takes a while')
-        self.nint_checkbox = QCheckBox('norm. int.')
-        self.nint_checkbox.setStatusTip('Takes a while')
-        self.std_checkbox = QCheckBox('std')
-        self.std_checkbox.setStatusTip('Takes a while')
+        "Data processing"
+
+        self.checkbox_1 = QCheckBox('SPR')
+        self.checkbox_1.setChecked(True)
+        self.checkbox_2 = QCheckBox('intensity')
+        self.checkbox_2.setStatusTip('Takes a while')
+        self.checkbox_3 = QCheckBox('norm. int.')
+        self.checkbox_3.setStatusTip('Takes a while')
+        self.checkbox_4 = QCheckBox('std')
+        self.checkbox_4.setStatusTip('Takes a while')
+
+        "Image filters"
 
         self.filter_gauss_checkbox = QCheckBox('gaussian')
         self.filter_gauss_checkbox.setChecked(False)
         self.filter_gauss_checkbox.clicked.connect(self.RunFilterGaussian)
         self.slider_gauss = QSlider(Qt.Horizontal)
-        self.slider_gauss.setStatusTip(
-            'Number of integrated frames. Recommended value is 10 for 10 fps.')
+
         self.slider_gauss.setMinimum(0)
         self.slider_gauss.setMaximum(50)
         self.slider_gauss.setSingleStep(1)
@@ -205,19 +136,29 @@ class MainWindow(QMainWindow):
         self.slider_gauss_info = QLabel('1')
         self.slider_gauss.valueChanged.connect(self.RefreshSliderGaussInfo)
 
-        self.filter_fourier_checkbox = QCheckBox('fourier')
-        self.filter_fourier_checkbox.setStatusTip('short pass')
-        self.filter_fourier_checkbox.setChecked(False)
-        self.filter_fourier_checkbox.clicked.connect(self.RunFilterFourier)
-        self.slider_fourier = QSlider(Qt.Horizontal)
-        self.slider_fourier.setStatusTip(
-            'Number of integrated frames. Recommended value is 10 for 10 fps.')
-        self.slider_fourier.setMinimum(0)
-        self.slider_fourier.setMaximum(100)
-        self.slider_fourier.setSingleStep(1)
-        self.slider_fourier.setValue(10)
-        self.slider_fourier_info = QLabel('10')
-        self.slider_fourier.valueChanged.connect(self.RefreshSliderFourierInfo)
+        self.filter_fourier_checkbox_lp = QCheckBox('long pass')
+        self.filter_fourier_checkbox_lp.setChecked(False)
+        self.filter_fourier_checkbox_lp.clicked.connect(self.RunFilterFourierLp)
+        self.slider_fourier_lp = QSlider(Qt.Horizontal)
+
+        self.slider_fourier_lp.setMinimum(0)
+        self.slider_fourier_lp.setMaximum(100)
+        self.slider_fourier_lp.setSingleStep(1)
+        self.slider_fourier_lp.setValue(100)
+        self.slider_fourier_info_lp = QLabel('100 %')
+        self.slider_fourier_lp.valueChanged.connect(self.RefreshSliderFourierLpInfo)
+
+        self.filter_fourier_checkbox_sp = QCheckBox('short pass')
+        self.filter_fourier_checkbox_sp.setChecked(False)
+        self.filter_fourier_checkbox_sp.clicked.connect(self.RunFilterFourierSp)
+        self.slider_fourier_sp = QSlider(Qt.Horizontal)
+
+        self.slider_fourier_sp.setMinimum(0)
+        self.slider_fourier_sp.setMaximum(100)
+        self.slider_fourier_sp.setSingleStep(1)
+        self.slider_fourier_sp.setValue(0)
+        self.slider_fourier_info_sp = QLabel('0 %')
+        self.slider_fourier_sp.valueChanged.connect(self.RefreshSliderFourierSpInfo)
 
         self.build_button = QPushButton(QIcon('icons/arrow.png'), 'Build')
         self.build_button.setStatusTip('Builds the view of the data. It usually takes a while.')
@@ -274,15 +215,15 @@ class MainWindow(QMainWindow):
         slider_layout.addWidget(self.slider_k_info)
         layout.addLayout(slider_layout)
 
-        label = QLabel('-- Data to plot --')
+        label = QLabel('-- Data processing --')
         label.setAlignment(Qt.AlignCenter)
         layout.addWidget(label)
 
         plot_layout = QGridLayout()
-        plot_layout.addWidget(self.spr_checkbox, 0, 0)
-        plot_layout.addWidget(self.int_checkbox, 1, 0)
-        plot_layout.addWidget(self.nint_checkbox, 0, 1)
-        plot_layout.addWidget(self.std_checkbox, 1, 1)
+        plot_layout.addWidget(self.checkbox_1, 0, 0)
+        plot_layout.addWidget(self.checkbox_2, 1, 0)
+        plot_layout.addWidget(self.checkbox_3, 0, 1)
+        plot_layout.addWidget(self.checkbox_4, 1, 1)
         layout.addLayout(plot_layout)
 
         layout.addWidget(self.build_button)
@@ -291,14 +232,29 @@ class MainWindow(QMainWindow):
         label.setAlignment(Qt.AlignCenter)
         layout.addWidget(label)
 
-        "fourier"
         fourier_layout = QHBoxLayout()
-        fourier_layout.addWidget(self.filter_fourier_checkbox)
-        fourier_layout.addWidget(self.slider_fourier)
-        fourier_layout.addWidget(self.slider_fourier_info)
+        label = QLabel('Fourier\nfilter')
+        fourier_layout.addWidget(label)
+
+        fourier_layout_sliders = QVBoxLayout()
+
+        fourier_layout_lp = QHBoxLayout()
+        fourier_layout_lp.addWidget(self.filter_fourier_checkbox_lp)
+        fourier_layout_lp.addWidget(self.slider_fourier_lp)
+        fourier_layout_lp.addWidget(self.slider_fourier_info_lp)
+
+        fourier_layout_sliders.addLayout(fourier_layout_lp)
+
+        fourier_layout_sp = QHBoxLayout()
+        fourier_layout_sp.addWidget(self.filter_fourier_checkbox_sp)
+        fourier_layout_sp.addWidget(self.slider_fourier_sp)
+        fourier_layout_sp.addWidget(self.slider_fourier_info_sp)
+
+        fourier_layout_sliders.addLayout(fourier_layout_sp)
+
+        fourier_layout.addLayout(fourier_layout_sliders)
 
         layout.addLayout(fourier_layout)
-
         "gauss"
         gauss_layout = QHBoxLayout()
         gauss_layout.addWidget(self.filter_gauss_checkbox)
@@ -376,9 +332,13 @@ class MainWindow(QMainWindow):
         self.slider_gauss_info.setText(str(self.slider_gauss.value() / 10))
         self.RunFilterGaussian()
 
-    def RefreshSliderFourierInfo(self):
-        self.slider_fourier_info.setText(str(self.slider_fourier.value()))
-        self.RunFilterFourier()
+    def RefreshSliderFourierLpInfo(self):
+        self.slider_fourier_info_lp.setText('{} %'.format(self.slider_fourier_lp.value()))
+        self.RunFilterFourierLp()
+
+    def RefreshSliderFourierSpInfo(self):
+        self.slider_fourier_info_sp.setText('{} %'.format(self.slider_fourier_sp.value()))
+        self.RunFilterFourierSp()
 
     def RefreshOrientationInfo(self):
         if self.orientation_checkbox.checkState() == 0:
@@ -387,10 +347,22 @@ class MainWindow(QMainWindow):
             self.orientation_checkbox.setText('Horizontal layout')
 
     def RunFilterGaussian(self):
-        if not self.filter_gauss_checkbox.isChecked():
+        fn = lambda img: gaussian_filter(img, self.slider_gauss.value() / 10)
+        self.RunFilter(self.filter_gauss_checkbox.isChecked(), 'b_gauss', fn)
+
+    def RunFilterFourierLp(self):
+        fn = lambda img: tl.fourier_filter(img, self.slider_fourier_lp.value(), True)
+        self.RunFilter(self.filter_fourier_checkbox_lp.isChecked(), 'a_fourier_lp', fn)
+
+    def RunFilterFourierSp(self):
+        fn = lambda img: tl.fourier_filter(img, self.slider_fourier_sp.value(), False)
+        self.RunFilter(self.filter_fourier_checkbox_sp.isChecked(), 'a_fourier_sp', fn)
+
+    def RunFilter(self, checked, type, fn):
+        if not checked:
             for core in self.view.core_list:
                 try:
-                    del core.postprocessing['b_gauss']
+                    del core.postprocessing[type]
                 except KeyError:
                     print('posprocessing key not found')
         else:
@@ -401,26 +373,7 @@ class MainWindow(QMainWindow):
 
             else:
                 for core in self.view.core_list:
-                    core.postprocessing['b_gauss'] = lambda img: gaussian_filter(img, self.slider_gauss.value() / 10)
-        dict(sorted(core.postprocessing.items()))
-        self.view.draw()
-
-    def RunFilterFourier(self):
-        if not self.filter_fourier_checkbox.isChecked():
-            for core in self.view.core_list:
-                try:
-                    del core.postprocessing['a_fourier']
-                except KeyError:
-                    print('posprocessing key not found')
-        else:
-
-            if self.view is None:
-                OKDialog('error', 'no image data to work on')
-                return
-
-            else:
-                for core in self.view.core_list:
-                    core.postprocessing['a_fourier'] = lambda img: tl.fourier_filter(img, self.slider_fourier.value())
+                    core.postprocessing[type] = fn
         dict(sorted(core.postprocessing.items()))
         self.view.draw()
 
@@ -444,9 +397,7 @@ class MainWindow(QMainWindow):
         self.progress_bar.setValue(n)
 
     def thread_complete(self):
-        # print(self.threadpool.activeThreadCount())
         if self.threadpool.activeThreadCount() == 0:
-            # print('konec')
             if True in self.chosen_plots:
                 canvas_plot = self.view.show_plots(self.chosen_plots)
 
@@ -465,6 +416,14 @@ class MainWindow(QMainWindow):
             self.progress_bar.setVisible(False)
 
     def BuildButtonClick(self, s):
+
+        # try:
+        #     del self.view.canvas_plot
+        #     del self.view.canvas_img
+        #     del self.view
+        # except:
+        #     pass
+
         self.view = View()
         core_list = []
         for i, channel in enumerate(self.channel_checkbox_list):
@@ -477,13 +436,13 @@ class MainWindow(QMainWindow):
             OKDialog('error', 'no channels selected')
             return
 
-        self.view.orientation = BoolFromCheckBox(self.orientation_checkbox)
+        self.view.orientation = tl.BoolFromCheckBox(self.orientation_checkbox)
 
         self.chosen_plots = [
-            BoolFromCheckBox(self.spr_checkbox),
-            BoolFromCheckBox(self.int_checkbox),
-            BoolFromCheckBox(self.nint_checkbox),
-            BoolFromCheckBox(self.std_checkbox)
+            tl.BoolFromCheckBox(self.checkbox_1),
+            tl.BoolFromCheckBox(self.checkbox_2),
+            tl.BoolFromCheckBox(self.checkbox_3),
+            tl.BoolFromCheckBox(self.checkbox_4)
         ]
 
         self.progress_bar.setVisible(True)

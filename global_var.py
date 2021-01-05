@@ -8,6 +8,7 @@ NAME_GLOBAL_SPR = 'spr_integral'
 
 # INIT_RANGE = [-0.01. 0.01]
 INIT_RANGE = [-0.003, 0.003]
+INIT_CORR = [-50, 200]
 
 yellow = '#ffb200'
 red = '#DD5544'
