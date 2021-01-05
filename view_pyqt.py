@@ -170,7 +170,6 @@ class Canvas(FigureCanvasQTAgg):
 
         plt.connect('key_press_event', toggle_selector)
 
-
         self.plot_select_window = SelectWindow(canvas_plot_select)
         self.plot_select_window.show()
         self.plot_select_window.activateWindow()
@@ -178,9 +177,6 @@ class Canvas(FigureCanvasQTAgg):
     def handle_choose_idea(self, axes, shift, eclick, erelease):
         corner_1 = [tl.true_coordinate(b) for b in (eclick.xdata, eclick.ydata)]
         corner_2 = [tl.true_coordinate(e) for e in (erelease.xdata, erelease.ydata)]
-        print(corner_2)
-        print(corner_1)
-
         span_x = np.array([
             shift[1] + corner_1[0] + 1 - 2,
             shift[1] + corner_2[0] + 2
@@ -189,12 +185,9 @@ class Canvas(FigureCanvasQTAgg):
             shift[0] + corner_1[1] + 1 - 2,
             shift[0] + corner_2[1] + 2
         ])
-        print(span_x)
-        print(span_y)
 
         idea3d = np.zeros((span_y[1] - span_y[0], span_x[1] - span_x[0], 2 * axes.core.k))
 
-        print(idea3d.shape)
         for i in range(2 * axes.core.k):
             idea3d[:, :, i] = axes.core.frame(self.view.f + axes.core.k - i)[
                               span_y[0]: span_y[1],

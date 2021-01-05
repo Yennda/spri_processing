@@ -42,7 +42,7 @@ class Core(object):
 
     def _load_data(self):
         self.__video_stats = self._load_stats()
-        self._raw = self._load_video()
+        self._raw = self._load_video()[YMIN: YMAX, XMIN: XMAX, :]
         self.spr_time, self.graphs['spr_signal'] = self._load_spr()
 
     def _load_stats(self):
@@ -214,9 +214,9 @@ class Core(object):
                 print('No selected NP patter for file {}'.format(self.file))
                 return image
 
-            sequence_diff = np.zeros((self.shape_img[0], self.shape_img[1], 2 * self.k))
-            for i in range(2 * self.k):
-                sequence_diff[:, :, i] = self.frame_diff(f + self.k - i)
+            sequence_diff = np.zeros((self.shape_img[0], self.shape_img[1], 4 * self.k))
+            for i in range(4 * self.k):
+                sequence_diff[:, :, i] = self.frame_diff(f + 2 * self.k - i)
 
             out = scipy.signal.correlate(
                 sequence_diff,
@@ -224,8 +224,8 @@ class Core(object):
                 mode='same'
             ) * 1e5
 
-            image = out[:, :, self.k]
-            self.range = [np.min(image), np.max(image)]
+            image = out[:, :, 2 * self.k]
+            # self.range = [np.min(image), np.max(image)]
 
         if len(self.postprocessing) != 0:
             for p in self.postprocessing.values():

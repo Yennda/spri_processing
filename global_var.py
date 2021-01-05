@@ -10,6 +10,12 @@ NAME_GLOBAL_SPR = 'spr_integral'
 INIT_RANGE = [-0.003, 0.003]
 INIT_CORR = [-50, 200]
 
+# XMIN, XMAX = [400, 800]
+# YMIN, YMAX = [0, -1]
+
+YMIN, YMAX = [400, 800]
+XMIN, XMAX = [0, -1]
+
 yellow = '#ffb200'
 red = '#DD5544'
 blue = '#0284C0'
