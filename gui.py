@@ -141,6 +141,8 @@ class MainWindow(QMainWindow):
         self.filter_wiener_checkbox = QCheckBox('wiener')
         self.filter_wiener_checkbox.setChecked(False)
         self.filter_wiener_checkbox.clicked.connect(self.RunFilterWiener)
+
+        self.filter_wiener_label = QLabel('\tsize')
         self.slider_wiener = QSlider(Qt.Horizontal)
 
         self.slider_wiener.setMinimum(2)
@@ -149,6 +151,16 @@ class MainWindow(QMainWindow):
         self.slider_wiener.setValue(10)
         self.slider_wiener_info = QLabel('10')
         self.slider_wiener.valueChanged.connect(self.RefreshSliderWienerInfo)
+
+        self.filter_wiener_noise_label = QLabel('\tnoise')
+        self.slider_wiener_noise = QSlider(Qt.Horizontal)
+
+        self.slider_wiener_noise.setMinimum(0)
+        self.slider_wiener_noise.setMaximum(1000)
+        self.slider_wiener_noise.setSingleStep(1)
+        self.slider_wiener_noise.setValue(100)
+        self.slider_wiener_noise_info = QLabel('10')
+        self.slider_wiener_noise.valueChanged.connect(self.RefreshSliderWienerInfo)
 
         self.filters_checkbox = QCheckBox('all filters')
         self.filters_checkbox.setChecked(True)
@@ -161,6 +173,8 @@ class MainWindow(QMainWindow):
             self.filter_wiener_checkbox,
             self.slider_wiener_info,
             self.slider_wiener,
+            self.slider_wiener_noise_info,
+            self.slider_wiener_noise
         ]
 
         self.build_button = QPushButton(QIcon('icons/arrow.png'), 'Build')
@@ -237,16 +251,24 @@ class MainWindow(QMainWindow):
 
         layout.addWidget(self.filters_checkbox)
 
-        wiener_layout = QHBoxLayout()
-        label = QLabel('wiener\nfilter')
-        wiener_layout.addWidget(label)
+        wiener_layout_box = QVBoxLayout()
 
+        layout.addWidget(self.filter_wiener_checkbox)
         wiener_layout = QHBoxLayout()
-        wiener_layout.addWidget(self.filter_wiener_checkbox)
+
+        wiener_layout.addWidget(self.filter_wiener_label)
         wiener_layout.addWidget(self.slider_wiener)
         wiener_layout.addWidget(self.slider_wiener_info)
 
-        layout.addLayout(wiener_layout)
+        wiener_layout_noise = QHBoxLayout()
+        wiener_layout_noise.addWidget(self.filter_wiener_noise_label)
+        wiener_layout_noise.addWidget(self.slider_wiener_noise)
+        wiener_layout_noise.addWidget(self.slider_wiener_noise_info)
+
+        wiener_layout_box.addLayout(wiener_layout)
+        wiener_layout_box.addLayout(wiener_layout_noise)
+
+        layout.addLayout(wiener_layout_box)
 
         "gauss"
         gauss_layout = QHBoxLayout()
@@ -330,6 +352,10 @@ class MainWindow(QMainWindow):
 
     def RefreshSliderWienerInfo(self):
         self.slider_wiener_info.setText('{}'.format(self.slider_wiener.value()))
+        if self.slider_wiener_noise.value() == 0:
+            self.slider_wiener_noise_info.setText('auto')
+        else:
+            self.slider_wiener_noise_info.setText('{:.2e}'.format(self.slider_wiener_noise.value() / 1e3 / 1e6))
         self.RunFilterWiener()
 
     def RefreshOrientationInfo(self):
@@ -343,13 +369,13 @@ class MainWindow(QMainWindow):
             for core in self.view.core_list:
                 core.postprocessing = True
             for item in self.image_filters:
-                item.setDisabled(True)
+                item.setDisabled(False)
 
         else:
             for core in self.view.core_list:
                 core.postprocessing = False
             for item in self.image_filters:
-                item.setDisabled(False)
+                item.setDisabled(True)
         self.view.canvas_img.next_frame(0)
 
     def RunFilterGaussian(self):
@@ -361,7 +387,11 @@ class MainWindow(QMainWindow):
         self.RunFilter(self.filter_gauss_checkbox.isChecked(), 'b_gauss', fn)
 
     def RunFilterWiener(self):
-        fn = lambda img: scipy.signal.wiener(img, self.slider_wiener.value())
+        if self.slider_wiener_noise_info.text() == 'auto':
+            fn = lambda img: scipy.signal.wiener(img, self.slider_wiener.value())
+            print('auto')
+        else:
+            fn = lambda img: scipy.signal.wiener(img, self.slider_wiener.value(), self.slider_wiener_noise.value()/ 1e3 / 1e6)
         self.RunFilter(self.filter_wiener_checkbox.isChecked(), 'a_wiener', fn)
 
     def RunFilter(self, checked, type, fn):
