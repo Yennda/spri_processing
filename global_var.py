@@ -7,14 +7,15 @@ NAME_LOCAL_SPR = 'spr'
 NAME_GLOBAL_SPR = 'spr_integral'
 
 # INIT_RANGE = [-0.01. 0.01]
-INIT_RANGE = [-0.003, 0.003]
+# INIT_RANGE = [-0.003, 0.003]
+INIT_RANGE = [-0.0075, 0.0075]
 INIT_CORR = [-50, 200]
 
-# XMIN, XMAX = [400, 800]
-# YMIN, YMAX = [0, -1]
+XMIN, XMAX = [400, 800]
+YMIN, YMAX = [0, -1]
 
-YMIN, YMAX = [400, 800]
-XMIN, XMAX = [0, -1]
+# YMIN, YMAX = [400, 800]
+# XMIN, XMAX = [0, -1]
 
 yellow = '#ffb200'
 red = '#DD5544'

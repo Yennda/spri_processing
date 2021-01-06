@@ -10,6 +10,8 @@ from PyQt5.QtGui import *
 from PyQt5 import QtCore, QtWidgets
 
 import matplotlib
+import scipy.signal
+import numpy as np
 from scipy.ndimage import gaussian_filter
 
 matplotlib.use('Qt5Agg')
@@ -136,29 +138,30 @@ class MainWindow(QMainWindow):
         self.slider_gauss_info = QLabel('1')
         self.slider_gauss.valueChanged.connect(self.RefreshSliderGaussInfo)
 
-        self.filter_fourier_checkbox_lp = QCheckBox('long pass')
-        self.filter_fourier_checkbox_lp.setChecked(False)
-        self.filter_fourier_checkbox_lp.clicked.connect(self.RunFilterFourierLp)
-        self.slider_fourier_lp = QSlider(Qt.Horizontal)
+        self.filter_wiener_checkbox = QCheckBox('wiener')
+        self.filter_wiener_checkbox.setChecked(False)
+        self.filter_wiener_checkbox.clicked.connect(self.RunFilterWiener)
+        self.slider_wiener = QSlider(Qt.Horizontal)
 
-        self.slider_fourier_lp.setMinimum(0)
-        self.slider_fourier_lp.setMaximum(100)
-        self.slider_fourier_lp.setSingleStep(1)
-        self.slider_fourier_lp.setValue(100)
-        self.slider_fourier_info_lp = QLabel('100 %')
-        self.slider_fourier_lp.valueChanged.connect(self.RefreshSliderFourierLpInfo)
+        self.slider_wiener.setMinimum(2)
+        self.slider_wiener.setMaximum(100)
+        self.slider_wiener.setSingleStep(1)
+        self.slider_wiener.setValue(10)
+        self.slider_wiener_info = QLabel('10')
+        self.slider_wiener.valueChanged.connect(self.RefreshSliderWienerInfo)
 
-        self.filter_fourier_checkbox_sp = QCheckBox('short pass')
-        self.filter_fourier_checkbox_sp.setChecked(False)
-        self.filter_fourier_checkbox_sp.clicked.connect(self.RunFilterFourierSp)
-        self.slider_fourier_sp = QSlider(Qt.Horizontal)
+        self.filters_checkbox = QCheckBox('all filters')
+        self.filters_checkbox.setChecked(True)
+        self.filters_checkbox.clicked.connect(self.RefreshFilters)
 
-        self.slider_fourier_sp.setMinimum(0)
-        self.slider_fourier_sp.setMaximum(100)
-        self.slider_fourier_sp.setSingleStep(1)
-        self.slider_fourier_sp.setValue(0)
-        self.slider_fourier_info_sp = QLabel('0 %')
-        self.slider_fourier_sp.valueChanged.connect(self.RefreshSliderFourierSpInfo)
+        self.image_filters = [
+            self.filter_gauss_checkbox,
+            self.slider_gauss_info,
+            self.slider_gauss,
+            self.filter_wiener_checkbox,
+            self.slider_wiener_info,
+            self.slider_wiener,
+        ]
 
         self.build_button = QPushButton(QIcon('icons/arrow.png'), 'Build')
         self.build_button.setStatusTip('Builds the view of the data. It usually takes a while.')
@@ -232,34 +235,27 @@ class MainWindow(QMainWindow):
         label.setAlignment(Qt.AlignCenter)
         layout.addWidget(label)
 
-        fourier_layout = QHBoxLayout()
-        label = QLabel('Fourier\nfilter')
-        fourier_layout.addWidget(label)
+        layout.addWidget(self.filters_checkbox)
 
-        fourier_layout_sliders = QVBoxLayout()
+        wiener_layout = QHBoxLayout()
+        label = QLabel('wiener\nfilter')
+        wiener_layout.addWidget(label)
 
-        fourier_layout_lp = QHBoxLayout()
-        fourier_layout_lp.addWidget(self.filter_fourier_checkbox_lp)
-        fourier_layout_lp.addWidget(self.slider_fourier_lp)
-        fourier_layout_lp.addWidget(self.slider_fourier_info_lp)
+        wiener_layout = QHBoxLayout()
+        wiener_layout.addWidget(self.filter_wiener_checkbox)
+        wiener_layout.addWidget(self.slider_wiener)
+        wiener_layout.addWidget(self.slider_wiener_info)
 
-        fourier_layout_sliders.addLayout(fourier_layout_lp)
+        layout.addLayout(wiener_layout)
 
-        fourier_layout_sp = QHBoxLayout()
-        fourier_layout_sp.addWidget(self.filter_fourier_checkbox_sp)
-        fourier_layout_sp.addWidget(self.slider_fourier_sp)
-        fourier_layout_sp.addWidget(self.slider_fourier_info_sp)
-
-        fourier_layout_sliders.addLayout(fourier_layout_sp)
-
-        fourier_layout.addLayout(fourier_layout_sliders)
-
-        layout.addLayout(fourier_layout)
         "gauss"
         gauss_layout = QHBoxLayout()
         gauss_layout.addWidget(self.filter_gauss_checkbox)
         gauss_layout.addWidget(self.slider_gauss)
         gauss_layout.addWidget(self.slider_gauss_info)
+
+        for item in self.image_filters + [self.filters_checkbox]:
+            item.setDisabled(True)
 
         layout.addLayout(gauss_layout)
 
@@ -332,13 +328,9 @@ class MainWindow(QMainWindow):
         self.slider_gauss_info.setText(str(self.slider_gauss.value() / 10))
         self.RunFilterGaussian()
 
-    def RefreshSliderFourierLpInfo(self):
-        self.slider_fourier_info_lp.setText('{} %'.format(self.slider_fourier_lp.value()))
-        self.RunFilterFourierLp()
-
-    def RefreshSliderFourierSpInfo(self):
-        self.slider_fourier_info_sp.setText('{} %'.format(self.slider_fourier_sp.value()))
-        self.RunFilterFourierSp()
+    def RefreshSliderWienerInfo(self):
+        self.slider_wiener_info.setText('{}'.format(self.slider_wiener.value()))
+        self.RunFilterWiener()
 
     def RefreshOrientationInfo(self):
         if self.orientation_checkbox.checkState() == 0:
@@ -346,36 +338,45 @@ class MainWindow(QMainWindow):
         else:
             self.orientation_checkbox.setText('Horizontal layout')
 
+    def RefreshFilters(self):
+        if self.filters_checkbox.isChecked():
+            for core in self.view.core_list:
+                core.postprocessing = True
+            for item in self.image_filters:
+                item.setDisabled(True)
+
+        else:
+            for core in self.view.core_list:
+                core.postprocessing = False
+            for item in self.image_filters:
+                item.setDisabled(False)
+        self.view.canvas_img.next_frame(0)
+
     def RunFilterGaussian(self):
+        # fn = lambda img: np.transpose(
+        #     scipy.signal.decimate(np.transpose(scipy.signal.decimate(img, int(self.slider_gauss.value()/10+1))),
+        #                           int(self.slider_gauss.value()/10+1)))
+        # fn = lambda img: scipy.signal.medfilt2d(img, self.slider_gauss.value() // 2 * 2 + 1)
         fn = lambda img: gaussian_filter(img, self.slider_gauss.value() / 10)
         self.RunFilter(self.filter_gauss_checkbox.isChecked(), 'b_gauss', fn)
 
-    def RunFilterFourierLp(self):
-        fn = lambda img: tl.fourier_filter(img, self.slider_fourier_lp.value(), True)
-        self.RunFilter(self.filter_fourier_checkbox_lp.isChecked(), 'a_fourier_lp', fn)
-
-    def RunFilterFourierSp(self):
-        fn = lambda img: tl.fourier_filter(img, self.slider_fourier_sp.value(), False)
-        self.RunFilter(self.filter_fourier_checkbox_sp.isChecked(), 'a_fourier_sp', fn)
+    def RunFilterWiener(self):
+        fn = lambda img: scipy.signal.wiener(img, self.slider_wiener.value())
+        self.RunFilter(self.filter_wiener_checkbox.isChecked(), 'a_wiener', fn)
 
     def RunFilter(self, checked, type, fn):
         if not checked:
             for core in self.view.core_list:
                 try:
-                    del core.postprocessing[type]
+                    del core.postprocessing_filters[type]
                 except KeyError:
-                    print('posprocessing key not found')
+                    print('postprocessing key not found')
         else:
 
-            if self.view is None:
-                OKDialog('error', 'no image data to work on')
-                return
-
-            else:
-                for core in self.view.core_list:
-                    core.postprocessing[type] = fn
-        dict(sorted(core.postprocessing.items()))
-        self.view.draw()
+            for core in self.view.core_list:
+                core.postprocessing_filters[type] = fn
+        dict(sorted(core.postprocessing_filters.items()))
+        self.view.canvas_img.next_frame(0)
 
     def OpenButtonClick(self, s):
         dlg = QFileDialog(self)
@@ -398,7 +399,7 @@ class MainWindow(QMainWindow):
 
     def thread_complete(self):
         if self.threadpool.activeThreadCount() == 0:
-            if True in self.chosen_plots:
+            if True in self.chosen_plots and self.view.core_list[0].spr_time is not None:
                 canvas_plot = self.view.show_plots(self.chosen_plots)
 
                 self.plot_window = PlotWindow(canvas_plot)
@@ -425,12 +426,10 @@ class MainWindow(QMainWindow):
         #     pass
 
         self.view = View()
-        core_list = []
         for i, channel in enumerate(self.channel_checkbox_list):
             if channel.checkState() == 2:
                 core = Core(self.folder, self.file + '_{}'.format(i + 1))
                 core.k = self.slider_k.value()
-                core_list.append(core)
                 self.view.add_core(core)
         if len(self.view.core_list) == 0:
             OKDialog('error', 'no channels selected')
@@ -446,6 +445,9 @@ class MainWindow(QMainWindow):
         ]
 
         self.progress_bar.setVisible(True)
+
+        for item in self.image_filters + [self.filters_checkbox]:
+            item.setDisabled(False)
 
         # self.info.setVisible(True)
         # self.threadpool.stackSize(0)
@@ -470,8 +472,8 @@ class MainWindow(QMainWindow):
                 worker3.signals.progress.connect(self.progress_fn)
                 self.threadpool.start(worker3)
 
-        if self.chosen_plots[0]:
-            self.thread_complete()
+        # if self.chosen_plots[0]:
+        self.thread_complete()
 
 
 app = QApplication(sys.argv)

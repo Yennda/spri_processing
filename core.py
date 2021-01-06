@@ -27,7 +27,8 @@ class Core(object):
         self.k = 1
         self.type = 'diff'
         self.fourier_level = 30
-        self.postprocessing = dict()
+        self.postprocessing = True
+        self.postprocessing_filters = dict()
 
         self.graphs = dict()
         self.spr_time = None
@@ -70,23 +71,27 @@ class Core(object):
         return np.swapaxes(video, 0, 1)
 
     def _load_spr(self):
-        with open(self.folder + self.file.replace(NAME_RAW, NAME_LOCAL_SPR) + '.tsv', 'r') as spr:
-            contents = spr.readlines()
-        time = []
-        signal = []
+        try:
+            with open(self.folder + self.file.replace(NAME_RAW, NAME_LOCAL_SPR) + '.tsv', 'r') as spr:
+                contents = spr.readlines()
+            time = []
+            signal = []
 
-        for line in contents[:-1]:
-            line_split = line.split('\t')
-            time.append(float(line_split[0]))
-            signal.append(float(line_split[1]))
+            for line in contents[:-1]:
+                line_split = line.split('\t')
+                time.append(float(line_split[0]))
+                signal.append(float(line_split[1]))
 
-        return time, np.array(signal)
+            return time, np.array(signal)
+        except FileNotFoundError:
+            print('SPR file not found. Diseable ploting of SPR. ')
+            return None, None
 
     def synchronize(self):
         try:
             with open(self.folder + NAME_GLOBAL_SPR + self.file[-2:] + '.tsv', 'r') as spr:
                 contents = spr.readlines()
-        except:
+        except FileNotFoundError:
             self.zero_time = 0
             return
 
@@ -216,7 +221,12 @@ class Core(object):
 
             sequence_diff = np.zeros((self.shape_img[0], self.shape_img[1], 4 * self.k))
             for i in range(4 * self.k):
-                sequence_diff[:, :, i] = self.frame_diff(f + 2 * self.k - i)
+                diff_image = self.frame_diff(f + 2 * self.k - i)
+                if self.postprocessing and len(self.postprocessing_filters) != 0:
+                    for p in self.postprocessing_filters.values():
+                        diff_image = p(diff_image)
+
+                sequence_diff[:, :, i] = diff_image
 
             out = scipy.signal.correlate(
                 sequence_diff,
@@ -225,10 +235,9 @@ class Core(object):
             ) * 1e5
 
             image = out[:, :, 2 * self.k]
-            # self.range = [np.min(image), np.max(image)]
 
-        if len(self.postprocessing) != 0:
-            for p in self.postprocessing.values():
+        if self.postprocessing and len(self.postprocessing_filters) != 0 and self.type != 'corr':
+            for p in self.postprocessing_filters.values():
                 image = p(image)
 
         return image

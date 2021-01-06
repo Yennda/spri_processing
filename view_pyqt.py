@@ -25,7 +25,7 @@ matplotlib.rc('text', usetex='false')
 matplotlib.rcParams['mathtext.fontset'] = 'custom'
 matplotlib.rcParams['mathtext.rm'] = 'Palatino Linotype'
 matplotlib.rcParams['mathtext.it'] = 'Palatino Linotype:italic'
-matplotlib.rcParams['mathtext.bf'] = 'BiPalatino Linotype:bold'
+matplotlib.rcParams['mathtext.bf'] = 'Palatino Linotype:bold'
 
 
 class Canvas(FigureCanvasQTAgg):
@@ -237,12 +237,12 @@ class Canvas(FigureCanvasQTAgg):
 
             if event.key == '5':
                 core.range = [i * 1.2 for i in core.range]
-                print('core: {}, range: {}'.format(core.file, core.range))
+                # print('core: {}, range: {}'.format(core.file, core.range))
                 set_range(core.range, axes)
 
             elif event.key == '8':
                 core.range = [i / 1.2 for i in core.range]
-                print('core: {}, range: {}'.format(core.file, core.range))
+                # print('core: {}, range: {}'.format(core.file, core.range))
                 set_range(core.range, axes)
 
             elif event.key == 'ctrl+1':
@@ -333,10 +333,6 @@ class View(object):
     def f(self, df):
         self._f = (self._f + df) % self.length
 
-    def draw(self):
-        self.canvas_plot.next_frame(0)
-        self.canvas_img.next_frame(0)
-
     def frame_info(self):
         return '{}/{} |  t = {:.1f} s | dt = {:.2f} s | global time = {:.1f} min'.format(
             self.f,
@@ -350,9 +346,9 @@ class View(object):
         if axes is not None:
             axes.core.type = itype
             if self.orientation:
-                axes.set_ylabel('channel {}.; {}'.format(axes.core.file[-1:], axes.core.type))
+                axes.set_ylabel('channel {}.| {}'.format(axes.core.file[-1:], axes.core.type))
             else:
-                axes.set_xlabel('channel {}.; {}'.format(axes.core.file[-1:], axes.core.type))
+                axes.set_xlabel('channel {}.| {}'.format(axes.core.file[-1:], axes.core.type))
 
     def mouse_click_spr(self, event):
         if event.button == 1:
@@ -411,9 +407,9 @@ class View(object):
             axis_font = {'size': '14'}
 
             if self.orientation:
-                self.axes[i].set_ylabel('channel {}.; {}'.format(core.file[-1:], core.type), **axis_font)
+                self.axes[i].set_ylabel('channel {}.| {}'.format(core.file[-1:], core.type), **axis_font)
             else:
-                self.axes[i].set_xlabel('channel {}.; {}'.format(core.file[-1:], core.type), **axis_font)
+                self.axes[i].set_xlabel('channel {}.| {}'.format(core.file[-1:], core.type), **axis_font)
 
             for s in SIDES:
                 self.axes[i].spines[s].set_color(COLORS[i])
