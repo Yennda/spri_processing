@@ -33,6 +33,7 @@ class Canvas(FigureCanvasQTAgg):
         self.view = view
         self.nav_toolbar = None
         self.plot_select_window = None
+        self.main_window = None
 
         if img:
             super(Canvas, self).__init__(view.fig)
@@ -219,6 +220,8 @@ class Canvas(FigureCanvasQTAgg):
             self.next_frame(1)
         elif event.key == '1':
             self.next_frame(-1)
+        elif event.key == 'f':
+            self.main_window.filters_checkbox.click()
 
         if event.canvas.figure is self.view.fig and event.inaxes is not None:
             core_list = [event.inaxes.core]
@@ -259,6 +262,18 @@ class Canvas(FigureCanvasQTAgg):
                 self.view.change_type(axes, 'diff')
                 set_range(core.range, axes)
                 self.next_frame(0)
+
+            elif event.key == 'ctrl+5':
+                self.view.change_type(axes, 'diff')
+                set_range(core.range, axes)
+                self.next_frame(0)
+                self.main_window.filters_checkbox.click()
+
+            elif event.key == 'ctrl+6':
+                self.view.change_type(axes, 'corr')
+                set_range(core.range, axes)
+                self.next_frame(0)
+                self.main_window.filters_checkbox.click()
 
             elif event.key == 'ctrl+4':
                 self.view.change_type(axes, 'corr')
@@ -346,9 +361,9 @@ class View(object):
         if axes is not None:
             axes.core.type = itype
             if self.orientation:
-                axes.set_ylabel('channel {}.| {}'.format(axes.core.file[-1:], axes.core.type))
+                axes.set_ylabel('channel {}. | {}'.format(axes.core.file[-1:], axes.core.type))
             else:
-                axes.set_xlabel('channel {}.| {}'.format(axes.core.file[-1:], axes.core.type))
+                axes.set_xlabel('channel {}. | {}'.format(axes.core.file[-1:], axes.core.type))
 
     def mouse_click_spr(self, event):
         if event.button == 1:
@@ -407,9 +422,9 @@ class View(object):
             axis_font = {'size': '14'}
 
             if self.orientation:
-                self.axes[i].set_ylabel('channel {}.| {}'.format(core.file[-1:], core.type), **axis_font)
+                self.axes[i].set_ylabel('channel {}. | {}'.format(core.file[-1:], core.type), **axis_font)
             else:
-                self.axes[i].set_xlabel('channel {}.| {}'.format(core.file[-1:], core.type), **axis_font)
+                self.axes[i].set_xlabel('channel {}. | {}'.format(core.file[-1:], core.type), **axis_font)
 
             for s in SIDES:
                 self.axes[i].spines[s].set_color(COLORS[i])

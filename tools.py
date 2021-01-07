@@ -1,5 +1,7 @@
 import numpy as np
+import scipy.signal
 import os
+
 
 def frame_times(file_content):
     time0 = int(file_content[1].split()[0])
@@ -51,6 +53,14 @@ def fourier_filter(img, level, longpass):
 
     f[mask] = 0
     return np.real(np.fft.ifft2(f))
+
+
+def spectral_wiener_filter(img, size, noise = None):
+    f = np.fft.fft2(img)
+    print(np.std(f))
+    print(np.var(f))
+
+    return np.real(np.fft.ifft2(scipy.signal.wiener(f, size, noise)))
 
 
 def true_coordinate(x):

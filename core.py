@@ -87,6 +87,12 @@ class Core(object):
             print('SPR file not found. Diseable ploting of SPR. ')
             return None, None
 
+    def downsample(self, k):
+        self._raw = scipy.signal.decimate(self._raw, k, axis = 2)
+        self.spr_time = scipy.signal.decimate(self.spr_time, k)
+        for key in self.graphs:
+            self.graphs[key] = scipy.signal.decimate(self.graphs[key], k)
+
     def synchronize(self):
         try:
             with open(self.folder + NAME_GLOBAL_SPR + self.file[-2:] + '.tsv', 'r') as spr:

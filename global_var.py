@@ -11,11 +11,14 @@ NAME_GLOBAL_SPR = 'spr_integral'
 INIT_RANGE = [-0.0075, 0.0075]
 INIT_CORR = [-50, 200]
 
-XMIN, XMAX = [400, 800]
-YMIN, YMAX = [0, -1]
+#vertical
+# XMIN, XMAX = [400, 800]
+# YMIN, YMAX = [0, -1]
 
-# YMIN, YMAX = [400, 800]
-# XMIN, XMAX = [0, -1]
+# horizontal
+
+YMIN, YMAX = [400, 800]
+XMIN, XMAX = [0, -1]
 
 yellow = '#ffb200'
 red = '#DD5544'
@@ -48,7 +51,7 @@ Mouse scrolling moves the time
 '4' and '6' jumps 10 frames in time
 '7' and '9' jumps 100 frames in time
 '8' and '5' increase or decrease contrast
-'ctrl + 1 or 2 or 3' switches to raw, integral or differential image
+'ctrl + 1 or 2 or 3 or 4 or 5' switches to raw, integral, differential image, correlation or differential without any filters
 'i' sets the current frame as a reference for the integral image
 
 The shortcuts work locally for the active channel (mouse within its area) or globally for all the channels (mouse outside any channel).

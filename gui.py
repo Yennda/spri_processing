@@ -113,6 +113,16 @@ class MainWindow(QMainWindow):
         self.slider_k.valueChanged.connect(self.RefreshSliderInfo)
         self.slider_k_info = QLabel('10')
 
+        self.slider_downsample = QSlider(Qt.Horizontal)
+        self.slider_downsample.setStatusTip(
+            'N-times downsample the raw data in time.')
+        self.slider_downsample.setMinimum(1)
+        self.slider_downsample.setMaximum(100)
+        self.slider_downsample.setSingleStep(1)
+        self.slider_downsample.setValue(10)
+        self.slider_downsample.valueChanged.connect(self.RefreshSliderDownSampleInfo)
+        self.slider_downsample_info = QLabel('10')
+
         "Data processing"
 
         self.checkbox_1 = QCheckBox('SPR')
@@ -146,7 +156,7 @@ class MainWindow(QMainWindow):
         self.slider_wiener = QSlider(Qt.Horizontal)
 
         self.slider_wiener.setMinimum(2)
-        self.slider_wiener.setMaximum(100)
+        self.slider_wiener.setMaximum(20)
         self.slider_wiener.setSingleStep(1)
         self.slider_wiener.setValue(10)
         self.slider_wiener_info = QLabel('10')
@@ -156,10 +166,10 @@ class MainWindow(QMainWindow):
         self.slider_wiener_noise = QSlider(Qt.Horizontal)
 
         self.slider_wiener_noise.setMinimum(0)
-        self.slider_wiener_noise.setMaximum(1000)
+        self.slider_wiener_noise.setMaximum(10000)
         self.slider_wiener_noise.setSingleStep(1)
-        self.slider_wiener_noise.setValue(100)
-        self.slider_wiener_noise_info = QLabel('10')
+        self.slider_wiener_noise.setValue(0)
+        self.slider_wiener_noise_info = QLabel('auto')
         self.slider_wiener_noise.valueChanged.connect(self.RefreshSliderWienerInfo)
 
         self.filters_checkbox = QCheckBox('all filters')
@@ -174,7 +184,9 @@ class MainWindow(QMainWindow):
             self.slider_wiener_info,
             self.slider_wiener,
             self.slider_wiener_noise_info,
-            self.slider_wiener_noise
+            self.slider_wiener_noise,
+            self.filter_wiener_label,
+            self.filter_wiener_noise_label
         ]
 
         self.build_button = QPushButton(QIcon('icons/arrow.png'), 'Build')
@@ -231,6 +243,12 @@ class MainWindow(QMainWindow):
         slider_layout.addWidget(self.slider_k)
         slider_layout.addWidget(self.slider_k_info)
         layout.addLayout(slider_layout)
+
+        slider_downsample_layout = QHBoxLayout()
+        slider_downsample_layout.addWidget(QLabel('Downsample:'))
+        slider_downsample_layout.addWidget(self.slider_downsample)
+        slider_downsample_layout.addWidget(self.slider_downsample_info)
+        layout.addLayout(slider_downsample_layout)
 
         label = QLabel('-- Data processing --')
         label.setAlignment(Qt.AlignCenter)
@@ -345,6 +363,13 @@ class MainWindow(QMainWindow):
 
     def RefreshSliderInfo(self):
         self.slider_k_info.setText(str(self.slider_k.value()))
+        if self.view is not None:
+            for core in self.view.core_list:
+                core.k = self.slider_k.value()
+            self.view.canvas_img.next_frame(0)
+
+    def RefreshSliderDownSampleInfo(self):
+        self.slider_downsample_info.setText(str(self.slider_downsample.value()))
 
     def RefreshSliderGaussInfo(self):
         self.slider_gauss_info.setText(str(self.slider_gauss.value() / 10))
@@ -356,6 +381,7 @@ class MainWindow(QMainWindow):
             self.slider_wiener_noise_info.setText('auto')
         else:
             self.slider_wiener_noise_info.setText('{:.2e}'.format(self.slider_wiener_noise.value() / 1e3 / 1e6))
+            # self.slider_wiener_noise_info.setText('{:.2e}'.format(self.slider_wiener_noise.value() / 1e5 *0.2))
         self.RunFilterWiener()
 
     def RefreshOrientationInfo(self):
@@ -389,9 +415,12 @@ class MainWindow(QMainWindow):
     def RunFilterWiener(self):
         if self.slider_wiener_noise_info.text() == 'auto':
             fn = lambda img: scipy.signal.wiener(img, self.slider_wiener.value())
-            print('auto')
+            # fn = lambda img: tl.spectral_wiener_filter(img, self.slider_wiener.value())
         else:
-            fn = lambda img: scipy.signal.wiener(img, self.slider_wiener.value(), self.slider_wiener_noise.value()/ 1e3 / 1e6)
+            fn = lambda img: scipy.signal.wiener(img, self.slider_wiener.value(),
+                                                 self.slider_wiener_noise.value() / 1e3 / 1e6)
+            # fn = lambda img: tl.spectral_wiener_filter(img, self.slider_wiener.value(),
+            #                                      self.slider_wiener_noise.value() / 1e5 *0.2)
         self.RunFilter(self.filter_wiener_checkbox.isChecked(), 'a_wiener', fn)
 
     def RunFilter(self, checked, type, fn):
@@ -431,6 +460,7 @@ class MainWindow(QMainWindow):
         if self.threadpool.activeThreadCount() == 0:
             if True in self.chosen_plots and self.view.core_list[0].spr_time is not None:
                 canvas_plot = self.view.show_plots(self.chosen_plots)
+                canvas_plot.main_window = self
 
                 self.plot_window = PlotWindow(canvas_plot)
                 self.plot_window.show()
@@ -439,6 +469,7 @@ class MainWindow(QMainWindow):
                 canvas_plot.setFocus()
 
             canvas_img = self.view.show_img()
+            canvas_img.main_window = self
             self.img_window = PlotWindow(canvas_img)
             self.img_window.show()
 
@@ -460,6 +491,7 @@ class MainWindow(QMainWindow):
             if channel.checkState() == 2:
                 core = Core(self.folder, self.file + '_{}'.format(i + 1))
                 core.k = self.slider_k.value()
+                core.downsample(self.slider_downsample.value())
                 self.view.add_core(core)
         if len(self.view.core_list) == 0:
             OKDialog('error', 'no channels selected')
