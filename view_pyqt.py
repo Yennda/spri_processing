@@ -335,7 +335,7 @@ class View(object):
         ]
 
     def add_core(self, core):
-        core.synchronize()
+        # core.synchronize()
         self.core_list.append(core)
         if self.length > len(core) or self.length == 0:
             self.length = len(core)
@@ -352,9 +352,9 @@ class View(object):
         return '{}/{} |  t = {:.1f} s | dt = {:.2f} s | global time = {:.1f} min'.format(
             self.f,
             self.length,
-            self.core_list[0]._time_info[self.f][0],
-            self.core_list[0]._time_info[self.f][1],
-            self.core_list[0]._time_info[self.f][0] / 60 + self.core_list[0].zero_time
+            self.core_list[0]._time_info[self.f, 0],
+            self.core_list[0]._time_info[self.f, 1],
+            self.core_list[0]._time_info[self.f, 0] / 60 + self.core_list[0].zero_time
         )
 
     def change_type(self, axes, itype):

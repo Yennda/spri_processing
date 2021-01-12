@@ -119,9 +119,9 @@ class MainWindow(QMainWindow):
         self.slider_downsample.setMinimum(1)
         self.slider_downsample.setMaximum(100)
         self.slider_downsample.setSingleStep(1)
-        self.slider_downsample.setValue(10)
+        self.slider_downsample.setValue(0)
         self.slider_downsample.valueChanged.connect(self.RefreshSliderDownSampleInfo)
-        self.slider_downsample_info = QLabel('10')
+        self.slider_downsample_info = QLabel('0')
 
         "Data processing"
 
@@ -176,7 +176,7 @@ class MainWindow(QMainWindow):
         self.filters_checkbox.setChecked(True)
         self.filters_checkbox.clicked.connect(self.RefreshFilters)
 
-        self.image_filters = [
+        self.forms_image_filters = [
             self.filter_gauss_checkbox,
             self.slider_gauss_info,
             self.slider_gauss,
@@ -187,6 +187,16 @@ class MainWindow(QMainWindow):
             self.slider_wiener_noise,
             self.filter_wiener_label,
             self.filter_wiener_noise_label
+        ]
+
+        self.forms_pre_processing = self.channel_checkbox_list + [
+            self.orientation_checkbox,
+            self.slider_downsample,
+            self.slider_downsample_info,
+            self.checkbox_1,
+            self.checkbox_2,
+            self.checkbox_3,
+            self.checkbox_4
         ]
 
         self.build_button = QPushButton(QIcon('icons/arrow.png'), 'Build')
@@ -238,12 +248,6 @@ class MainWindow(QMainWindow):
 
         layout.addWidget(self.orientation_checkbox)
 
-        slider_layout = QHBoxLayout()
-        slider_layout.addWidget(QLabel('Integration number:'))
-        slider_layout.addWidget(self.slider_k)
-        slider_layout.addWidget(self.slider_k_info)
-        layout.addLayout(slider_layout)
-
         slider_downsample_layout = QHBoxLayout()
         slider_downsample_layout.addWidget(QLabel('Downsample:'))
         slider_downsample_layout.addWidget(self.slider_downsample)
@@ -266,6 +270,12 @@ class MainWindow(QMainWindow):
         label = QLabel('-- Image filters --')
         label.setAlignment(Qt.AlignCenter)
         layout.addWidget(label)
+
+        slider_layout = QHBoxLayout()
+        slider_layout.addWidget(QLabel('Integration number:'))
+        slider_layout.addWidget(self.slider_k)
+        slider_layout.addWidget(self.slider_k_info)
+        layout.addLayout(slider_layout)
 
         layout.addWidget(self.filters_checkbox)
 
@@ -294,7 +304,7 @@ class MainWindow(QMainWindow):
         gauss_layout.addWidget(self.slider_gauss)
         gauss_layout.addWidget(self.slider_gauss_info)
 
-        for item in self.image_filters + [self.filters_checkbox]:
+        for item in self.forms_image_filters + [self.filters_checkbox]:
             item.setDisabled(True)
 
         layout.addLayout(gauss_layout)
@@ -394,13 +404,13 @@ class MainWindow(QMainWindow):
         if self.filters_checkbox.isChecked():
             for core in self.view.core_list:
                 core.postprocessing = True
-            for item in self.image_filters:
+            for item in self.forms_image_filters:
                 item.setDisabled(False)
 
         else:
             for core in self.view.core_list:
                 core.postprocessing = False
-            for item in self.image_filters:
+            for item in self.forms_image_filters:
                 item.setDisabled(True)
         self.view.canvas_img.next_frame(0)
 
@@ -449,6 +459,9 @@ class MainWindow(QMainWindow):
                 self.orientation_checkbox.setChecked(True)
             else:
                 self.orientation_checkbox.setChecked(False)
+
+            # for item in self.forms_pre_processing:
+            #     item.setDisabled(False)
 
             for chch in self.channel_checkbox_list:
                 chch.setChecked(False)
@@ -508,8 +521,11 @@ class MainWindow(QMainWindow):
 
         self.progress_bar.setVisible(True)
 
-        for item in self.image_filters + [self.filters_checkbox]:
+        for item in self.forms_image_filters + [self.filters_checkbox]:
             item.setDisabled(False)
+
+        # for item in self.forms_pre_processing:
+        #     item.setDisabled(True)
 
         # self.info.setVisible(True)
         # self.threadpool.stackSize(0)

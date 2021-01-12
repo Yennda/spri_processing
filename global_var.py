@@ -12,13 +12,12 @@ INIT_RANGE = [-0.0075, 0.0075]
 INIT_CORR = [-50, 200]
 
 #vertical
-# XMIN, XMAX = [400, 800]
-# YMIN, YMAX = [0, -1]
+LMIN, LMAX = [400, 800]
+SMIN, SMAX = [0, -1]
 
 # horizontal
-
-YMIN, YMAX = [400, 800]
-XMIN, XMAX = [0, -1]
+# YMIN, YMAX = [400, 800]
+# XMIN, XMAX = [0, -1]
 
 yellow = '#ffb200'
 red = '#DD5544'

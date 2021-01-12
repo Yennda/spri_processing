@@ -16,7 +16,7 @@ def frame_times(file_content):
         ])
         time_last = time_actual
 
-    return time_info
+    return np.array(time_info)
 
 
 def SecToMin(sec):

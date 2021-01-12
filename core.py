@@ -43,8 +43,15 @@ class Core(object):
 
     def _load_data(self):
         self.__video_stats = self._load_stats()
-        self._raw = self._load_video()[YMIN: YMAX, XMIN: XMAX, :]
+        self._raw = self._load_video()
+
+        if self._raw.shape[0] < self._raw.shape[1]:
+            self._raw = self._raw[SMIN: SMAX, LMIN: LMAX, :]
+        else:
+            self._raw = self._raw[LMIN: LMAX, SMIN: SMAX, :]
+
         self.spr_time, self.graphs['spr_signal'] = self._load_spr()
+        self._synchronize()
 
     def _load_stats(self):
         suffix = '.tsv'
@@ -88,12 +95,18 @@ class Core(object):
             return None, None
 
     def downsample(self, k):
-        self._raw = scipy.signal.decimate(self._raw, k, axis = 2)
-        self.spr_time = scipy.signal.decimate(self.spr_time, k)
-        for key in self.graphs:
-            self.graphs[key] = scipy.signal.decimate(self.graphs[key], k)
+        if k == 0:
+            return
+        self._raw = scipy.signal.decimate(self._raw, k, axis=2)
+        self._time_info = scipy.signal.decimate(self._time_info, k, axis=0)
 
-    def synchronize(self):
+        if self.spr_time is not None:
+            self.spr_time = scipy.signal.decimate(self.spr_time, k)
+        for key in self.graphs:
+            if self.graphs[key] is not None:
+                self.graphs[key] = scipy.signal.decimate(self.graphs[key], k)
+
+    def _synchronize(self):
         try:
             with open(self.folder + NAME_GLOBAL_SPR + self.file[-2:] + '.tsv', 'r') as spr:
                 contents = spr.readlines()
