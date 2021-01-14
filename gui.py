@@ -85,14 +85,14 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("Crnka")
         self.setWindowIcon(QIcon('icons/cat-icon-2.png'))
 
-        self.open_button = QPushButton(QIcon('icons/folder-open.png'), 'Open')
-        font = self.open_button.font()
+        self.button_open = QPushButton(QIcon('icons/folder-open.png'), 'Open')
+        font = self.button_open.font()
         font.setPointSize(14)
 
-        self.open_button.setStatusTip(
+        self.button_open.setStatusTip(
             'Open any raw file from the desired measurement.')
-        self.open_button.setFont(font)
-        self.open_button.clicked.connect(self.OpenButtonClick)
+        self.button_open.setFont(font)
+        self.button_open.clicked.connect(self.OpenButtonClick)
 
         self.file_name_label = QLabel('folder: {}\nfile: {}'.format(self.folder, self.file))
 
@@ -203,9 +203,9 @@ class MainWindow(QMainWindow):
         self.slider_bilateral_color = QSlider(Qt.Horizontal)
 
         self.slider_bilateral_color.setMinimum(0)
-        self.slider_bilateral_color.setMaximum(10000)
+        self.slider_bilateral_color.setMaximum(40)
         self.slider_bilateral_color.setSingleStep(1)
-        self.slider_bilateral_color.setValue(10)
+        self.slider_bilateral_color.setValue(10 ** (10) / 10 - 5)
         self.slider_bilateral_color_info = QLabel('{:.2e}'.format(10 / 1e6))
         self.slider_bilateral_color.valueChanged.connect(self.RefreshSliderBilateralInfo)
 
@@ -243,11 +243,17 @@ class MainWindow(QMainWindow):
             self.checkbox_4
         ]
 
-        self.build_button = QPushButton(QIcon('icons/arrow.png'), 'Build')
-        self.build_button.setStatusTip('Builds the view of the data. It usually takes a while.')
-        self.build_button.setFont(font)
-        self.build_button.clicked.connect(self.BuildButtonClick)
-        self.build_button.setDisabled(True)
+        self.button_build = QPushButton(QIcon('icons/arrow.png'), 'Build')
+        self.button_build.setStatusTip('Builds the view of the data. It usually takes a while.')
+        self.button_build.setFont(font)
+        self.button_build.clicked.connect(self.BuildButtonClick)
+        self.button_build.setDisabled(True)
+
+        self.button_count = QPushButton(QIcon('icons/count-cat-icon.png'), 'Count NPs')
+        self.button_count.setStatusTip('Counts nanoparticles.')
+        self.button_count.setFont(font)
+        self.button_count.clicked.connect(self.CountButtonClick)
+        self.button_count.setDisabled(True)
 
         self.progress_bar = QProgressBar(self)
         self.progress_bar.setGeometry(200, 80, 250, 20)
@@ -275,7 +281,7 @@ class MainWindow(QMainWindow):
         # layout:
 
         layout = QVBoxLayout()
-        layout.addWidget(self.open_button)
+        layout.addWidget(self.button_open)
         layout.addWidget(self.file_name_label)
 
         label = QLabel('-- Choose channels to be shown --')
@@ -309,7 +315,7 @@ class MainWindow(QMainWindow):
         plot_layout.addWidget(self.checkbox_4, 1, 1)
         layout.addLayout(plot_layout)
 
-        layout.addWidget(self.build_button)
+        layout.addWidget(self.button_build)
 
         label = QLabel('-- Image filters --')
         label.setAlignment(Qt.AlignCenter)
@@ -377,6 +383,8 @@ class MainWindow(QMainWindow):
             item.setDisabled(True)
 
         layout.addLayout(gauss_layout)
+
+        layout.addWidget(self.button_count)
 
         layout.addWidget(self.info)
         layout.addWidget(self.progress_bar)
@@ -457,7 +465,7 @@ class MainWindow(QMainWindow):
     def RefreshSliderBilateralInfo(self):
         self.slider_bilateral_d_info.setText(str(self.slider_bilateral_d.value()))
         self.slider_bilateral_space_info.setText(str(self.slider_bilateral_space.value()))
-        self.slider_bilateral_color_info.setText('{:.2e}'.format(self.slider_bilateral_color.value() / 1e6))
+        self.slider_bilateral_color_info.setText('{:.2e}'.format(10 ** (self.slider_bilateral_color.value() / 10 - 5)))
         self.RunFilterBilateral()
 
     def RefreshSliderWienerInfo(self):
@@ -499,7 +507,7 @@ class MainWindow(QMainWindow):
 
     def RunFilterBilateral(self):
         fn = lambda img: cv2.bilateralFilter(np.float32(img), int(self.slider_bilateral_d.value()),
-                                             self.slider_bilateral_color.value() / 1e6,
+                                             10 ** (self.slider_bilateral_color.value() / 10 - 5),
                                              self.slider_bilateral_space.value() / 10)
 
         self.RunFilter(self.filter_bilateral_checkbox.isChecked(), 'b_gauss', fn)
@@ -534,7 +542,7 @@ class MainWindow(QMainWindow):
 
         if self.ProcessPath(dlg.getOpenFileName()[0]):
             self.file_name_label.setText('folder path: ... {}\nfile name: {}'.format(self.folder[-20:], self.file))
-            self.build_button.setDisabled(False)
+            self.button_build.setDisabled(False)
             self.tool_file_info.setDisabled(False)
 
             if self.width[0] < self.height[0]:
@@ -572,6 +580,10 @@ class MainWindow(QMainWindow):
             canvas_img.setFocus()
             self.progress_bar.setVisible(False)
 
+    def CountButtonClick(self):
+        for core in self.view.core_list:
+            core.count_nps()
+
     def BuildButtonClick(self, s):
 
         # try:
@@ -605,6 +617,8 @@ class MainWindow(QMainWindow):
 
         for item in self.forms_image_filters + [self.filters_checkbox]:
             item.setDisabled(False)
+
+        self.button_count.setDisabled(False)
 
         # for item in self.forms_pre_processing:
         #     item.setDisabled(True)

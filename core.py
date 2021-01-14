@@ -1,5 +1,6 @@
 import os
 
+import cv2
 import numpy as np
 import scipy as sc
 import scipy.signal
@@ -14,11 +15,13 @@ class Core(object):
         self.file = file
 
         self._raw = None
+        self._raw_mask = None
         self._time_info = None
         self._ref_frame = 0
         self._range = {
             'diff': INIT_RANGE,
             'raw': [0, 1],
+            'mask': [0, 1],
             'int': INIT_RANGE,
             'corr': INIT_CORR,
             'four_r': INIT_FOUR,
@@ -33,6 +36,10 @@ class Core(object):
         self.fourier_level = 30
         self.postprocessing = True
         self.postprocessing_filters = dict()
+
+        # np_counting
+        self.stack_frames = []
+        self.dist = 4
 
         self.graphs = dict()
         self.spr_time = None
@@ -236,6 +243,9 @@ class Core(object):
         elif self.type == 'raw':
             image = self._raw[:, :, f]
 
+        elif self.type == 'mask':
+            image = self._raw_mask[:, :, f]
+
         elif self.type == 'four_r':
             image_pre = self._raw[:, :, f]
             image = np.real(20 * np.log(np.abs(np.fft.fft2(image_pre))))
@@ -318,3 +328,96 @@ class Core(object):
         self.graphs['std_int'] = self.apply_function(np.std, progress_callback) / self.intensity(0)
         self.type = type_buffer
         return 'done'
+
+    def detect_spots(self, f):
+        mask_positions = np.zeros(self.shape_img)
+
+        frame = self.frame(f)
+        mask = (frame > np.std(frame) * 5) * 1
+        mask = mask.astype(np.uint8)
+        _, threshold_mask = cv2.threshold(
+            mask,
+            100,
+            255,
+            cv2.THRESH_BINARY_INV | cv2.THRESH_OTSU
+        )
+
+        patterns = cv2.findContours(
+            threshold_mask,
+            cv2.RETR_LIST,
+            cv2.CHAIN_APPROX_NONE
+        )[-2][: -1]
+
+        for p in patterns:
+            (x, y), radius = cv2.minEnclosingCircle(p)
+            if radius <= 1.1:
+                continue
+            center = (int(y), int(x))
+            mask_positions[center] = 1
+            # threshold_mask = cv2.circle(threshold_mask, (int(x), int(y)), int(_), (0, 255, 0), 2)
+
+        # self._raw_mask[:, :, f] = mask_positions
+        return mask_positions
+
+    def track_nps(self, frame_first):
+        del self.stack_frames[0]
+
+        tracked_nps = []
+        # print('\n{}'.format(len(np.transpose(frame_first.nonzero()))))
+
+        nz = np.nonzero(frame_first)
+        print('\n{}'.format(len(np.transpose(nz))))
+        for (x, y) in np.transpose(nz):
+            np_time_evolution = [np.array([x, y])]
+
+            for i in range(self.k * 2 - 1):
+
+                surroundings = self.stack_frames[i][
+                               x - self.dist:x + self.dist,
+                               y - self.dist:y + self.dist
+                               ]
+                new_positions = np.transpose(surroundings.nonzero())
+
+                if len(new_positions) == 0:
+                    if len(np_time_evolution) >= 2:
+                        tracked_nps.append(np_time_evolution)
+                        print('tracked')
+                    # print(len(np_time_evolution) >= self.k / 2)
+                    break
+                else:
+                    new_position = np.array([x, y]) - np.array([self.dist] * 2) + np.average(new_positions, 0).astype(np.int)
+                    np_time_evolution.append(new_position)
+                    self.stack_frames[i][
+                    x - self.dist:x + self.dist,
+                    y - self.dist:y + self.dist] = 0
+                    (x, y) = new_position
+                    print('continues')
+
+        return tracked_nps
+
+    def count_nps(self):
+        print('Detecting NPs')
+        type = self.type
+        self.type = 'corr'
+
+        self._raw_mask = np.zeros(self.shape)
+        self.stack_frames = [np.zeros(self.shape_img)] * 2 * self.k
+
+        for f in range(self.k * 2, len(self)):
+            # for f in [61]:
+            print('\r\t{}/ {}'.format(f + 1, len(self)), end='')
+
+            tracked_nps = self.track_nps(self.stack_frames[0])
+
+            print('draws')
+            for tnp in tracked_nps:
+                for i, (y, x) in enumerate(tnp):
+                    print(x, y, f - 2 * self.k + i)
+                    self._raw_mask[y, x, f - 2 * self.k + i] = 1
+
+            mask_positions = self.detect_spots(f)
+            self.stack_frames.append(mask_positions)
+
+        self.type = type
+
+        return mask_positions

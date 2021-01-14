@@ -290,6 +290,11 @@ class Canvas(FigureCanvasQTAgg):
                 set_range(core.range, axes)
                 self.next_frame(0)
 
+            elif event.key == 'alt+4':
+                self.view.change_type(axes, 'mask')
+                set_range(core.range, axes)
+                self.next_frame(0)
+
             elif event.key == 'ctrl+4':
                 self.view.change_type(axes, 'corr')
                 set_range(core.range, axes)
