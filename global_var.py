@@ -10,6 +10,7 @@ NAME_GLOBAL_SPR = 'spr_integral'
 # INIT_RANGE = [-0.003, 0.003]
 INIT_RANGE = [-0.0075, 0.0075]
 INIT_CORR = [-50, 200]
+INIT_FOUR = [-50, 50]
 
 #vertical
 LMIN, LMAX = [400, 800]
@@ -51,7 +52,9 @@ Mouse scrolling moves the time
 '7' and '9' jumps 100 frames in time
 '8' and '5' increase or decrease contrast
 'ctrl + 1 or 2 or 3 or 4 or 5' switches to raw, integral, differential image, correlation or differential without any filters
+'alt + 1 or 2 or 3 or 4 or 5' switches to fourier transformed raw, integral or differential image
 'i' sets the current frame as a reference for the integral image
+'f' turns on/off all the filters
 
 The shortcuts work locally for the active channel (mouse within its area) or globally for all the channels (mouse outside any channel).
 
@@ -63,6 +66,7 @@ Official MATPLOTLIB shortcuts at https://matplotlib.org/users/navigation_toolbar
 LICENCE
 -------
 This work is licensed under a Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License.
+
 Jan Bukáček, bukacek@ufe.cz
 https://github.com/Yennda/spri_processing
 

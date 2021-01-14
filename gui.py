@@ -3,6 +3,7 @@ import os
 import re
 import traceback
 
+import cv2
 from PyQt5.QtWidgets import *
 from PyQt5.Qt import QVBoxLayout, QIcon
 from PyQt5.QtCore import *
@@ -172,6 +173,42 @@ class MainWindow(QMainWindow):
         self.slider_wiener_noise_info = QLabel('auto')
         self.slider_wiener_noise.valueChanged.connect(self.RefreshSliderWienerInfo)
 
+        # Bilateral
+
+        self.filter_bilateral_checkbox = QCheckBox('bilateral')
+        self.filter_bilateral_checkbox.setChecked(False)
+        self.filter_bilateral_checkbox.clicked.connect(self.RunFilterBilateral)
+
+        self.filter_bilateral_d_label = QLabel('\tdiameter')
+        self.slider_bilateral_d = QSlider(Qt.Horizontal)
+
+        self.slider_bilateral_d.setMinimum(2)
+        self.slider_bilateral_d.setMaximum(20)
+        self.slider_bilateral_d.setSingleStep(1)
+        self.slider_bilateral_d.setValue(10)
+        self.slider_bilateral_d_info = QLabel('10')
+        self.slider_bilateral_d.valueChanged.connect(self.RefreshSliderBilateralInfo)
+
+        self.filter_bilateral_space_label = QLabel('\tspace')
+        self.slider_bilateral_space = QSlider(Qt.Horizontal)
+
+        self.slider_bilateral_space.setMinimum(0)
+        self.slider_bilateral_space.setMaximum(50)
+        self.slider_bilateral_space.setSingleStep(1)
+        self.slider_bilateral_space.setValue(10)
+        self.slider_bilateral_space_info = QLabel('10')
+        self.slider_bilateral_space.valueChanged.connect(self.RefreshSliderBilateralInfo)
+
+        self.filter_bilateral_color_label = QLabel('\tcolor')
+        self.slider_bilateral_color = QSlider(Qt.Horizontal)
+
+        self.slider_bilateral_color.setMinimum(0)
+        self.slider_bilateral_color.setMaximum(10000)
+        self.slider_bilateral_color.setSingleStep(1)
+        self.slider_bilateral_color.setValue(10)
+        self.slider_bilateral_color_info = QLabel('{:.2e}'.format(10 / 1e6))
+        self.slider_bilateral_color.valueChanged.connect(self.RefreshSliderBilateralInfo)
+
         self.filters_checkbox = QCheckBox('all filters')
         self.filters_checkbox.setChecked(True)
         self.filters_checkbox.clicked.connect(self.RefreshFilters)
@@ -186,7 +223,14 @@ class MainWindow(QMainWindow):
             self.slider_wiener_noise_info,
             self.slider_wiener_noise,
             self.filter_wiener_label,
-            self.filter_wiener_noise_label
+            self.filter_wiener_noise_label,
+            self.filter_bilateral_checkbox,
+            self.filter_bilateral_space_label,
+            self.filter_bilateral_color_label,
+            self.filter_bilateral_d_label,
+            self.slider_bilateral_space,
+            self.slider_bilateral_color,
+            self.slider_bilateral_d
         ]
 
         self.forms_pre_processing = self.channel_checkbox_list + [
@@ -298,6 +342,31 @@ class MainWindow(QMainWindow):
 
         layout.addLayout(wiener_layout_box)
 
+        bilateral_layout_box = QVBoxLayout()
+
+        layout.addWidget(self.filter_bilateral_checkbox)
+
+        bilateral_d_layout = QHBoxLayout()
+        bilateral_d_layout.addWidget(self.filter_bilateral_d_label)
+        bilateral_d_layout.addWidget(self.slider_bilateral_d)
+        bilateral_d_layout.addWidget(self.slider_bilateral_d_info)
+
+        bilateral_color_layout = QHBoxLayout()
+        bilateral_color_layout.addWidget(self.filter_bilateral_color_label)
+        bilateral_color_layout.addWidget(self.slider_bilateral_color)
+        bilateral_color_layout.addWidget(self.slider_bilateral_color_info)
+
+        bilateral_space_layout = QHBoxLayout()
+        bilateral_space_layout.addWidget(self.filter_bilateral_space_label)
+        bilateral_space_layout.addWidget(self.slider_bilateral_space)
+        bilateral_space_layout.addWidget(self.slider_bilateral_space_info)
+
+        bilateral_layout_box.addLayout(bilateral_d_layout)
+        bilateral_layout_box.addLayout(bilateral_color_layout)
+        bilateral_layout_box.addLayout(bilateral_space_layout)
+
+        layout.addLayout(bilateral_layout_box)
+
         "gauss"
         gauss_layout = QHBoxLayout()
         gauss_layout.addWidget(self.filter_gauss_checkbox)
@@ -385,6 +454,12 @@ class MainWindow(QMainWindow):
         self.slider_gauss_info.setText(str(self.slider_gauss.value() / 10))
         self.RunFilterGaussian()
 
+    def RefreshSliderBilateralInfo(self):
+        self.slider_bilateral_d_info.setText(str(self.slider_bilateral_d.value()))
+        self.slider_bilateral_space_info.setText(str(self.slider_bilateral_space.value()))
+        self.slider_bilateral_color_info.setText('{:.2e}'.format(self.slider_bilateral_color.value() / 1e6))
+        self.RunFilterBilateral()
+
     def RefreshSliderWienerInfo(self):
         self.slider_wiener_info.setText('{}'.format(self.slider_wiener.value()))
         if self.slider_wiener_noise.value() == 0:
@@ -421,6 +496,13 @@ class MainWindow(QMainWindow):
         # fn = lambda img: scipy.signal.medfilt2d(img, self.slider_gauss.value() // 2 * 2 + 1)
         fn = lambda img: gaussian_filter(img, self.slider_gauss.value() / 10)
         self.RunFilter(self.filter_gauss_checkbox.isChecked(), 'b_gauss', fn)
+
+    def RunFilterBilateral(self):
+        fn = lambda img: cv2.bilateralFilter(np.float32(img), int(self.slider_bilateral_d.value()),
+                                             self.slider_bilateral_color.value() / 1e6,
+                                             self.slider_bilateral_space.value() / 10)
+
+        self.RunFilter(self.filter_bilateral_checkbox.isChecked(), 'b_gauss', fn)
 
     def RunFilterWiener(self):
         if self.slider_wiener_noise_info.text() == 'auto':

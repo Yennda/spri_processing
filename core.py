@@ -20,7 +20,11 @@ class Core(object):
             'diff': INIT_RANGE,
             'raw': [0, 1],
             'int': INIT_RANGE,
-            'corr': INIT_CORR
+            'corr': INIT_CORR,
+            'four_r': INIT_FOUR,
+            'four_d': INIT_FOUR,
+            'four_i': INIT_FOUR
+
         }
         self.__video_stats = None
 
@@ -231,6 +235,22 @@ class Core(object):
 
         elif self.type == 'raw':
             image = self._raw[:, :, f]
+
+        elif self.type == 'four_r':
+            image_pre = self._raw[:, :, f]
+            image = np.real(20 * np.log(np.abs(np.fft.fft2(image_pre))))
+
+        elif self.type == 'four_i':
+            current = np.average(
+                self._raw[:, :, f // self.k * self.k - self.k: f // self.k * self.k],
+                axis=2
+            )
+            image_pre = current - self.reference
+            image = np.real(20 * np.log(np.abs(np.fft.fft2(image_pre))))
+
+        elif self.type == 'four_d':
+            image_pre = self.frame_diff(f)
+            image = np.real(20 * np.log(np.abs(np.fft.fft2(image_pre))))
 
         elif self.type == 'corr':
             if self.idea3d is None:

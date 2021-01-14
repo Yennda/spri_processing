@@ -275,6 +275,21 @@ class Canvas(FigureCanvasQTAgg):
                 self.next_frame(0)
                 self.main_window.filters_checkbox.click()
 
+            elif event.key == 'alt+1':
+                self.view.change_type(axes, 'four_r')
+                set_range(core.range, axes)
+                self.next_frame(0)
+
+            elif event.key == 'alt+2':
+                self.view.change_type(axes, 'four_i')
+                set_range(core.range, axes)
+                self.next_frame(0)
+
+            elif event.key == 'alt+3':
+                self.view.change_type(axes, 'four_d')
+                set_range(core.range, axes)
+                self.next_frame(0)
+
             elif event.key == 'ctrl+4':
                 self.view.change_type(axes, 'corr')
                 set_range(core.range, axes)
