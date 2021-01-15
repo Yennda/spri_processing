@@ -13,6 +13,7 @@ from PyQt5 import QtCore, QtWidgets
 import matplotlib
 import scipy.signal
 import numpy as np
+from scipy import ndimage
 from scipy.ndimage import gaussian_filter
 
 matplotlib.use('Qt5Agg')
@@ -625,7 +626,9 @@ class MainWindow(QMainWindow):
         self.RunFilter(self.filter_gauss_checkbox.isChecked(), 'c_gauss', fn)
 
     def RunFilterErode(self):
-        fn = lambda img: cv2.erode(np.float32(img), None, iterations=self.slider_erode.value())
+        # fn = lambda img: cv2.erode(np.float32(img), None, iterations=self.slider_erode.value())
+        fn = lambda img: ndimage.maximum_filter(img, size=self.slider_erode.value())
+
         self.RunFilter(self.filter_erode_checkbox.isChecked(), 'y_erode', fn)
 
     def RunFilterDilate(self):
