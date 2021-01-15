@@ -149,6 +149,30 @@ class MainWindow(QMainWindow):
         self.slider_gauss_info = QLabel('1')
         self.slider_gauss.valueChanged.connect(self.RefreshSliderGaussInfo)
 
+        self.filter_erode_checkbox = QCheckBox('erode')
+        self.filter_erode_checkbox.setChecked(False)
+        self.filter_erode_checkbox.clicked.connect(self.RunFilterErode)
+        self.slider_erode = QSlider(Qt.Horizontal)
+
+        self.slider_erode.setMinimum(0)
+        self.slider_erode.setMaximum(50)
+        self.slider_erode.setSingleStep(1)
+        self.slider_erode.setValue(10)
+        self.slider_erode_info = QLabel('1')
+        self.slider_erode.valueChanged.connect(self.RefreshSliderErodeInfo)
+
+        self.filter_dilate_checkbox = QCheckBox('dilate')
+        self.filter_dilate_checkbox.setChecked(False)
+        self.filter_dilate_checkbox.clicked.connect(self.RunFilterDilate)
+        self.slider_dilate = QSlider(Qt.Horizontal)
+
+        self.slider_dilate.setMinimum(0)
+        self.slider_dilate.setMaximum(50)
+        self.slider_dilate.setSingleStep(1)
+        self.slider_dilate.setValue(10)
+        self.slider_dilate_info = QLabel('1')
+        self.slider_dilate.valueChanged.connect(self.RefreshSliderDilateInfo)
+
         self.filter_wiener_checkbox = QCheckBox('wiener')
         self.filter_wiener_checkbox.setChecked(False)
         self.filter_wiener_checkbox.clicked.connect(self.RunFilterWiener)
@@ -167,7 +191,7 @@ class MainWindow(QMainWindow):
         self.slider_wiener_noise = QSlider(Qt.Horizontal)
 
         self.slider_wiener_noise.setMinimum(0)
-        self.slider_wiener_noise.setMaximum(10000)
+        self.slider_wiener_noise.setMaximum(400)
         self.slider_wiener_noise.setSingleStep(1)
         self.slider_wiener_noise.setValue(0)
         self.slider_wiener_noise_info = QLabel('auto')
@@ -193,7 +217,7 @@ class MainWindow(QMainWindow):
         self.slider_bilateral_space = QSlider(Qt.Horizontal)
 
         self.slider_bilateral_space.setMinimum(0)
-        self.slider_bilateral_space.setMaximum(50)
+        self.slider_bilateral_space.setMaximum(200)
         self.slider_bilateral_space.setSingleStep(1)
         self.slider_bilateral_space.setValue(10)
         self.slider_bilateral_space_info = QLabel('10')
@@ -205,33 +229,13 @@ class MainWindow(QMainWindow):
         self.slider_bilateral_color.setMinimum(0)
         self.slider_bilateral_color.setMaximum(40)
         self.slider_bilateral_color.setSingleStep(1)
-        self.slider_bilateral_color.setValue(10 ** (10) / 10 - 5)
-        self.slider_bilateral_color_info = QLabel('{:.2e}'.format(10 / 1e6))
+        self.slider_bilateral_color.setValue(10)
+        self.slider_bilateral_color_info = QLabel('{:.2e}'.format(10 ** (10 / 10 - 5)))
         self.slider_bilateral_color.valueChanged.connect(self.RefreshSliderBilateralInfo)
 
         self.filters_checkbox = QCheckBox('all filters')
         self.filters_checkbox.setChecked(True)
         self.filters_checkbox.clicked.connect(self.RefreshFilters)
-
-        self.forms_image_filters = [
-            self.filter_gauss_checkbox,
-            self.slider_gauss_info,
-            self.slider_gauss,
-            self.filter_wiener_checkbox,
-            self.slider_wiener_info,
-            self.slider_wiener,
-            self.slider_wiener_noise_info,
-            self.slider_wiener_noise,
-            self.filter_wiener_label,
-            self.filter_wiener_noise_label,
-            self.filter_bilateral_checkbox,
-            self.filter_bilateral_space_label,
-            self.filter_bilateral_color_label,
-            self.filter_bilateral_d_label,
-            self.slider_bilateral_space,
-            self.slider_bilateral_color,
-            self.slider_bilateral_d
-        ]
 
         self.forms_pre_processing = self.channel_checkbox_list + [
             self.orientation_checkbox,
@@ -254,6 +258,25 @@ class MainWindow(QMainWindow):
         self.button_count.setFont(font)
         self.button_count.clicked.connect(self.CountButtonClick)
         self.button_count.setDisabled(True)
+
+        self.line_count_start = QLineEdit()
+        self.line_count_start.setText('0')
+        self.line_count_start.textChanged.connect(self.RefreshCountRange)
+
+        self.line_count_stop = QLineEdit()
+        self.line_count_stop.setText('100')
+        self.line_count_stop.textChanged.connect(self.RefreshCountRange)
+
+        num = 3
+        self.list_slider_count = [QSlider(Qt.Horizontal) for i in range(num)]
+        self.list_slider_count_info = [QLabel('5') for i in range(num)]
+
+        for slider in self.list_slider_count:
+            slider.setMinimum(0)
+            slider.setMaximum(100)
+            slider.setSingleStep(1)
+            slider.setValue(5)
+            slider.valueChanged.connect(self.RefreshSliderCountInfo)
 
         self.progress_bar = QProgressBar(self)
         self.progress_bar.setGeometry(200, 80, 250, 20)
@@ -278,60 +301,90 @@ class MainWindow(QMainWindow):
         self.tool_help.triggered.connect(self.toolbarHelp)
         toolbar.addAction(self.tool_help)
 
+        self.forms_image_filters = [
+            self.filter_gauss_checkbox,
+            self.slider_gauss_info,
+            self.slider_gauss,
+            self.filter_wiener_checkbox,
+            self.slider_wiener_info,
+            self.slider_wiener,
+            self.slider_wiener_noise_info,
+            self.slider_wiener_noise,
+            self.filter_wiener_label,
+            self.filter_wiener_noise_label,
+            self.filter_bilateral_checkbox,
+            self.filter_bilateral_space_label,
+            self.filter_bilateral_color_label,
+            self.filter_bilateral_d_label,
+            self.slider_bilateral_space,
+            self.slider_bilateral_color,
+            self.slider_bilateral_d,
+            self.line_count_stop,
+            self.line_count_start,
+            self.slider_erode,
+            self.slider_erode_info,
+            self.filter_erode_checkbox,
+            self.slider_dilate,
+            self.slider_dilate_info,
+            self.filter_dilate_checkbox
+        ]
+
         # layout:
 
-        layout = QVBoxLayout()
-        layout.addWidget(self.button_open)
-        layout.addWidget(self.file_name_label)
+        layout_l = QVBoxLayout()
+        layout_l.addWidget(self.button_open)
+        layout_l.addWidget(self.file_name_label)
 
         label = QLabel('-- Choose channels to be shown --')
         label.setAlignment(Qt.AlignCenter)
-        layout.addWidget(label)
+        layout_l.addWidget(label)
 
         for channel in self.channel_checkbox_list:
             channel.setDisabled(True)
-            layout.addWidget(channel)
+            layout_l.addWidget(channel)
 
         label = QLabel('-- Image settings --')
         label.setAlignment(Qt.AlignCenter)
-        layout.addWidget(label)
+        layout_l.addWidget(label)
 
-        layout.addWidget(self.orientation_checkbox)
+        layout_l.addWidget(self.orientation_checkbox)
 
         slider_downsample_layout = QHBoxLayout()
         slider_downsample_layout.addWidget(QLabel('Downsample:'))
         slider_downsample_layout.addWidget(self.slider_downsample)
         slider_downsample_layout.addWidget(self.slider_downsample_info)
-        layout.addLayout(slider_downsample_layout)
+        layout_l.addLayout(slider_downsample_layout)
 
         label = QLabel('-- Data processing --')
         label.setAlignment(Qt.AlignCenter)
-        layout.addWidget(label)
+        layout_l.addWidget(label)
 
         plot_layout = QGridLayout()
         plot_layout.addWidget(self.checkbox_1, 0, 0)
         plot_layout.addWidget(self.checkbox_2, 1, 0)
         plot_layout.addWidget(self.checkbox_3, 0, 1)
         plot_layout.addWidget(self.checkbox_4, 1, 1)
-        layout.addLayout(plot_layout)
+        layout_l.addLayout(plot_layout)
 
-        layout.addWidget(self.button_build)
+        layout_l.addWidget(self.button_build)
+
+        layout_r = QVBoxLayout()
 
         label = QLabel('-- Image filters --')
         label.setAlignment(Qt.AlignCenter)
-        layout.addWidget(label)
+        layout_r.addWidget(label)
 
         slider_layout = QHBoxLayout()
         slider_layout.addWidget(QLabel('Integration number:'))
         slider_layout.addWidget(self.slider_k)
         slider_layout.addWidget(self.slider_k_info)
-        layout.addLayout(slider_layout)
+        layout_r.addLayout(slider_layout)
 
-        layout.addWidget(self.filters_checkbox)
+        layout_r.addWidget(self.filters_checkbox)
 
         wiener_layout_box = QVBoxLayout()
 
-        layout.addWidget(self.filter_wiener_checkbox)
+        layout_r.addWidget(self.filter_wiener_checkbox)
         wiener_layout = QHBoxLayout()
 
         wiener_layout.addWidget(self.filter_wiener_label)
@@ -346,11 +399,11 @@ class MainWindow(QMainWindow):
         wiener_layout_box.addLayout(wiener_layout)
         wiener_layout_box.addLayout(wiener_layout_noise)
 
-        layout.addLayout(wiener_layout_box)
+        layout_r.addLayout(wiener_layout_box)
 
         bilateral_layout_box = QVBoxLayout()
 
-        layout.addWidget(self.filter_bilateral_checkbox)
+        layout_r.addWidget(self.filter_bilateral_checkbox)
 
         bilateral_d_layout = QHBoxLayout()
         bilateral_d_layout.addWidget(self.filter_bilateral_d_label)
@@ -371,23 +424,56 @@ class MainWindow(QMainWindow):
         bilateral_layout_box.addLayout(bilateral_color_layout)
         bilateral_layout_box.addLayout(bilateral_space_layout)
 
-        layout.addLayout(bilateral_layout_box)
+        layout_r.addLayout(bilateral_layout_box)
 
-        "gauss"
+        # gauss
         gauss_layout = QHBoxLayout()
         gauss_layout.addWidget(self.filter_gauss_checkbox)
         gauss_layout.addWidget(self.slider_gauss)
         gauss_layout.addWidget(self.slider_gauss_info)
+        layout_r.addLayout(gauss_layout)
+
+        erode_layout = QHBoxLayout()
+        erode_layout.addWidget(self.filter_erode_checkbox)
+        erode_layout.addWidget(self.slider_erode)
+        erode_layout.addWidget(self.slider_erode_info)
+        layout_r.addLayout(erode_layout)
+
+        dilate_layout = QHBoxLayout()
+        dilate_layout.addWidget(self.filter_dilate_checkbox)
+        dilate_layout.addWidget(self.slider_dilate)
+        dilate_layout.addWidget(self.slider_dilate_info)
+        layout_r.addLayout(dilate_layout)
 
         for item in self.forms_image_filters + [self.filters_checkbox]:
             item.setDisabled(True)
 
-        layout.addLayout(gauss_layout)
+        label = QLabel('-- NP analysis--')
+        label.setAlignment(Qt.AlignCenter)
+        layout_r.addWidget(label)
 
-        layout.addWidget(self.button_count)
+        np_analysis_layout = QHBoxLayout()
+        np_analysis_layout.addWidget(QLabel('start:'))
+        np_analysis_layout.addWidget(self.line_count_start)
+        np_analysis_layout.addWidget(QLabel('stop:'))
+        np_analysis_layout.addWidget(self.line_count_stop)
+        layout_r.addLayout(np_analysis_layout)
 
-        layout.addWidget(self.info)
-        layout.addWidget(self.progress_bar)
+        for i, (slider, info) in enumerate(zip(self.list_slider_count, self.list_slider_count_info)):
+            np_analysis_slider_layout = QHBoxLayout()
+            np_analysis_slider_layout.addWidget(QLabel('Value {}. '.format(i + 1)))
+            np_analysis_slider_layout.addWidget(slider)
+            np_analysis_slider_layout.addWidget(info)
+            layout_r.addLayout(np_analysis_slider_layout)
+
+        layout_r.addWidget(self.button_count)
+
+        layout_r.addWidget(self.info)
+        layout_r.addWidget(self.progress_bar)
+
+        layout = QHBoxLayout()
+        layout.addLayout(layout_l)
+        layout.addLayout(layout_r)
 
         widget = QWidget()
         widget.setLayout(layout)
@@ -462,6 +548,14 @@ class MainWindow(QMainWindow):
         self.slider_gauss_info.setText(str(self.slider_gauss.value() / 10))
         self.RunFilterGaussian()
 
+    def RefreshSliderErodeInfo(self):
+        self.slider_erode_info.setText(str(self.slider_erode.value()))
+        self.RunFilterErode()
+
+    def RefreshSliderDilateInfo(self):
+        self.slider_dilate_info.setText(str(self.slider_dilate.value()))
+        self.RunFilterDilate()
+
     def RefreshSliderBilateralInfo(self):
         self.slider_bilateral_d_info.setText(str(self.slider_bilateral_d.value()))
         self.slider_bilateral_space_info.setText(str(self.slider_bilateral_space.value()))
@@ -473,9 +567,12 @@ class MainWindow(QMainWindow):
         if self.slider_wiener_noise.value() == 0:
             self.slider_wiener_noise_info.setText('auto')
         else:
-            self.slider_wiener_noise_info.setText('{:.2e}'.format(self.slider_wiener_noise.value() / 1e3 / 1e6))
+            self.slider_wiener_noise_info.setText('{:.2e}'.format(10 ** (self.slider_wiener_noise.value() / 100 - 8)))
+
+            # self.slider_wiener_noise_info.setText('{:.2e}'.format(self.slider_wiener_noise.value() / 1e3 / 1e6))
             # self.slider_wiener_noise_info.setText('{:.2e}'.format(self.slider_wiener_noise.value() / 1e5 *0.2))
         self.RunFilterWiener()
+
 
     def RefreshOrientationInfo(self):
         if self.orientation_checkbox.checkState() == 0:
@@ -497,43 +594,70 @@ class MainWindow(QMainWindow):
                 item.setDisabled(True)
         self.view.canvas_img.next_frame(0)
 
+    def RefreshCountRange(self):
+        start = re.fullmatch(r'[0-9]+', self.line_count_start.text()) is None
+        stop = re.fullmatch(r'[0-9]+', self.line_count_stop.text()) is None
+
+        if start:
+            self.line_count_start.setText('0')
+        if stop:
+            self.line_count_stop.setText(str(len(self.view.core_list[0])))
+
+        else:
+            if int(self.line_count_stop.text()) < int(self.line_count_start.text()) + self.view.core_list[0].k:
+                self.line_count_start.setText('0')
+            elif int(self.line_count_stop.text()) > len(self.view.core_list[0]):
+                self.line_count_stop.setText(str(len(self.view.core_list[0])))
+
+    def RefreshSliderCountInfo(self):
+        for slider, info in zip(self.list_slider_count, self.list_slider_count_info):
+            info.setText(str(slider.value()))
+        self.RunFilterGaussian()
+        self.RunFilterBilateral()
+
     def RunFilterGaussian(self):
         # fn = lambda img: np.transpose(
         #     scipy.signal.decimate(np.transpose(scipy.signal.decimate(img, int(self.slider_gauss.value()/10+1))),
         #                           int(self.slider_gauss.value()/10+1)))
         # fn = lambda img: scipy.signal.medfilt2d(img, self.slider_gauss.value() // 2 * 2 + 1)
         fn = lambda img: gaussian_filter(img, self.slider_gauss.value() / 10)
-        self.RunFilter(self.filter_gauss_checkbox.isChecked(), 'b_gauss', fn)
+
+        self.RunFilter(self.filter_gauss_checkbox.isChecked(), 'c_gauss', fn)
+
+    def RunFilterErode(self):
+        fn = lambda img: cv2.erode(np.float32(img), None, iterations=self.slider_erode.value())
+        self.RunFilter(self.filter_erode_checkbox.isChecked(), 'y_erode', fn)
+
+    def RunFilterDilate(self):
+        fn = lambda img: cv2.dilate(np.float32(img), None, iterations=self.slider_dilate.value())
+        self.RunFilter(self.filter_dilate_checkbox.isChecked(), 'z_dilate', fn)
 
     def RunFilterBilateral(self):
         fn = lambda img: cv2.bilateralFilter(np.float32(img), int(self.slider_bilateral_d.value()),
                                              10 ** (self.slider_bilateral_color.value() / 10 - 5),
                                              self.slider_bilateral_space.value() / 10)
-
-        self.RunFilter(self.filter_bilateral_checkbox.isChecked(), 'b_gauss', fn)
+        self.RunFilter(self.filter_bilateral_checkbox.isChecked(), 'b_bilateral', fn)
 
     def RunFilterWiener(self):
         if self.slider_wiener_noise_info.text() == 'auto':
             fn = lambda img: scipy.signal.wiener(img, self.slider_wiener.value())
-            # fn = lambda img: tl.spectral_wiener_filter(img, self.slider_wiener.value())
         else:
             fn = lambda img: scipy.signal.wiener(img, self.slider_wiener.value(),
-                                                 self.slider_wiener_noise.value() / 1e3 / 1e6)
-            # fn = lambda img: tl.spectral_wiener_filter(img, self.slider_wiener.value(),
-            #                                      self.slider_wiener_noise.value() / 1e5 *0.2)
+                                                 10 ** (self.slider_wiener_noise.value() / 100 - 8)
+                                                 )
         self.RunFilter(self.filter_wiener_checkbox.isChecked(), 'a_wiener', fn)
 
-    def RunFilter(self, checked, type, fn):
+    def RunFilter(self, checked, ftype, fn):
         if not checked:
             for core in self.view.core_list:
                 try:
-                    del core.postprocessing_filters[type]
+                    del core.postprocessing_filters[ftype]
                 except KeyError:
                     print('postprocessing key not found')
         else:
 
             for core in self.view.core_list:
-                core.postprocessing_filters[type] = fn
+                core.postprocessing_filters[ftype] = fn
         dict(sorted(core.postprocessing_filters.items()))
         self.view.canvas_img.next_frame(0)
 
@@ -582,7 +706,8 @@ class MainWindow(QMainWindow):
 
     def CountButtonClick(self):
         for core in self.view.core_list:
-            core.count_nps()
+            core.count_nps(int(self.line_count_start.text()), int(self.line_count_stop.text()),
+                           self.list_slider_count[0].value())
 
     def BuildButtonClick(self, s):
 
@@ -619,6 +744,7 @@ class MainWindow(QMainWindow):
             item.setDisabled(False)
 
         self.button_count.setDisabled(False)
+        self.line_count_stop.setText(str(len(self.view.core_list[0])))
 
         # for item in self.forms_pre_processing:
         #     item.setDisabled(True)
@@ -651,7 +777,7 @@ class MainWindow(QMainWindow):
 
 
 app = QApplication(sys.argv)
-app.setFont(QFont('Courier', 10))
+app.setFont(QFont('Courier', 8))
 
 window = MainWindow()
 window.show()

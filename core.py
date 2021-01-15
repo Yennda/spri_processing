@@ -1,4 +1,5 @@
 import os
+import time
 
 import cv2
 import numpy as np
@@ -15,9 +16,9 @@ class Core(object):
         self.folder = folder
         self.file = file
 
-        self._raw = None
-        self._raw_mask = None
-        self._raw_corr = None
+        self._data_raw = None
+        self._data_mask = None
+        self._data_corr = None
 
         self._time_info = None
         self._ref_frame = 0
@@ -60,12 +61,12 @@ class Core(object):
 
     def _load_data(self):
         self.__video_stats = self._load_stats()
-        self._raw = self._load_video()
+        self._data_raw = self._load_video()
 
-        if self._raw.shape[0] < self._raw.shape[1]:
-            self._raw = self._raw[SMIN: SMAX, LMIN: LMAX, :]
+        if self._data_raw.shape[0] < self._data_raw.shape[1]:
+            self._data_raw = self._data_raw[SMIN: SMAX, LMIN: LMAX, :]
         else:
-            self._raw = self._raw[LMIN: LMAX, SMIN: SMAX, :]
+            self._data_raw = self._data_raw[LMIN: LMAX, SMIN: SMAX, :]
 
         self.spr_time, self.graphs['spr_signal'] = self._load_spr()
         self._synchronize()
@@ -114,7 +115,7 @@ class Core(object):
     def downsample(self, k):
         if k == 0:
             return
-        self._raw = scipy.signal.decimate(self._raw, k, axis=2)
+        self._data_raw = scipy.signal.decimate(self._data_raw, k, axis=2)
         self._time_info = scipy.signal.decimate(self._time_info, k, axis=0)
 
         if self.spr_time is not None:
@@ -148,19 +149,19 @@ class Core(object):
                 # raise Exception('Could not match global and local SPR signals.')
 
     def __len__(self):
-        return self._raw.shape[2]
+        return self._data_raw.shape[2]
 
     @property
     def shape(self):
-        return self._raw.shape
+        return self._data_raw.shape
 
     @property
     def area(self):
-        return self._raw.shape[0] * self._raw.shape[1]
+        return self._data_raw.shape[0] * self._data_raw.shape[1]
 
     @property
     def shape_img(self):
-        return self._raw.shape[:2]
+        return self._data_raw.shape[:2]
 
     @property
     def ref_frame(self):
@@ -174,7 +175,7 @@ class Core(object):
             self._ref_frame = self.k
 
         self.reference = np.sum(
-            self._raw[:, :, self.ref_frame - self.k: self.ref_frame],
+            self._data_raw[:, :, self.ref_frame - self.k: self.ref_frame],
             axis=2
         ) / self.k
 
@@ -226,11 +227,11 @@ class Core(object):
 
     def frame_diff(self, f):
         current = np.sum(
-            self._raw[:, :, f - self.k + 1: f + 1],
+            self._data_raw[:, :, f - self.k + 1: f + 1],
             axis=2
         ) / self.k
         previous = np.sum(
-            self._raw[:, :, f - 2 * self.k + 1: f - self.k + 1],
+            self._data_raw[:, :, f - 2 * self.k + 1: f - self.k + 1],
             axis=2
         ) / self.k
         return current - previous
@@ -241,24 +242,24 @@ class Core(object):
 
         elif self.type == 'int':
             current = np.average(
-                self._raw[:, :, f // self.k * self.k - self.k: f // self.k * self.k],
+                self._data_raw[:, :, f // self.k * self.k - self.k: f // self.k * self.k],
                 axis=2
             )
             image = current - self.reference
 
         elif self.type == 'raw':
-            image = self._raw[:, :, f]
+            image = self._data_raw[:, :, f]
 
         elif self.type == 'mask':
-            image = self._raw_mask[:, :, f]
+            image = self._data_mask[:, :, f]
 
         elif self.type == 'four_r':
-            image_pre = self._raw[:, :, f]
+            image_pre = self._data_raw[:, :, f]
             image = np.real(20 * np.log(np.abs(np.fft.fft2(image_pre))))
 
         elif self.type == 'four_i':
             current = np.average(
-                self._raw[:, :, f // self.k * self.k - self.k: f // self.k * self.k],
+                self._data_raw[:, :, f // self.k * self.k - self.k: f // self.k * self.k],
                 axis=2
             )
             image_pre = current - self.reference
@@ -274,8 +275,8 @@ class Core(object):
                 print('No selected NP patter for file {}'.format(self.file))
                 return image
 
-            if self._raw_corr is not None:
-                image = self._raw_corr[:, :, f]
+            if self._data_corr is not None:
+                image = self._data_corr[:, :, f]
                 # print('Shape of corr: {}'.format(self._raw_corr.shape))
                 #
                 # print('Shape of image: {}'.format(image.shape))
@@ -355,7 +356,7 @@ class Core(object):
             print('\r\t{}/ {}'.format(f + 1, len(self)), end='')
             raw_diff[:, :, f] = self.frame(f)
 
-        self._raw_corr = scipy.signal.correlate(
+        self._data_corr = scipy.signal.correlate(
             raw_diff,
             self.idea3d,
             mode='same'
@@ -374,11 +375,11 @@ class Core(object):
 
         return positions, colors
 
-    def detect_spots(self, f):
+    def detect_spots(self, f, threshold):
         mask_positions = np.zeros(self.shape_img)
 
         frame = self.frame(f)
-        mask = (frame > np.std(frame) * 5) * 1
+        mask = (frame < -1e-4 * threshold / 100 * 6) * 1
         mask = mask.astype(np.uint8)
         _, threshold_mask = cv2.threshold(
             mask,
@@ -401,7 +402,7 @@ class Core(object):
             mask_positions[center] = 1
             # threshold_mask = cv2.circle(threshold_mask, (int(x), int(y)), int(_), (0, 255, 0), 2)
 
-        # self._raw_mask[:, :, f] = mask_positions
+        self._data_mask[:, :, f] = threshold_mask
         return mask_positions
 
     def track_nps(self, frame_first):
@@ -437,43 +438,42 @@ class Core(object):
 
         return tracked_nps
 
-    def count_nps(self):
+    def count_nps(self, start, stop, threshold):
+        time0 = time.time()
         print('Detecting NPs')
+
         img_type = self.type
-        self.type = 'corr'
+        # self.type = 'corr'
+        # self.make_correlation()
 
-        self.make_correlation()
-        print(self._raw_corr.shape)
-        print(self._raw.shape)
-
-        self._raw_mask = np.zeros(self.shape)
+        self._data_mask = np.zeros(self.shape)
         self.nps_in_frame = [[] for i in range(len(self))]
         self.stack_frames = [np.zeros(self.shape_img)] * 2 * self.k
+
         idnp = 0
+        for f in range(start + self.k * 2, stop):
+            print('\r\t{}/ {}'.format(f + 1, stop), end='')
 
-        for f in range(self.k * 2, len(self)):
-            # for f in [61]:
-            print('\r\t{}/ {}'.format(f + 1, len(self)), end='')
+            # tracked_nps = self.track_nps(self.stack_frames[0])
+            #
+            # for np_positions in tracked_nps:
+            #     nnp = NanoParticle(idnp, f - self.k * 2, np_positions)
+            #
+            #     self.np_container.append(nnp)
+            #
+            #     for i in range(len(np_positions)):
+            #         self.nps_in_frame[f - self.k * 2 + i].append(idnp)
+            #
+            #     # for i, (y, x) in enumerate(np_positions):
+            #     #     self._data_mask[y, x, f - 2 * self.k + i] = 1
+            #
+            #     idnp += 1
 
-            tracked_nps = self.track_nps(self.stack_frames[0])
-
-            for np_positions in tracked_nps:
-                nnp = NanoParticle(idnp, f - self.k * 2, np_positions)
-
-                self.np_container.append(nnp)
-
-                for i in range(len(np_positions)):
-                    self.nps_in_frame[f - self.k * 2 + i].append(idnp)
-
-                for i, (y, x) in enumerate(np_positions):
-                    self._raw_mask[y, x, f - 2 * self.k + i] = 1
-
-                idnp += 1
-
-            mask_positions = self.detect_spots(f)
+            mask_positions = self.detect_spots(f, threshold)
             self.stack_frames.append(mask_positions)
 
         self.type = img_type
         self.show_nps = True
 
+        print('\n--elapsed time--\n{:.2f} s'.format(time.time() - time0))
         return mask_positions
