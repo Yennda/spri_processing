@@ -57,6 +57,20 @@ class Canvas(FigureCanvasQTAgg):
         for i, core in enumerate(self.view.core_list):
             self.view.img_shown[i].set_array(core.frame(self.view.f))
 
+            if core.show_nps:
+                positions, colors = core.frame_np(self.view.f)
+                [p.remove() for p in reversed(self.view.axes[i].patches) if p.get_radius() == 5]
+
+                for (p, c) in zip(positions, colors):
+                    circle = mpatches.Circle(
+                        p,
+                        5,
+                        color=c,
+                        fill=False,
+                        alpha=0.5,
+                        lw=2)
+                    self.view.axes[i].add_patch(circle)
+
         self.view.canvas_img.draw()
         if not self.view.canvas_plot is None:
             self.view.canvas_plot.draw()

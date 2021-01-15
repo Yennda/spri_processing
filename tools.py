@@ -1,6 +1,7 @@
 import numpy as np
 import scipy.signal
 import os
+import random
 
 
 def frame_times(file_content):
@@ -55,7 +56,7 @@ def fourier_filter(img, level, longpass):
     return np.real(np.fft.ifft2(f))
 
 
-def spectral_wiener_filter(img, size, noise = None):
+def spectral_wiener_filter(img, size, noise=None):
     f = np.fft.fft2(img)
     print(np.std(f))
     print(np.var(f))
@@ -65,6 +66,10 @@ def spectral_wiener_filter(img, size, noise = None):
 
 def true_coordinate(x):
     return int((x + 0.5) // 1)
+
+
+def random_color():
+    return (random.random(), random.random(), random.random())
 
 
 def before_save_file(path):

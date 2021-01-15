@@ -7,6 +7,7 @@ import scipy.signal
 
 from global_var import *
 import tools as tl
+from nanoparticle import NanoParticle
 
 
 class Core(object):
@@ -16,6 +17,8 @@ class Core(object):
 
         self._raw = None
         self._raw_mask = None
+        self._raw_corr = None
+
         self._time_info = None
         self._ref_frame = 0
         self._range = {
@@ -40,6 +43,9 @@ class Core(object):
         # np_counting
         self.stack_frames = []
         self.dist = 4
+        self.np_container = []
+        self.nps_in_frame = []
+        self.show_nps = False
 
         self.graphs = dict()
         self.spr_time = None
@@ -268,22 +274,28 @@ class Core(object):
                 print('No selected NP patter for file {}'.format(self.file))
                 return image
 
-            sequence_diff = np.zeros((self.shape_img[0], self.shape_img[1], 4 * self.k))
-            for i in range(4 * self.k):
-                diff_image = self.frame_diff(f + 2 * self.k - i)
-                if self.postprocessing and len(self.postprocessing_filters) != 0:
-                    for p in self.postprocessing_filters.values():
-                        diff_image = p(diff_image)
+            if self._raw_corr is not None:
+                image = self._raw_corr[:, :, f]
+                # print('Shape of corr: {}'.format(self._raw_corr.shape))
+                #
+                # print('Shape of image: {}'.format(image.shape))
+            else:
+                sequence_diff = np.zeros((self.shape_img[0], self.shape_img[1], 4 * self.k))
+                for i in range(4 * self.k):
+                    diff_image = self.frame_diff(f + 2 * self.k - i)
+                    if self.postprocessing and len(self.postprocessing_filters) != 0:
+                        for p in self.postprocessing_filters.values():
+                            diff_image = p(diff_image)
 
-                sequence_diff[:, :, i] = diff_image
+                    sequence_diff[:, :, i] = diff_image
 
-            out = scipy.signal.correlate(
-                sequence_diff,
-                self.idea3d,
-                mode='same'
-            ) * 1e5
+                out = scipy.signal.correlate(
+                    sequence_diff,
+                    self.idea3d,
+                    mode='same'
+                ) * 1e5
 
-            image = out[:, :, 2 * self.k]
+                image = out[:, :, 2 * self.k]
 
         if self.postprocessing and len(self.postprocessing_filters) != 0 and self.type != 'corr':
             for p in self.postprocessing_filters.values():
@@ -329,6 +341,39 @@ class Core(object):
         self.type = type_buffer
         return 'done'
 
+    def make_correlation(self):
+        if self.idea3d is None:
+            image = np.zeros(self.shape_img[0])
+            raise Exception('No selected NP patter for file {}'.format(self.file))
+
+        img_type = self.type
+        self.type = 'diff'
+
+        raw_diff = np.zeros(self.shape)
+        print('Processing data for correlation')
+        for f in range(len(self)):
+            print('\r\t{}/ {}'.format(f + 1, len(self)), end='')
+            raw_diff[:, :, f] = self.frame(f)
+
+        self._raw_corr = scipy.signal.correlate(
+            raw_diff,
+            self.idea3d,
+            mode='same'
+        ) * 1e5
+
+        self.type = img_type
+
+    def frame_np(self, f):
+        positions = []
+        colors = []
+
+        for idnp in self.nps_in_frame[f]:
+            nnp = self.np_container[idnp]
+            positions.append(nnp.position(f))
+            colors.append(nnp.color)
+
+        return positions, colors
+
     def detect_spots(self, f):
         mask_positions = np.zeros(self.shape_img)
 
@@ -361,13 +406,11 @@ class Core(object):
 
     def track_nps(self, frame_first):
         del self.stack_frames[0]
-
         tracked_nps = []
-        # print('\n{}'.format(len(np.transpose(frame_first.nonzero()))))
 
-        nz = np.nonzero(frame_first)
-        print('\n{}'.format(len(np.transpose(nz))))
-        for (x, y) in np.transpose(nz):
+        start_position = np.nonzero(frame_first)
+
+        for (x, y) in np.transpose(start_position):
             np_time_evolution = [np.array([x, y])]
 
             for i in range(self.k * 2 - 1):
@@ -381,27 +424,32 @@ class Core(object):
                 if len(new_positions) == 0:
                     if len(np_time_evolution) >= 2:
                         tracked_nps.append(np_time_evolution)
-                        print('tracked')
-                    # print(len(np_time_evolution) >= self.k / 2)
+
                     break
                 else:
-                    new_position = np.array([x, y]) - np.array([self.dist] * 2) + np.average(new_positions, 0).astype(np.int)
+                    new_position = np.array([x, y]) - np.array([self.dist] * 2) + np.average(new_positions, 0).astype(
+                        np.int)
                     np_time_evolution.append(new_position)
                     self.stack_frames[i][
                     x - self.dist:x + self.dist,
                     y - self.dist:y + self.dist] = 0
                     (x, y) = new_position
-                    print('continues')
 
         return tracked_nps
 
     def count_nps(self):
         print('Detecting NPs')
-        type = self.type
+        img_type = self.type
         self.type = 'corr'
 
+        self.make_correlation()
+        print(self._raw_corr.shape)
+        print(self._raw.shape)
+
         self._raw_mask = np.zeros(self.shape)
+        self.nps_in_frame = [[] for i in range(len(self))]
         self.stack_frames = [np.zeros(self.shape_img)] * 2 * self.k
+        idnp = 0
 
         for f in range(self.k * 2, len(self)):
             # for f in [61]:
@@ -409,15 +457,23 @@ class Core(object):
 
             tracked_nps = self.track_nps(self.stack_frames[0])
 
-            print('draws')
-            for tnp in tracked_nps:
-                for i, (y, x) in enumerate(tnp):
-                    print(x, y, f - 2 * self.k + i)
+            for np_positions in tracked_nps:
+                nnp = NanoParticle(idnp, f - self.k * 2, np_positions)
+
+                self.np_container.append(nnp)
+
+                for i in range(len(np_positions)):
+                    self.nps_in_frame[f - self.k * 2 + i].append(idnp)
+
+                for i, (y, x) in enumerate(np_positions):
                     self._raw_mask[y, x, f - 2 * self.k + i] = 1
+
+                idnp += 1
 
             mask_positions = self.detect_spots(f)
             self.stack_frames.append(mask_positions)
 
-        self.type = type
+        self.type = img_type
+        self.show_nps = True
 
         return mask_positions
