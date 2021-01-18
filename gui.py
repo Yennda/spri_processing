@@ -131,8 +131,8 @@ class MainWindow(QMainWindow):
         self.checkbox_1.setChecked(True)
         self.checkbox_2 = QCheckBox('intensity')
         self.checkbox_2.setStatusTip('Takes a while')
-        self.checkbox_3 = QCheckBox('norm. int.')
-        self.checkbox_3.setStatusTip('Takes a while')
+        self.checkbox_3 = QCheckBox('histogram')
+        self.checkbox_3.setStatusTip('')
         self.checkbox_4 = QCheckBox('std')
         self.checkbox_4.setStatusTip('Takes a while')
 
@@ -162,7 +162,7 @@ class MainWindow(QMainWindow):
         self.slider_erode_info = QLabel('1')
         self.slider_erode.valueChanged.connect(self.RefreshSliderErodeInfo)
 
-        self.filter_dilate_checkbox = QCheckBox('dilate')
+        self.filter_dilate_checkbox = QCheckBox('binary')
         self.filter_dilate_checkbox.setChecked(False)
         self.filter_dilate_checkbox.clicked.connect(self.RunFilterDilate)
         self.slider_dilate = QSlider(Qt.Horizontal)
@@ -210,8 +210,8 @@ class MainWindow(QMainWindow):
         self.slider_bilateral_d.setMinimum(2)
         self.slider_bilateral_d.setMaximum(20)
         self.slider_bilateral_d.setSingleStep(1)
-        self.slider_bilateral_d.setValue(10)
-        self.slider_bilateral_d_info = QLabel('10')
+        self.slider_bilateral_d.setValue(20)
+        self.slider_bilateral_d_info = QLabel('20')
         self.slider_bilateral_d.valueChanged.connect(self.RefreshSliderBilateralInfo)
 
         self.filter_bilateral_space_label = QLabel('\tspace')
@@ -220,8 +220,8 @@ class MainWindow(QMainWindow):
         self.slider_bilateral_space.setMinimum(0)
         self.slider_bilateral_space.setMaximum(200)
         self.slider_bilateral_space.setSingleStep(1)
-        self.slider_bilateral_space.setValue(10)
-        self.slider_bilateral_space_info = QLabel('10')
+        self.slider_bilateral_space.setValue(200)
+        self.slider_bilateral_space_info = QLabel('200')
         self.slider_bilateral_space.valueChanged.connect(self.RefreshSliderBilateralInfo)
 
         self.filter_bilateral_color_label = QLabel('\tcolor')
@@ -253,6 +253,16 @@ class MainWindow(QMainWindow):
         self.button_build.setFont(font)
         self.button_build.clicked.connect(self.BuildButtonClick)
         self.button_build.setDisabled(True)
+
+        self.button_correlate = QPushButton('Correlation')
+        self.button_correlate.setFont(font)
+        self.button_correlate.clicked.connect(self.CorrelateButtonClick)
+        self.button_correlate.setDisabled(True)
+
+        self.button_export = QPushButton('Export data')
+        self.button_export.setFont(font)
+        self.button_export.clicked.connect(self.ExportButtonClick)
+        self.button_export.setDisabled(True)
 
         self.button_count = QPushButton(QIcon('icons/count-cat-icon.png'), 'Count NPs')
         self.button_count.setStatusTip('Counts nanoparticles.')
@@ -374,6 +384,12 @@ class MainWindow(QMainWindow):
         label = QLabel('-- Image filters --')
         label.setAlignment(Qt.AlignCenter)
         layout_r.addWidget(label)
+
+
+        buttons = QHBoxLayout()
+        buttons.addWidget(self.button_correlate)
+        buttons.addWidget(self.button_export)
+        layout_r.addLayout(buttons)
 
         slider_layout = QHBoxLayout()
         slider_layout.addWidget(QLabel('Integration number:'))
@@ -626,13 +642,15 @@ class MainWindow(QMainWindow):
         self.RunFilter(self.filter_gauss_checkbox.isChecked(), 'c_gauss', fn)
 
     def RunFilterErode(self):
-        # fn = lambda img: cv2.erode(np.float32(img), None, iterations=self.slider_erode.value())
-        fn = lambda img: ndimage.maximum_filter(img, size=self.slider_erode.value())
+        fn = lambda img: cv2.erode(np.float32(img), None, iterations=self.slider_erode.value())
+        # fn = lambda img: ndimage.maximum_filter(-img, size=self.slider_erode.value())
 
         self.RunFilter(self.filter_erode_checkbox.isChecked(), 'y_erode', fn)
 
     def RunFilterDilate(self):
-        fn = lambda img: cv2.dilate(np.float32(img), None, iterations=self.slider_dilate.value())
+        # fn = lambda img: cv2.dilate(np.float32(img), None, iterations=self.slider_dilate.value())
+        fn = lambda img: (img > np.std(img) * self.slider_dilate.value()/10) * np.max(img)
+
         self.RunFilter(self.filter_dilate_checkbox.isChecked(), 'z_dilate', fn)
 
     def RunFilterBilateral(self):
@@ -646,6 +664,10 @@ class MainWindow(QMainWindow):
             fn = lambda img: scipy.signal.wiener(img, self.slider_wiener.value())
         else:
             fn = lambda img: scipy.signal.wiener(img, self.slider_wiener.value(),
+                                                 10 ** (self.slider_wiener_noise.value() / 100 - 8)
+                                                 )
+        if self.filter_gauss_checkbox.isChecked():
+            fn = lambda img: img - scipy.signal.wiener(img, self.slider_wiener.value(),
                                                  10 ** (self.slider_wiener_noise.value() / 100 - 8)
                                                  )
         self.RunFilter(self.filter_wiener_checkbox.isChecked(), 'a_wiener', fn)
@@ -664,12 +686,22 @@ class MainWindow(QMainWindow):
         dict(sorted(core.postprocessing_filters.items()))
         self.view.canvas_img.next_frame(0)
 
+    def CorrelateButtonClick(self):
+        for core in self.view.core_list:
+            core.make_correlation()
+
+    def ExportButtonClick(self):
+        for core in self.view.core_list:
+            core.save_data()
+
     def OpenButtonClick(self, s):
         dlg = QFileDialog(self)
 
         if self.ProcessPath(dlg.getOpenFileName()[0]):
             self.file_name_label.setText('folder path: ... {}\nfile name: {}'.format(self.folder[-20:], self.file))
             self.button_build.setDisabled(False)
+            self.button_correlate.setDisabled(False)
+            self.button_export.setDisabled(False)
             self.tool_file_info.setDisabled(False)
 
             if self.width[0] < self.height[0]:
@@ -710,7 +742,7 @@ class MainWindow(QMainWindow):
     def CountButtonClick(self):
         for core in self.view.core_list:
             core.count_nps(int(self.line_count_start.text()), int(self.line_count_stop.text()),
-                           self.list_slider_count[0].value())
+                           self.slider_dilate.value()/10)
 
     def BuildButtonClick(self, s):
 
@@ -763,11 +795,11 @@ class MainWindow(QMainWindow):
                 self.threadpool.start(worker)
                 self.threadpool.waitForDone(100000)
 
-            if self.chosen_plots[2]:
-                worker2 = Worker(core.make_intensity_int)
-                worker2.signals.finished.connect(self.thread_complete)
-                worker2.signals.progress.connect(self.progress_fn)
-                self.threadpool.start(worker2)
+            # if self.chosen_plots[2]:
+            #     worker2 = Worker(core.make_intensity_int)
+            #     worker2.signals.finished.connect(self.thread_complete)
+            #     worker2.signals.progress.connect(self.progress_fn)
+            #     self.threadpool.start(worker2)
 
             if self.chosen_plots[3]:
                 worker3 = Worker(core.make_std_int)

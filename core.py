@@ -5,6 +5,7 @@ import cv2
 import numpy as np
 import scipy as sc
 import scipy.signal
+from scipy import ndimage
 
 from global_var import *
 import tools as tl
@@ -37,6 +38,7 @@ class Core(object):
 
         self.k = 1
         self.type = 'diff'
+        self._f = int()
         self.fourier_level = 30
         self.postprocessing = True
         self.postprocessing_filters = dict()
@@ -194,6 +196,30 @@ class Core(object):
         self.type = type_buffer
         return intensity
 
+    def save_data(self, name=None):
+        if not os.path.isdir(self.folder + FOLDER_SAVED):
+            os.mkdir(self.folder + FOLDER_SAVED)
+
+        if name == None:
+            name = self.file
+
+        file_name = self.folder + FOLDER_SAVED + '/' + name
+
+        data = np.zeros(self.shape)
+        for f in range(len(self)):
+            data[:, :, f] = self.frame(f)
+
+        if tl.before_save_file(file_name) or name == self.file:
+            np.save(file_name + '.npy', data)
+            # np.save(file_name + '_frame' + '.npy', np.array(self._idea_frame))
+            # np.save(file_name + '_spanx' + '.npy', self._idea_span_x)
+            # np.save(file_name + '_spany' + '.npy', self._idea_span_y)
+
+            print('Pattern saved')
+
+        else:
+            print('Could not save the pattern.')
+
     def save_idea(self, name=None):
         if not os.path.isdir(self.folder + FOLDER_IDEAS):
             os.mkdir(self.folder + FOLDER_IDEAS)
@@ -237,6 +263,7 @@ class Core(object):
         return current - previous
 
     def frame(self, f):
+        self._f = f
         if self.type == 'diff':
             image = self.frame_diff(f)
 
@@ -281,6 +308,9 @@ class Core(object):
                 #
                 # print('Shape of image: {}'.format(image.shape))
             else:
+                # self.make_correlation()
+                # image = self._data_corr[:, :, f]
+
                 sequence_diff = np.zeros((self.shape_img[0], self.shape_img[1], 4 * self.k))
                 for i in range(4 * self.k):
                     diff_image = self.frame_diff(f + 2 * self.k - i)
@@ -298,7 +328,8 @@ class Core(object):
 
                 image = out[:, :, 2 * self.k]
 
-        if self.postprocessing and len(self.postprocessing_filters) != 0 and self.type != 'corr':
+        # if self.postprocessing and len(self.postprocessing_filters) != 0 and self.type != 'corr':
+        if self.postprocessing and len(self.postprocessing_filters) != 0:
             for p in self.postprocessing_filters.values():
                 image = p(image)
 
@@ -363,6 +394,18 @@ class Core(object):
         ) * 1e5
 
         self.type = img_type
+
+    def histogram(self):
+        frame = self.frame(self._f)
+        n = 20
+        values = np.linspace(np.min(frame), np.max(frame), n)
+        counts = ndimage.measurements.histogram(
+            frame,
+            np.min(frame),
+            np.max(frame),
+            n
+        )
+        return values, counts
 
     def frame_np(self, f):
         positions = []
@@ -441,6 +484,14 @@ class Core(object):
     def count_nps(self, start, stop, threshold):
         time0 = time.time()
         print('Detecting NPs')
+
+        data = np.zeros(self.shape)
+        for f in range(len(self)):
+            data[:, :, f] = self.frame(f)
+
+        self._data_mask = tl.process_binary(data)
+
+        return
 
         img_type = self.type
         # self.type = 'corr'

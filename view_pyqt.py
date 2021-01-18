@@ -57,6 +57,20 @@ class Canvas(FigureCanvasQTAgg):
         for i, core in enumerate(self.view.core_list):
             self.view.img_shown[i].set_array(core.frame(self.view.f))
 
+            if 2 in self.view.chosen_plot_indices:
+                axes = self.view.axes_plot_list[self.view.chosen_plot_indices.index(2)]
+                for j, core in enumerate(self.view.core_list):
+                    values, counts = core.histogram()
+                    axes.clear()
+                    axes.bar(
+                        values,
+                        counts,
+                        width=values[1] - values[0],
+                        color=COLORS[j],
+                        alpha=0.5,
+                        label='channel {}.'.format(j)
+                    )
+
             if core.show_nps:
                 positions, colors = core.frame_np(self.view.f)
                 [p.remove() for p in reversed(self.view.axes[i].patches) if p.get_radius() == 5]
@@ -335,6 +349,8 @@ class View(object):
         self.fig = None
         self.axes = None
         self.text = []
+        self.chosen_plots_indices = None
+        self.axes_plot_list = None
 
         self.idea3d = None
 
@@ -354,11 +370,17 @@ class View(object):
                 'xlabel': 'frame',
                 'ylabel': 'I/area [a.u./px]'
             },
+            # {
+            #     'key': 'intensity_int',
+            #     'title': 'Int. intensity per px, normalized by laser intensity',
+            #     'xlabel': 'frame',
+            #     'ylabel': 'I/area [a.u./px]'
+            # },
             {
-                'key': 'intensity_int',
-                'title': 'Int. intensity per px, normalized by laser intensity',
-                'xlabel': 'frame',
-                'ylabel': 'I/area [a.u./px]'
+                'key': 'histogram',
+                'title': 'Histogram',
+                'xlabel': 'value',
+                'ylabel': 'count'
             },
             {
                 'key': 'std_int',
@@ -482,26 +504,26 @@ class View(object):
             self.locations.append(location)
             ax.add_patch(location)
 
-        chosen_plot_indices = [i for i in range(len(chosen_plots)) if chosen_plots[i]]
-        number_of_plots = len(chosen_plot_indices)
+        self.chosen_plot_indices = [i for i in range(len(chosen_plots)) if chosen_plots[i]]
+        number_of_plots = len(self.chosen_plot_indices)
 
         if number_of_plots == 1:
             self.fig_info, self.axes_info = plt.subplots(figsize=(10, 3))
-            axes_plot_list = [self.axes_info]
+            self.axes_plot_list = [self.axes_info]
         elif number_of_plots == 2:
             self.fig_info, self.axes_info = plt.subplots(2, 1, figsize=(10, 3))
-            axes_plot_list = self.axes_info[:]
+            self.axes_plot_list = self.axes_info[:]
         elif number_of_plots == 3:
             self.fig_info, self.axes_info = plt.subplots(3, 1, figsize=(10, 3))
-            axes_plot_list = self.axes_info[:]
+            self.axes_plot_list = self.axes_info[:]
         elif number_of_plots == 4:
             self.fig_info, self.axes_info = plt.subplots(2, 2, figsize=(10, 3))
-            axes_plot_list = list(self.axes_info[0, :]) + list(self.axes_info[1, :])
+            self.axes_plot_list = list(self.axes_info[0, :]) + list(self.axes_info[1, :])
 
         self.fig_info.suptitle('info')
 
-        for k, axes in enumerate(axes_plot_list):
-            i = chosen_plot_indices[k]
+        for k, axes in enumerate(self.axes_plot_list):
+            i = self.chosen_plot_indices[k]
 
             axes.set_title(self.plots[i]['title'])
             axes.set_xlabel(self.plots[i]['xlabel'])
@@ -516,6 +538,17 @@ class View(object):
                         alpha=0.5,
                         label='channel {}.'.format(j)
                     )
+                    add_time_bar(axes)
+
+                elif self.plots[i]['key'] == 'histogram':
+                    values, counts = core.histogram()
+                    axes.bar(
+                        values,
+                        counts,
+                        color=COLORS[j],
+                        alpha=0.5,
+                        label='channel {}.'.format(j)
+                    )
                 else:
                     axes.plot(
                         core.graphs[self.plots[i]['key']],
@@ -525,7 +558,7 @@ class View(object):
                         label='channel {}.'.format(j)
                     )
 
-            add_time_bar(axes)
+                    add_time_bar(axes)
 
         # self.axes_info[0, 1].set_title('Raw intensity per px')
         # self.axes_info[0, 1].set_xlabel('frame')

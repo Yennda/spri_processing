@@ -3,6 +3,8 @@ import scipy.signal
 import os
 import random
 
+from scipy import ndimage
+
 
 def frame_times(file_content):
     time0 = int(file_content[1].split()[0])
@@ -92,3 +94,25 @@ def before_save_file(path):
         return False
 
     return True
+
+
+def process_binary(data):
+    data[data > 0.1] = 1
+    data = data.astype(int)
+    labeled_data, num = ndimage.label(data, np.ones((3, 3, 3)))
+    objects = ndimage.find_objects(labeled_data)
+
+    for o in objects:
+        dim = labeled_data[o].shape
+        volume_rough = dim[0] * dim[1] * dim[2]
+        volume = len(labeled_data[o].nonzero()[0])
+
+        if volume < 6 or volume_rough/volume > 4 or volume/dim[2] <= 2:
+            data[o] = 0
+        elif dim[0] * dim[1] < 3:
+            data[o] = 0
+        elif dim[0] < 2 or dim[1] < 2:
+            data[o] = 0
+        elif 4 > dim[2] > 20:
+            data[o] = 0
+    return data
