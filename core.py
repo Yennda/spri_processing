@@ -493,20 +493,18 @@ class Core(object):
             volume_rough = dim[0] * dim[1] * dim[2]
             volume = len(labeled_data[o].nonzero()[0])
 
-            if volume < 6 or volume_rough / volume > 4 or volume / dim[2] <= 2:
+            if volume < self.k * 2 or volume_rough / volume > 4 or volume / dim[2] <= 2:
                 data[o] = 0
 
             elif dim[0] * dim[1] < 3:
                 data[o] = 0
 
-            elif dim[0] < 2 or dim[1] < 2:
-                print('ej')
+            elif (dim[0] < 2 or dim[1] < 2) and volume < self.k * 2:
                 data[o] = 0
 
             elif 4 > dim[2] > self.k * 2 - 2:
                 data[o] = 0
             else:
-                print(dim)
                 objects_out.append(o)
 
         return data, objects_out
@@ -519,7 +517,9 @@ class Core(object):
 
         data = np.zeros(self.shape)
         self._data_mask = np.zeros(self.shape)
-        for f in range(len(self)):
+
+        # for f in range(len(self)):
+        for f in range(start + self.k * 2, stop):
             data[:, :, f] = self.frame(f)
 
         data, np_slices = self.process_binary(data)
@@ -539,6 +539,7 @@ class Core(object):
         self._data_mask = data
         self.show_nps = True
 
+        print('\n--elapsed time--\n{:.2f} s'.format(time.time() - time0))
         return
 
         img_type = self.type

@@ -57,19 +57,19 @@ class Canvas(FigureCanvasQTAgg):
         for i, core in enumerate(self.view.core_list):
             self.view.img_shown[i].set_array(core.frame(self.view.f))
 
-            if 2 in self.view.chosen_plot_indices:
-                axes = self.view.axes_plot_list[self.view.chosen_plot_indices.index(2)]
-                for j, core in enumerate(self.view.core_list):
-                    values, counts = core.histogram()
-                    axes.clear()
-                    axes.bar(
-                        values,
-                        counts,
-                        width=values[1] - values[0],
-                        color=COLORS[j],
-                        alpha=0.5,
-                        label='channel {}.'.format(j)
-                    )
+            # if 2 in self.view.chosen_plot_indices:
+            #     axes = self.view.axes_plot_list[self.view.chosen_plot_indices.index(2)]
+            #     for j, core in enumerate(self.view.core_list):
+            #         values, counts = core.histogram()
+            #         axes.clear()
+            #         axes.bar(
+            #             values,
+            #             counts,
+            #             width=values[1] - values[0],
+            #             color=COLORS[j],
+            #             alpha=0.5,
+            #             label='channel {}.'.format(j)
+            #         )
 
             if core.show_nps:
                 positions, colors = core.frame_np(self.view.f)
@@ -227,10 +227,11 @@ class Canvas(FigureCanvasQTAgg):
 
         axes.core.save_idea()
 
+
     def button_press(self, event):
         key_press_handler(event, self, self.toolbar)
 
-        def set_range(rng, axes):
+        def set_range(axes):
             img = axes.get_images()[0]
             img.set_clim(axes.core.range)
             for txt, c in zip(self.view.text, self.view.core_list):
@@ -269,63 +270,63 @@ class Canvas(FigureCanvasQTAgg):
             if event.key == '5':
                 core.range = [i * 1.2 for i in core.range]
                 # print('core: {}, range: {}'.format(core.file, core.range))
-                set_range(core.range, axes)
+                set_range(axes)
 
             elif event.key == '8':
                 core.range = [i / 1.2 for i in core.range]
                 # print('core: {}, range: {}'.format(core.file, core.range))
-                set_range(core.range, axes)
+                set_range(axes)
 
             elif event.key == 'ctrl+1':
                 self.view.change_type(axes, 'raw')
-                set_range(core.range, axes)
+                set_range(axes)
                 self.next_frame(0)
 
             elif event.key == 'ctrl+2':
                 self.view.change_type(axes, 'int')
-                set_range(core.range, axes)
+                set_range(axes)
                 self.next_frame(0)
 
             elif event.key == 'ctrl+3':
                 self.view.change_type(axes, 'diff')
-                set_range(core.range, axes)
+                set_range(axes)
                 self.next_frame(0)
 
             elif event.key == 'ctrl+5':
                 self.view.change_type(axes, 'diff')
-                set_range(core.range, axes)
+                set_range(axes)
                 self.next_frame(0)
                 self.main_window.filters_checkbox.click()
 
             elif event.key == 'ctrl+6':
                 self.view.change_type(axes, 'corr')
-                set_range(core.range, axes)
+                set_range(axes)
                 self.next_frame(0)
                 self.main_window.filters_checkbox.click()
 
             elif event.key == 'alt+1':
                 self.view.change_type(axes, 'four_r')
-                set_range(core.range, axes)
+                set_range(axes)
                 self.next_frame(0)
 
             elif event.key == 'alt+2':
                 self.view.change_type(axes, 'four_i')
-                set_range(core.range, axes)
+                set_range(axes)
                 self.next_frame(0)
 
             elif event.key == 'alt+3':
                 self.view.change_type(axes, 'four_d')
-                set_range(core.range, axes)
+                set_range(axes)
                 self.next_frame(0)
 
             elif event.key == 'alt+4':
                 self.view.change_type(axes, 'mask')
-                set_range(core.range, axes)
+                set_range(axes)
                 self.next_frame(0)
 
             elif event.key == 'ctrl+4':
                 self.view.change_type(axes, 'corr')
-                set_range(core.range, axes)
+                set_range(axes)
                 self.next_frame(0)
 
             elif event.key == 'i':
@@ -424,6 +425,13 @@ class View(object):
     def mouse_click_spr(self, event):
         if event.button == 1:
             self.next_frame(int(round(event.xdata)) - self.f)
+
+    def set_range(self):
+        for axes in self.axes:
+            img = axes.get_images()[0]
+            img.set_clim(axes.core.range)
+            for txt, c in zip(self.text, self.core_list):
+                txt.set_text('rng = {:.4f}'.format(c.range[1]))
 
     def show_img(self):
 

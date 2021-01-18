@@ -87,12 +87,12 @@ class MainWindow(QMainWindow):
         self.setWindowIcon(QIcon('icons/cat-icon-2.png'))
 
         self.button_open = QPushButton(QIcon('icons/folder-open.png'), 'Open')
-        font = self.button_open.font()
-        font.setPointSize(14)
+        self.font = self.button_open.font()
+        self.font.setPointSize(14)
 
         self.button_open.setStatusTip(
             'Open any raw file from the desired measurement.')
-        self.button_open.setFont(font)
+        self.button_open.setFont(self.font)
         self.button_open.clicked.connect(self.OpenButtonClick)
 
         self.file_name_label = QLabel('folder: {}\nfile: {}'.format(self.folder, self.file))
@@ -136,9 +136,7 @@ class MainWindow(QMainWindow):
         self.checkbox_4 = QCheckBox('std')
         self.checkbox_4.setStatusTip('Takes a while')
 
-        "Image filters"
-
-        self.filter_gauss_checkbox = QCheckBox('gaussian')
+        self.filter_gauss_checkbox = QCheckBox('Gaussian')
         self.filter_gauss_checkbox.setChecked(False)
         self.filter_gauss_checkbox.clicked.connect(self.RunFilterGaussian)
         self.slider_gauss = QSlider(Qt.Horizontal)
@@ -150,7 +148,7 @@ class MainWindow(QMainWindow):
         self.slider_gauss_info = QLabel('1')
         self.slider_gauss.valueChanged.connect(self.RefreshSliderGaussInfo)
 
-        self.filter_erode_checkbox = QCheckBox('erode')
+        self.filter_erode_checkbox = QCheckBox('Erode')
         self.filter_erode_checkbox.setChecked(False)
         self.filter_erode_checkbox.clicked.connect(self.RunFilterErode)
         self.slider_erode = QSlider(Qt.Horizontal)
@@ -162,19 +160,19 @@ class MainWindow(QMainWindow):
         self.slider_erode_info = QLabel('1')
         self.slider_erode.valueChanged.connect(self.RefreshSliderErodeInfo)
 
-        self.filter_dilate_checkbox = QCheckBox('binary')
-        self.filter_dilate_checkbox.setChecked(False)
-        self.filter_dilate_checkbox.clicked.connect(self.RunFilterDilate)
-        self.slider_dilate = QSlider(Qt.Horizontal)
+        self.filter_threshold_checkbox = QCheckBox('Threshold')
+        self.filter_threshold_checkbox.setChecked(False)
+        self.filter_threshold_checkbox.clicked.connect(self.RunFilterThreshold)
+        self.slider_threshold = QSlider(Qt.Horizontal)
 
-        self.slider_dilate.setMinimum(0)
-        self.slider_dilate.setMaximum(50)
-        self.slider_dilate.setSingleStep(1)
-        self.slider_dilate.setValue(10)
-        self.slider_dilate_info = QLabel('10')
-        self.slider_dilate.valueChanged.connect(self.RefreshSliderDilateInfo)
+        self.slider_threshold.setMinimum(0)
+        self.slider_threshold.setMaximum(100)
+        self.slider_threshold.setSingleStep(1)
+        self.slider_threshold.setValue(10)
+        self.slider_threshold_info = QLabel('1')
+        self.slider_threshold.valueChanged.connect(self.RefreshSliderThresholdInfo)
 
-        self.filter_wiener_checkbox = QCheckBox('wiener')
+        self.filter_wiener_checkbox = QCheckBox('Wiener')
         self.filter_wiener_checkbox.setChecked(False)
         self.filter_wiener_checkbox.clicked.connect(self.RunFilterWiener)
 
@@ -184,8 +182,8 @@ class MainWindow(QMainWindow):
         self.slider_wiener.setMinimum(2)
         self.slider_wiener.setMaximum(20)
         self.slider_wiener.setSingleStep(1)
-        self.slider_wiener.setValue(10)
-        self.slider_wiener_info = QLabel('10')
+        self.slider_wiener.setValue(6)
+        self.slider_wiener_info = QLabel('6')
         self.slider_wiener.valueChanged.connect(self.RefreshSliderWienerInfo)
 
         self.filter_wiener_noise_label = QLabel('\tnoise')
@@ -200,7 +198,7 @@ class MainWindow(QMainWindow):
 
         # Bilateral
 
-        self.filter_bilateral_checkbox = QCheckBox('bilateral')
+        self.filter_bilateral_checkbox = QCheckBox('Bilateral')
         self.filter_bilateral_checkbox.setChecked(False)
         self.filter_bilateral_checkbox.clicked.connect(self.RunFilterBilateral)
 
@@ -250,23 +248,23 @@ class MainWindow(QMainWindow):
 
         self.button_build = QPushButton(QIcon('icons/arrow.png'), 'Build')
         self.button_build.setStatusTip('Builds the view of the data. It usually takes a while.')
-        self.button_build.setFont(font)
+        self.button_build.setFont(self.font)
         self.button_build.clicked.connect(self.BuildButtonClick)
         self.button_build.setDisabled(True)
 
-        self.button_correlate = QPushButton('Correlation')
-        self.button_correlate.setFont(font)
+        self.button_correlate = QPushButton(QIcon('icons/arrow.png'), 'Correlation')
+        self.button_correlate.setFont(self.font)
         self.button_correlate.clicked.connect(self.CorrelateButtonClick)
         self.button_correlate.setDisabled(True)
 
         self.button_export = QPushButton('Export data')
-        self.button_export.setFont(font)
+        self.button_export.setFont(self.font)
         self.button_export.clicked.connect(self.ExportButtonClick)
         self.button_export.setDisabled(True)
 
         self.button_count = QPushButton(QIcon('icons/count-cat-icon.png'), 'Count NPs')
         self.button_count.setStatusTip('Counts nanoparticles.')
-        self.button_count.setFont(font)
+        self.button_count.setFont(self.font)
         self.button_count.clicked.connect(self.CountButtonClick)
         self.button_count.setDisabled(True)
 
@@ -288,6 +286,8 @@ class MainWindow(QMainWindow):
             slider.setSingleStep(1)
             slider.setValue(5)
             slider.valueChanged.connect(self.RefreshSliderCountInfo)
+
+        self.view_channel_buttons = []
 
         self.progress_bar = QProgressBar(self)
         self.progress_bar.setGeometry(200, 80, 250, 20)
@@ -335,73 +335,87 @@ class MainWindow(QMainWindow):
             self.slider_erode,
             self.slider_erode_info,
             self.filter_erode_checkbox,
-            self.slider_dilate,
-            self.slider_dilate_info,
-            self.filter_dilate_checkbox
+            self.slider_threshold,
+            self.slider_threshold_info,
+            self.filter_threshold_checkbox
         ]
 
         # layout:
+        layout = QVBoxLayout()
 
-        layout_l = QVBoxLayout()
-        layout_l.addWidget(self.button_open)
-        layout_l.addWidget(self.file_name_label)
+        self.tabs = QTabWidget()
+        self.tabs.addTab(self.openTabUI(), 'Open')  # 0
+        self.tabs.addTab(self.filtersTabUI(), 'Filters')  # 1
+        self.tabs.addTab(self.NPRecognitionTabUI(), 'NP recognition')  # 2
+        self.tabs.addTab(self.ViewTabUI(), 'View')  # 3
+        self.tabs.addTab(self.ExportsTabUI(), 'Exports')  # 0
+        layout.addWidget(self.tabs)
 
-        label = QLabel('-- Choose channels to be shown --')
+        self.setStatusBar(QStatusBar(self))
+        self.statusBar().setMinimumSize(400, 40)
+        self.statusBar().setStyleSheet("border :1px solid gray;")
+        self.setCentralWidget(self.tabs)
+
+    def openTabUI(self):
+
+        Tab = QWidget()
+
+        layout = QVBoxLayout()
+        layout.addWidget(self.button_open)
+        layout.addWidget(self.file_name_label)
+
+        label = QLabel('-- Channels to be shown --')
         label.setAlignment(Qt.AlignCenter)
-        layout_l.addWidget(label)
+        layout.addWidget(label)
 
         for channel in self.channel_checkbox_list:
             channel.setDisabled(True)
-            layout_l.addWidget(channel)
+            layout.addWidget(channel)
 
         label = QLabel('-- Image settings --')
         label.setAlignment(Qt.AlignCenter)
-        layout_l.addWidget(label)
+        layout.addWidget(label)
 
-        layout_l.addWidget(self.orientation_checkbox)
+        layout.addWidget(self.orientation_checkbox)
 
         slider_downsample_layout = QHBoxLayout()
         slider_downsample_layout.addWidget(QLabel('Downsample:'))
         slider_downsample_layout.addWidget(self.slider_downsample)
         slider_downsample_layout.addWidget(self.slider_downsample_info)
-        layout_l.addLayout(slider_downsample_layout)
+        layout.addLayout(slider_downsample_layout)
 
         label = QLabel('-- Data processing --')
         label.setAlignment(Qt.AlignCenter)
-        layout_l.addWidget(label)
+        layout.addWidget(label)
 
         plot_layout = QGridLayout()
         plot_layout.addWidget(self.checkbox_1, 0, 0)
         plot_layout.addWidget(self.checkbox_2, 1, 0)
         plot_layout.addWidget(self.checkbox_3, 0, 1)
         plot_layout.addWidget(self.checkbox_4, 1, 1)
-        layout_l.addLayout(plot_layout)
+        layout.addLayout(plot_layout)
 
-        layout_l.addWidget(self.button_build)
+        layout.addWidget(self.button_build)
 
-        layout_r = QVBoxLayout()
+        Tab.setLayout(layout)
+        return Tab
 
-        label = QLabel('-- Image filters --')
-        label.setAlignment(Qt.AlignCenter)
-        layout_r.addWidget(label)
+    def filtersTabUI(self):
+        Tab = QWidget()
 
-
-        buttons = QHBoxLayout()
-        buttons.addWidget(self.button_correlate)
-        buttons.addWidget(self.button_export)
-        layout_r.addLayout(buttons)
+        layout = QVBoxLayout()
 
         slider_layout = QHBoxLayout()
         slider_layout.addWidget(QLabel('Integration number:'))
         slider_layout.addWidget(self.slider_k)
         slider_layout.addWidget(self.slider_k_info)
-        layout_r.addLayout(slider_layout)
+        layout.addLayout(slider_layout)
 
-        layout_r.addWidget(self.filters_checkbox)
+        layout.addWidget(self.filters_checkbox)
 
         wiener_layout_box = QVBoxLayout()
 
-        layout_r.addWidget(self.filter_wiener_checkbox)
+        layout.addWidget(self.filter_wiener_checkbox)
         wiener_layout = QHBoxLayout()
 
         wiener_layout.addWidget(self.filter_wiener_label)
@@ -416,11 +430,11 @@ class MainWindow(QMainWindow):
         wiener_layout_box.addLayout(wiener_layout)
         wiener_layout_box.addLayout(wiener_layout_noise)
 
-        layout_r.addLayout(wiener_layout_box)
+        layout.addLayout(wiener_layout_box)
 
         bilateral_layout_box = QVBoxLayout()
 
-        layout_r.addWidget(self.filter_bilateral_checkbox)
+        layout.addWidget(self.filter_bilateral_checkbox)
 
         bilateral_d_layout = QHBoxLayout()
         bilateral_d_layout.addWidget(self.filter_bilateral_d_label)
@@ -441,64 +455,107 @@ class MainWindow(QMainWindow):
         bilateral_layout_box.addLayout(bilateral_color_layout)
         bilateral_layout_box.addLayout(bilateral_space_layout)
 
-        layout_r.addLayout(bilateral_layout_box)
+        layout.addLayout(bilateral_layout_box)
 
         # gauss
         gauss_layout = QHBoxLayout()
         gauss_layout.addWidget(self.filter_gauss_checkbox)
         gauss_layout.addWidget(self.slider_gauss)
         gauss_layout.addWidget(self.slider_gauss_info)
-        layout_r.addLayout(gauss_layout)
+        layout.addLayout(gauss_layout)
 
         erode_layout = QHBoxLayout()
         erode_layout.addWidget(self.filter_erode_checkbox)
         erode_layout.addWidget(self.slider_erode)
         erode_layout.addWidget(self.slider_erode_info)
-        layout_r.addLayout(erode_layout)
-
-        dilate_layout = QHBoxLayout()
-        dilate_layout.addWidget(self.filter_dilate_checkbox)
-        dilate_layout.addWidget(self.slider_dilate)
-        dilate_layout.addWidget(self.slider_dilate_info)
-        layout_r.addLayout(dilate_layout)
+        layout.addLayout(erode_layout)
 
         for item in self.forms_image_filters + [self.filters_checkbox]:
             item.setDisabled(True)
 
-        label = QLabel('-- NP analysis--')
-        label.setAlignment(Qt.AlignCenter)
-        layout_r.addWidget(label)
+        layout.addWidget(self.button_correlate)
+
+        Tab.setLayout(layout)
+
+        return Tab
+
+    def NPRecognitionTabUI(self):
+        Tab = QWidget()
+
+        layout = QVBoxLayout()
+
+        threshold_layout = QHBoxLayout()
+        threshold_layout.addWidget(self.filter_threshold_checkbox)
+        threshold_layout.addWidget(self.slider_threshold)
+        threshold_layout.addWidget(self.slider_threshold_info)
+        layout.addLayout(threshold_layout)
 
         np_analysis_layout = QHBoxLayout()
         np_analysis_layout.addWidget(QLabel('start:'))
         np_analysis_layout.addWidget(self.line_count_start)
         np_analysis_layout.addWidget(QLabel('stop:'))
         np_analysis_layout.addWidget(self.line_count_stop)
-        layout_r.addLayout(np_analysis_layout)
+        layout.addLayout(np_analysis_layout)
 
-        for i, (slider, info) in enumerate(zip(self.list_slider_count, self.list_slider_count_info)):
-            np_analysis_slider_layout = QHBoxLayout()
-            np_analysis_slider_layout.addWidget(QLabel('Value {}. '.format(i + 1)))
-            np_analysis_slider_layout.addWidget(slider)
-            np_analysis_slider_layout.addWidget(info)
-            layout_r.addLayout(np_analysis_slider_layout)
+        # for i, (slider, info) in enumerate(zip(self.list_slider_count, self.list_slider_count_info)):
+        #     np_analysis_slider_layout = QHBoxLayout()
+        #     np_analysis_slider_layout.addWidget(QLabel('Value {}. '.format(i + 1)))
+        #     np_analysis_slider_layout.addWidget(slider)
+        #     np_analysis_slider_layout.addWidget(info)
+        #     layout.addLayout(np_analysis_slider_layout)
 
-        layout_r.addWidget(self.button_count)
+        layout.addWidget(self.button_count)
 
-        layout_r.addWidget(self.info)
-        layout_r.addWidget(self.progress_bar)
+        layout.addWidget(self.info)
+        layout.addWidget(self.progress_bar)
 
-        layout = QHBoxLayout()
-        layout.addLayout(layout_l)
-        layout.addLayout(layout_r)
+        Tab.setLayout(layout)
+        return Tab
 
-        widget = QWidget()
-        widget.setLayout(layout)
+    def ViewTabUI(self):
+        Tab = QWidget()
 
-        self.setStatusBar(QStatusBar(self))
-        self.statusBar().setMinimumSize(400, 40)
-        self.statusBar().setStyleSheet("border :1px solid gray;")
-        self.setCentralWidget(widget)
+        layout = QVBoxLayout()
+
+        if self.view is None:
+            layout.addWidget(QLabel('First, open a file.'))
+
+        else:
+            for core in self.view.core_list:
+                layout_channel = QHBoxLayout()
+                layout_channel.addWidget(QLabel('channel {}.'.format(core.file[-1])))
+
+                for key in self.view.core_list[0]._range.keys():
+                    channel = []
+
+                    button = QPushButton(key)
+
+                    font = self.button_open.font()
+                    font.setPointSize(8)
+                    button.setFont(font)
+
+                    if key == core.type:
+                        button.setDisabled(True)
+                    button.clicked.connect(self.ViewButtonClick)
+
+                    layout_channel.addWidget(button)
+                    channel.append(button)
+
+                self.view_channel_buttons.append(channel)
+
+                layout.addLayout(layout_channel)
+
+        Tab.setLayout(layout)
+        return Tab
+
+    def ExportsTabUI(self):
+        Tab = QWidget()
+
+        layout = QVBoxLayout()
+        layout.addWidget(self.button_export)
+
+        Tab.setLayout(layout)
+        return Tab
 
     def ProcessPath(self, path):
         splitted = path.split('/')
@@ -569,9 +626,9 @@ class MainWindow(QMainWindow):
         self.slider_erode_info.setText(str(self.slider_erode.value()))
         self.RunFilterErode()
 
-    def RefreshSliderDilateInfo(self):
-        self.slider_dilate_info.setText(str(self.slider_dilate.value()))
-        self.RunFilterDilate()
+    def RefreshSliderThresholdInfo(self):
+        self.slider_threshold_info.setText(str(self.slider_threshold.value() / 10))
+        self.RunFilterThreshold()
 
     def RefreshSliderBilateralInfo(self):
         self.slider_bilateral_d_info.setText(str(self.slider_bilateral_d.value()))
@@ -589,7 +646,6 @@ class MainWindow(QMainWindow):
             # self.slider_wiener_noise_info.setText('{:.2e}'.format(self.slider_wiener_noise.value() / 1e3 / 1e6))
             # self.slider_wiener_noise_info.setText('{:.2e}'.format(self.slider_wiener_noise.value() / 1e5 *0.2))
         self.RunFilterWiener()
-
 
     def RefreshOrientationInfo(self):
         if self.orientation_checkbox.checkState() == 0:
@@ -647,11 +703,11 @@ class MainWindow(QMainWindow):
 
         self.RunFilter(self.filter_erode_checkbox.isChecked(), 'y_erode', fn)
 
-    def RunFilterDilate(self):
+    def RunFilterThreshold(self):
         # fn = lambda img: cv2.dilate(np.float32(img), None, iterations=self.slider_dilate.value())
-        fn = lambda img: (img > np.std(img) * self.slider_dilate.value()/10) * np.max(img)
+        fn = lambda img: (img > np.std(img) * self.slider_threshold.value() / 10) * np.max(img)
 
-        self.RunFilter(self.filter_dilate_checkbox.isChecked(), 'z_dilate', fn)
+        self.RunFilter(self.filter_threshold_checkbox.isChecked(), 'z_dilate', fn)
 
     def RunFilterBilateral(self):
         fn = lambda img: cv2.bilateralFilter(np.float32(img), int(self.slider_bilateral_d.value()),
@@ -668,8 +724,8 @@ class MainWindow(QMainWindow):
                                                  )
         if self.filter_gauss_checkbox.isChecked():
             fn = lambda img: img - scipy.signal.wiener(img, self.slider_wiener.value(),
-                                                 10 ** (self.slider_wiener_noise.value() / 100 - 8)
-                                                 )
+                                                       10 ** (self.slider_wiener_noise.value() / 100 - 8)
+                                                       )
         self.RunFilter(self.filter_wiener_checkbox.isChecked(), 'a_wiener', fn)
 
     def RunFilter(self, checked, ftype, fn):
@@ -689,6 +745,22 @@ class MainWindow(QMainWindow):
     def CorrelateButtonClick(self):
         for core in self.view.core_list:
             core.make_correlation()
+            core.type = 'corr'
+        self.view.set_range()
+        self.view.canvas_img.next_frame(0)
+        self.tabs.setCurrentIndex(2)
+
+    def CountButtonClick(self):
+        for core in self.view.core_list:
+            core.count_nps(int(self.line_count_start.text()), int(self.line_count_stop.text()),
+                           self.slider_threshold.value() / 10)
+            core.type = 'diff'
+            core.postprocessing = False
+        self.view.set_range()
+        self.view.canvas_img.next_frame(0)
+
+    def ViewButtonClick(self):
+        OKDialog('Message', 'Sorry, not implemented yet.', self)
 
     def ExportButtonClick(self):
         for core in self.view.core_list:
@@ -708,9 +780,6 @@ class MainWindow(QMainWindow):
                 self.orientation_checkbox.setChecked(True)
             else:
                 self.orientation_checkbox.setChecked(False)
-
-            # for item in self.forms_pre_processing:
-            #     item.setDisabled(False)
 
             for chch in self.channel_checkbox_list:
                 chch.setChecked(False)
@@ -739,19 +808,7 @@ class MainWindow(QMainWindow):
             canvas_img.setFocus()
             self.progress_bar.setVisible(False)
 
-    def CountButtonClick(self):
-        for core in self.view.core_list:
-            core.count_nps(int(self.line_count_start.text()), int(self.line_count_stop.text()),
-                           self.slider_dilate.value()/10)
-
     def BuildButtonClick(self, s):
-
-        # try:
-        #     del self.view.canvas_plot
-        #     del self.view.canvas_img
-        #     del self.view
-        # except:
-        #     pass
 
         self.view = View()
         for i, channel in enumerate(self.channel_checkbox_list):
@@ -809,6 +866,9 @@ class MainWindow(QMainWindow):
 
         # if self.chosen_plots[0]:
         self.thread_complete()
+        self.tabs.setCurrentIndex(1)
+        self.tabs.removeTab(3)
+        self.tabs.insertTab(3, self.ViewTabUI(), 'View')
 
 
 app = QApplication(sys.argv)
