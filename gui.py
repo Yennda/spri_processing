@@ -171,7 +171,7 @@ class MainWindow(QMainWindow):
         self.slider_dilate.setMaximum(50)
         self.slider_dilate.setSingleStep(1)
         self.slider_dilate.setValue(10)
-        self.slider_dilate_info = QLabel('1')
+        self.slider_dilate_info = QLabel('10')
         self.slider_dilate.valueChanged.connect(self.RefreshSliderDilateInfo)
 
         self.filter_wiener_checkbox = QCheckBox('wiener')

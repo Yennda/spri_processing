@@ -481,15 +481,63 @@ class Core(object):
 
         return tracked_nps
 
+    def process_binary(self, data):
+        data[data > 0.1] = 1
+        data = data.astype(int)
+        labeled_data, num = ndimage.label(data, np.ones((3, 3, 3)))
+        objects = ndimage.find_objects(labeled_data)
+        objects_out = []
+
+        for o in objects:
+            dim = labeled_data[o].shape
+            volume_rough = dim[0] * dim[1] * dim[2]
+            volume = len(labeled_data[o].nonzero()[0])
+
+            if volume < 6 or volume_rough / volume > 4 or volume / dim[2] <= 2:
+                data[o] = 0
+
+            elif dim[0] * dim[1] < 3:
+                data[o] = 0
+
+            elif dim[0] < 2 or dim[1] < 2:
+                print('ej')
+                data[o] = 0
+
+            elif 4 > dim[2] > self.k * 2 - 2:
+                data[o] = 0
+            else:
+                print(dim)
+                objects_out.append(o)
+
+        return data, objects_out
+
     def count_nps(self, start, stop, threshold):
         time0 = time.time()
         print('Detecting NPs')
+        self.nps_in_frame = [[] for i in range(len(self))]
+        self.np_container =[]
 
         data = np.zeros(self.shape)
+        self._data_mask = np.zeros(self.shape)
         for f in range(len(self)):
             data[:, :, f] = self.frame(f)
 
-        self._data_mask = tl.process_binary(data)
+        data, np_slices = self.process_binary(data)
+
+        idnp = 0
+        for np_slice in np_slices:
+            x = (np_slice[0].start + np_slice[0].stop) / 2
+            y = (np_slice[1].start + np_slice[1].stop) / 2
+            dt = int(np_slice[2].stop - np_slice[2].start)
+
+            nnp = NanoParticle(idnp, np_slice[2].start, [np.array([x, y])] * dt)
+            self.np_container.append(nnp)
+            for i in range(dt):
+                self.nps_in_frame[np_slice[2].start + i].append(idnp)
+            idnp += 1
+
+        self._data_mask = data
+        self.show_nps = True
 
         return
 
