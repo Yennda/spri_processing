@@ -434,6 +434,12 @@ class Core(object):
                 failure = red
                 minor = black
 
+            x0_np = np.array([
+                np_slice[0].start,
+                np_slice[1].start,
+                np_slice[2].start
+            ])
+
             length = np_slice[2].stop - np_slice[2].start
             if 4 > length or length > self.k * 2 + 2:
                 return duration
@@ -451,34 +457,29 @@ class Core(object):
             # data_np = data_corr[np_slice_extended[:1]][amx_np]
             data_np_labeled = data_labeled[np_slice_extended]
 
-            for i in np.unique(data_np_labeled):
-                if i in blacklist_npid or i == 0:
+            for npi in np.unique(data_np_labeled):
+                if npi - 1 in blacklist_npid or npi == 0:
                     continue
-                print('idnp {}'.format(i))
 
-                amx_i = np.argmax(data_corr[np_slices[i - 1]])
-                amx_i = np.unravel_index([amx_i], data_corr[np_slices[i - 1]].shape)
-                mx_i = np.max(data_corr[np_slices[i - 1]])
+                amx_i = np.argmax(data_corr[np_slices[npi - 1]])
+                amx_i = np.unravel_index([amx_i], data_corr[np_slices[npi - 1]].shape)
+                np_slices[npi - 1][2].start
 
-                if np.abs(amx_i[2] - amx_np[2]) <= 2 and mx_i < mx_np:
+                mx_i = np.max(data_corr[np_slices[npi - 1]])
+
+                x0_i = np.array([
+                    np_slices[npi - 1][0].start,
+                    np_slices[npi - 1][1].start,
+                    np_slices[npi - 1][2].start,
+                ])
+
+                if np.abs(x0_i[2] + amx_i[2] - x0_np[2] - amx_np[2]) < dpx and mx_i < mx_np:
                     blacklist_npid.append(i - 1)
                     continue
-                elif mx_i > mx_np:
+                elif np.linalg.norm((x0_i + np.array(amx_i) - x0_np - np.array(amx_np))[:1]) <= 3*dpx and mx_i > mx_np:
                     return minor
-            return success
 
-            # mask_np = np.zeros(data_np.shape)
-            # try:
-            #     mask_np[dpx:-dpx, dpx:-dpx] = np.ones(np.array(data_np.shape) - np.array([dpx * 2, dpx * 2]))
-            # except ValueError:
-            #     return error
-            #
-            # surrounding = data_np[mask_np == 0]
-            #
-            # if mx_np > threshold * np.average(np.fabs(surrounding)):
-            #     return success
-            # else:
-            #     return failure
+            return success
 
         time0 = time.time()
         print('\nDetecting NPs')
@@ -501,20 +502,23 @@ class Core(object):
         np_slices = ndimage.find_objects(data_labeled)
 
         for idnp, np_slice in enumerate(np_slices):
-            if check_np(np_slice):
-            # if True:
+            # if check_np(np_slice):
+            if True:
                 x = (np_slice[0].start + np_slice[0].stop) / 2
                 y = (np_slice[1].start + np_slice[1].stop) / 2
                 dt = int(np_slice[2].stop - np_slice[2].start)
 
                 nnp = NanoParticle(idnp, np_slice[2].start, [np.array([x, y])] * dt)
-                # nnp.color = check_np(np_slice, erase=False)
+                nnp.color = check_np(np_slice, erase=False)
 
                 if idnp in blacklist_npid:
                     nnp.color = yellow
                 self.np_container.append(nnp)
+
                 for i in range(dt):
                     self.nps_in_frame[np_slice[2].start + i].append(idnp)
+            else:
+                self.np_container.append(None)
 
         self._data_mask = data
         self.show_nps = True

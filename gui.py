@@ -168,8 +168,8 @@ class MainWindow(QMainWindow):
         self.slider_threshold.setMinimum(0)
         self.slider_threshold.setMaximum(100)
         self.slider_threshold.setSingleStep(1)
-        self.slider_threshold.setValue(10)
-        self.slider_threshold_info = QLabel('1')
+        self.slider_threshold.setValue(50)
+        self.slider_threshold_info = QLabel('5')
         self.slider_threshold.valueChanged.connect(self.RefreshSliderThresholdInfo)
 
         self.filter_wiener_checkbox = QCheckBox('Wiener')
