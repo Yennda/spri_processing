@@ -483,6 +483,7 @@ class Core(object):
         print('\nDetecting NPs')
         self.nps_in_frame = [[] for i in range(len(self))]
         self.np_container = []
+        self.graphs['np_pos'] = [0 for i in range(len(self))]
         blacklist_npid = []
 
         data = np.zeros(self.shape)
@@ -513,6 +514,7 @@ class Core(object):
                     nnp.color = yellow
                 self.np_container.append(nnp)
 
+                self.graphs['np_pos'][np_slice[2].start] += 1
                 for i in range(dt):
                     self.nps_in_frame[np_slice[2].start + i].append(idnp)
             else:

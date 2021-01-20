@@ -48,46 +48,7 @@ class Canvas(FigureCanvasQTAgg):
         self.mpl_connect('scroll_event', self.mouse_scroll)
 
     def next_frame(self, df):
-        self.view.f = df
-        for location in self.view.locations:
-            y = location.get_y()
-            location.xy = [self.view.f, y]
-
-        self.view.fig.suptitle(self.view.frame_info())
-        for i, core in enumerate(self.view.core_list):
-            self.view.img_shown[i].set_array(core.frame(self.view.f))
-
-            # if 2 in self.view.chosen_plot_indices:
-            #     axes = self.view.axes_plot_list[self.view.chosen_plot_indices.index(2)]
-            #     for j, core in enumerate(self.view.core_list):
-            #         values, counts = core.histogram()
-            #         axes.clear()
-            #         axes.bar(
-            #             values,
-            #             counts,
-            #             width=values[1] - values[0],
-            #             color=COLORS[j],
-            #             alpha=0.5,
-            #             label='channel {}.'.format(j)
-            #         )
-
-            if core.show_nps:
-                positions, colors = core.frame_np(self.view.f)
-                [p.remove() for p in reversed(self.view.axes[i].patches) if p.get_radius() == 5]
-
-                for (p, c) in zip(positions, colors):
-                    circle = mpatches.Circle(
-                        p,
-                        5,
-                        color=c,
-                        fill=False,
-                        alpha=0.7,
-                        lw=2)
-                    self.view.axes[i].add_patch(circle)
-
-        self.view.canvas_img.draw()
-        if not self.view.canvas_plot is None:
-            self.view.canvas_plot.draw()
+        self.view.next_frame(df)
 
     def mouse_click_spr(self, event):
         if event.button == 1:
@@ -150,8 +111,6 @@ class Canvas(FigureCanvasQTAgg):
 
         current = (current - img.get_clim()[0]) / (img.get_clim()[1] - img.get_clim()[0]) * 256
         current = current.astype(np.uint8)
-
-        print(current[20, 20])
 
         pilimage = Image.fromarray(current)
         pilimage.convert("L")
@@ -226,7 +185,6 @@ class Canvas(FigureCanvasQTAgg):
         print('Pattern chosen')
 
         axes.core.save_idea()
-
 
     def button_press(self, event):
         key_press_handler(event, self, self.toolbar)
@@ -337,8 +295,8 @@ class Canvas(FigureCanvasQTAgg):
 
 
 class View(object):
-    def __init__(self):
-
+    def __init__(self, main_window):
+        self.main_window = main_window
         self.core_list = []
         self._f = 0
         self.orientation = True
@@ -396,6 +354,49 @@ class View(object):
         self.core_list.append(core)
         if self.length > len(core) or self.length == 0:
             self.length = len(core)
+
+    def next_frame(self, df):
+        self.f = df
+        for location in self.locations:
+            y = location.get_y()
+            location.xy = [self.f, y]
+
+        self.fig.suptitle(self.frame_info())
+        for i, core in enumerate(self.core_list):
+            self.img_shown[i].set_array(core.frame(self.f))
+
+            # if 2 in self.view.chosen_plot_indices:
+            #     axes = self.view.axes_plot_list[self.view.chosen_plot_indices.index(2)]
+            #     for j, core in enumerate(self.view.core_list):
+            #         values, counts = core.histogram()
+            #         axes.clear()
+            #         axes.bar(
+            #             values,
+            #             counts,
+            #             width=values[1] - values[0],
+            #             color=COLORS[j],
+            #             alpha=0.5,
+            #             label='channel {}.'.format(j)
+            #         )
+
+            if core.show_nps:
+                positions, colors = core.frame_np(self.f)
+                [p.remove() for p in reversed(self.axes[i].patches) if p.get_radius() == 5]
+
+                for (p, c) in zip(positions, colors):
+                    circle = mpatches.Circle(
+                        p,
+                        5,
+                        color=c,
+                        fill=False,
+                        alpha=0.7,
+                        lw=2)
+                    self.axes[i].add_patch(circle)
+
+        self.canvas_img.draw()
+        if not self.canvas_plot is None:
+            self.canvas_plot.draw()
+        self.main_window.RefreshNPInfo()
 
     @property
     def f(self):
