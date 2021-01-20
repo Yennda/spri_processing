@@ -367,9 +367,9 @@ class MainWindow(QMainWindow):
         self.tabs.addTab(self.filtersTabUI(), 'Filters')  # 1
         self.tabs.addTab(self.NPRecognitionTabUI(), 'NP recognition')  # 2
         self.tabs.addTab(self.NPInfoUI(), 'NP Info')  # 3
-        self.tabs.addTab(self.ViewTabUI(), 'View')  # 4
+        # self.tabs.addTab(self.ViewTabUI(), 'View')  # 4
         self.tabs.addTab(self.ExportsTabUI(), 'Exports')  # 5
-        # self.tabs.mousePressEvent.connect(self.RefreshTabs)
+        self.tabs.currentChanged.connect(self.RefreshTabs)
         layout.addWidget(self.tabs)
 
         self.setStatusBar(QStatusBar(self))
@@ -601,7 +601,7 @@ class MainWindow(QMainWindow):
     def np_info_create(self):
         if self.view == None:
             text = 'Info will be displayed after image data processing.'
-        else:
+        elif self.view.core_list[0].np_container != []:
             text = str()
 
             for core in self.view.core_list:
@@ -610,6 +610,8 @@ class MainWindow(QMainWindow):
                 text += 'total: {}\n'.format(len(core.np_container))
                 text += 'adsorbed up to now: {}\n'.format(len(core.nps_in_frame[-1]))
             text += '-' * 20 + '\n'
+        else:
+            text = 'Info will be displayed after image data processing.'
         return text
 
     def ProcessPath(self, path):
@@ -664,7 +666,6 @@ class MainWindow(QMainWindow):
         OKDialog('file info', fi, self)
 
     def RefreshTabs(self):
-        print('clicked')
         self.np_info_label.setText(self.np_info_create())
 
     def RefreshSliderInfo(self):
