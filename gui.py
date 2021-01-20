@@ -172,6 +172,14 @@ class MainWindow(QMainWindow):
         self.slider_threshold_info = QLabel('5')
         self.slider_threshold.valueChanged.connect(self.RefreshSliderThresholdInfo)
 
+        self.slider_distance = QSlider(Qt.Horizontal)
+        self.slider_distance.setMinimum(0)
+        self.slider_distance.setMaximum(20)
+        self.slider_distance.setSingleStep(1)
+        self.slider_distance.setValue(3)
+        self.slider_distance_info = QLabel('3')
+        self.slider_distance.valueChanged.connect(self.RefreshSliderDistanceInfo)
+
         self.filter_wiener_checkbox = QCheckBox('Wiener')
         self.filter_wiener_checkbox.setChecked(False)
         self.filter_wiener_checkbox.clicked.connect(self.RunFilterWiener)
@@ -337,7 +345,9 @@ class MainWindow(QMainWindow):
             self.filter_erode_checkbox,
             self.slider_threshold,
             self.slider_threshold_info,
-            self.filter_threshold_checkbox
+            self.filter_threshold_checkbox,
+            self.slider_distance_info,
+            self.slider_distance,
         ]
 
         # layout:
@@ -397,6 +407,7 @@ class MainWindow(QMainWindow):
 
         layout.addWidget(self.button_build)
 
+        layout.addStretch(1)
         Tab.setLayout(layout)
         return Tab
 
@@ -475,8 +486,8 @@ class MainWindow(QMainWindow):
 
         layout.addWidget(self.button_correlate)
 
+        layout.addStretch(1)
         Tab.setLayout(layout)
-
         return Tab
 
     def NPRecognitionTabUI(self):
@@ -490,6 +501,13 @@ class MainWindow(QMainWindow):
         threshold_layout.addWidget(self.slider_threshold_info)
         layout.addLayout(threshold_layout)
 
+        distance_layout = QHBoxLayout()
+        distance_layout.addWidget(QLabel('Min. distance'))
+        distance_layout.addWidget(self.slider_distance)
+        distance_layout.addWidget(self.slider_distance_info)
+        layout.addLayout(distance_layout)
+
+
         np_analysis_layout = QHBoxLayout()
         np_analysis_layout.addWidget(QLabel('start:'))
         np_analysis_layout.addWidget(self.line_count_start)
@@ -497,18 +515,20 @@ class MainWindow(QMainWindow):
         np_analysis_layout.addWidget(self.line_count_stop)
         layout.addLayout(np_analysis_layout)
 
-        for i, (slider, info) in enumerate(zip(self.list_slider_count, self.list_slider_count_info)):
-            np_analysis_slider_layout = QHBoxLayout()
-            np_analysis_slider_layout.addWidget(QLabel('Value {}. '.format(i + 1)))
-            np_analysis_slider_layout.addWidget(slider)
-            np_analysis_slider_layout.addWidget(info)
-            layout.addLayout(np_analysis_slider_layout)
+
+        # for i, (slider, info) in enumerate(zip(self.list_slider_count, self.list_slider_count_info)):
+        #     np_analysis_slider_layout = QHBoxLayout()
+        #     np_analysis_slider_layout.addWidget(QLabel('Value {}. '.format(i + 1)))
+        #     np_analysis_slider_layout.addWidget(slider)
+        #     np_analysis_slider_layout.addWidget(info)
+        #     layout.addLayout(np_analysis_slider_layout)
 
         layout.addWidget(self.button_count)
 
         layout.addWidget(self.info)
         layout.addWidget(self.progress_bar)
 
+        layout.addStretch(1)
         Tab.setLayout(layout)
         return Tab
 
@@ -545,6 +565,7 @@ class MainWindow(QMainWindow):
 
                 layout.addLayout(layout_channel)
 
+        layout.addStretch(1)
         Tab.setLayout(layout)
         return Tab
 
@@ -554,6 +575,7 @@ class MainWindow(QMainWindow):
         layout = QVBoxLayout()
         layout.addWidget(self.button_export)
 
+        layout.addStretch(1)
         Tab.setLayout(layout)
         return Tab
 
@@ -629,6 +651,9 @@ class MainWindow(QMainWindow):
     def RefreshSliderThresholdInfo(self):
         self.slider_threshold_info.setText(str(self.slider_threshold.value() / 10))
         self.RunFilterThreshold()
+
+    def RefreshSliderDistanceInfo(self):
+        self.slider_distance_info.setText(str(self.slider_distance.value()))
 
     def RefreshSliderBilateralInfo(self):
         self.slider_bilateral_d_info.setText(str(self.slider_bilateral_d.value()))
@@ -751,8 +776,9 @@ class MainWindow(QMainWindow):
     def CountButtonClick(self):
         for core in self.view.core_list:
             core.count_nps(int(self.line_count_start.text()), int(self.line_count_stop.text()),
-                           self.list_slider_count[0].value()/10)
+                           self.slider_distance.value())
             core.type = 'diff'
+            self.filters_checkbox.setChecked(False)
             core.postprocessing = False
         self.view.set_range()
         self.view.canvas_img.next_frame(0)

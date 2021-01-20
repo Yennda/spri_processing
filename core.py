@@ -418,7 +418,7 @@ class Core(object):
 
         return positions, colors
 
-    def count_nps(self, start, stop, threshold):
+    def count_nps(self, start, stop, dpx):
 
         def check_np(np_slice, erase=True):
             if erase:
@@ -441,14 +441,12 @@ class Core(object):
             ])
 
             length = np_slice[2].stop - np_slice[2].start
-            if 4 > length or length > self.k * 2 + 2:
+            if 5 > length:  # or length > self.k * 2 + 2:
                 return duration
 
             amx_np = np.argmax(data_corr[np_slice])
             amx_np = np.unravel_index([amx_np], data_corr[np_slice].shape)
             mx_np = np.max(data_corr[np_slice][:, :, amx_np[2]])
-
-            dpx = 3
 
             np_slice_extended = np.s_[np_slice[0].start - dpx: np_slice[0].stop + dpx,
                                 np_slice[1].start - dpx: np_slice[1].stop + dpx,
@@ -476,7 +474,7 @@ class Core(object):
                 if np.abs(x0_i[2] + amx_i[2] - x0_np[2] - amx_np[2]) < dpx and mx_i < mx_np:
                     blacklist_npid.append(i - 1)
                     continue
-                elif np.linalg.norm((x0_i + np.array(amx_i) - x0_np - np.array(amx_np))[:1]) <= 3*dpx and mx_i > mx_np:
+                elif np.linalg.norm(x0_i + np.array(amx_i) - x0_np - np.array(amx_np)) <= 3 * dpx and mx_i > mx_np:
                     return minor
 
             return success
@@ -502,14 +500,14 @@ class Core(object):
         np_slices = ndimage.find_objects(data_labeled)
 
         for idnp, np_slice in enumerate(np_slices):
-            # if check_np(np_slice):
-            if True:
+            if check_np(np_slice):
+                # if True:
                 x = (np_slice[0].start + np_slice[0].stop) / 2
                 y = (np_slice[1].start + np_slice[1].stop) / 2
                 dt = int(np_slice[2].stop - np_slice[2].start)
 
                 nnp = NanoParticle(idnp, np_slice[2].start, [np.array([x, y])] * dt)
-                nnp.color = check_np(np_slice, erase=False)
+                # nnp.color = check_np(np_slice, erase=False)
 
                 if idnp in blacklist_npid:
                     nnp.color = yellow
