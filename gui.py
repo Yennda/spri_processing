@@ -206,11 +206,15 @@ class MainWindow(QMainWindow):
 
         # Bilateral
 
+        min_width = 150
+
         self.filter_bilateral_checkbox = QCheckBox('Bilateral')
         self.filter_bilateral_checkbox.setChecked(False)
         self.filter_bilateral_checkbox.clicked.connect(self.RunFilterBilateral)
 
         self.filter_bilateral_d_label = QLabel('\tdiameter')
+        self.filter_bilateral_d_label.setMinimumWidth(min_width)
+
         self.slider_bilateral_d = QSlider(Qt.Horizontal)
 
         self.slider_bilateral_d.setMinimum(2)
@@ -221,6 +225,8 @@ class MainWindow(QMainWindow):
         self.slider_bilateral_d.valueChanged.connect(self.RefreshSliderBilateralInfo)
 
         self.filter_bilateral_space_label = QLabel('\tspace')
+        self.filter_bilateral_space_label.setMinimumWidth(min_width)
+
         self.slider_bilateral_space = QSlider(Qt.Horizontal)
 
         self.slider_bilateral_space.setMinimum(0)
@@ -231,6 +237,7 @@ class MainWindow(QMainWindow):
         self.slider_bilateral_space.valueChanged.connect(self.RefreshSliderBilateralInfo)
 
         self.filter_bilateral_color_label = QLabel('\tcolor')
+        self.filter_bilateral_color_label.setMinimumWidth(min_width)
         self.slider_bilateral_color = QSlider(Qt.Horizontal)
 
         self.slider_bilateral_color.setMinimum(0)
@@ -320,6 +327,8 @@ class MainWindow(QMainWindow):
         self.tool_help.triggered.connect(self.toolbarHelp)
         toolbar.addAction(self.tool_help)
 
+        self.np_info_label = QLabel(self.np_info_create())
+
         self.forms_image_filters = [
             self.filter_gauss_checkbox,
             self.slider_gauss_info,
@@ -357,8 +366,10 @@ class MainWindow(QMainWindow):
         self.tabs.addTab(self.openTabUI(), 'Open')  # 0
         self.tabs.addTab(self.filtersTabUI(), 'Filters')  # 1
         self.tabs.addTab(self.NPRecognitionTabUI(), 'NP recognition')  # 2
-        self.tabs.addTab(self.ViewTabUI(), 'View')  # 3
-        self.tabs.addTab(self.ExportsTabUI(), 'Exports')  # 0
+        self.tabs.addTab(self.NPInfoUI(), 'NP Info')  # 3
+        self.tabs.addTab(self.ViewTabUI(), 'View')  # 4
+        self.tabs.addTab(self.ExportsTabUI(), 'Exports')  # 5
+        # self.tabs.mousePressEvent.connect(self.RefreshTabs)
         layout.addWidget(self.tabs)
 
         self.setStatusBar(QStatusBar(self))
@@ -507,14 +518,12 @@ class MainWindow(QMainWindow):
         distance_layout.addWidget(self.slider_distance_info)
         layout.addLayout(distance_layout)
 
-
         np_analysis_layout = QHBoxLayout()
         np_analysis_layout.addWidget(QLabel('start:'))
         np_analysis_layout.addWidget(self.line_count_start)
         np_analysis_layout.addWidget(QLabel('stop:'))
         np_analysis_layout.addWidget(self.line_count_stop)
         layout.addLayout(np_analysis_layout)
-
 
         # for i, (slider, info) in enumerate(zip(self.list_slider_count, self.list_slider_count_info)):
         #     np_analysis_slider_layout = QHBoxLayout()
@@ -579,6 +588,30 @@ class MainWindow(QMainWindow):
         Tab.setLayout(layout)
         return Tab
 
+    def NPInfoUI(self):
+        Tab = QWidget()
+
+        layout = QVBoxLayout()
+        layout.addWidget(self.np_info_label)
+
+        layout.addStretch(1)
+        Tab.setLayout(layout)
+        return Tab
+
+    def np_info_create(self):
+        if self.view == None:
+            text = 'Info will be displayed after image data processing.'
+        else:
+            text = str()
+
+            for core in self.view.core_list:
+                text += 'channel {}.\n'.format(core.file[-1])
+                text += 'current frame: {}\n'.format(len(core.nps_in_frame))
+                text += 'total: {}\n'.format(len(core.np_container))
+                text += 'adsorbed up to now: {}\n'.format(len(core.nps_in_frame[-1]))
+            text += '-' * 20 + '\n'
+        return text
+
     def ProcessPath(self, path):
         splitted = path.split('/')
         file = splitted[-1].split('.')[0]
@@ -629,6 +662,10 @@ class MainWindow(QMainWindow):
             fi += '{} \t{} \t{}\n'.format(c, w, h)
 
         OKDialog('file info', fi, self)
+
+    def RefreshTabs(self):
+        print('clicked')
+        self.np_info_label.setText(self.np_info_create())
 
     def RefreshSliderInfo(self):
         self.slider_k_info.setText(str(self.slider_k.value()))
@@ -709,7 +746,7 @@ class MainWindow(QMainWindow):
 
     def RefreshSliderCountInfo(self):
         for slider, info in zip(self.list_slider_count, self.list_slider_count_info):
-            info.setText(str(slider.value()/10))
+            info.setText(str(slider.value() / 10))
 
     def RunFilterGaussian(self):
         # fn = lambda img: np.transpose(
