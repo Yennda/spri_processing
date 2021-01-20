@@ -148,7 +148,7 @@ class MainWindow(QMainWindow):
         self.slider_gauss_info = QLabel('1')
         self.slider_gauss.valueChanged.connect(self.RefreshSliderGaussInfo)
 
-        self.filter_erode_checkbox = QCheckBox('Erode')
+        self.filter_erode_checkbox = QCheckBox('maximum')
         self.filter_erode_checkbox.setChecked(False)
         self.filter_erode_checkbox.clicked.connect(self.RunFilterErode)
         self.slider_erode = QSlider(Qt.Horizontal)
@@ -278,7 +278,7 @@ class MainWindow(QMainWindow):
 
         num = 3
         self.list_slider_count = [QSlider(Qt.Horizontal) for i in range(num)]
-        self.list_slider_count_info = [QLabel('5') for i in range(num)]
+        self.list_slider_count_info = [QLabel('0.5') for i in range(num)]
 
         for slider in self.list_slider_count:
             slider.setMinimum(0)
@@ -497,12 +497,12 @@ class MainWindow(QMainWindow):
         np_analysis_layout.addWidget(self.line_count_stop)
         layout.addLayout(np_analysis_layout)
 
-        # for i, (slider, info) in enumerate(zip(self.list_slider_count, self.list_slider_count_info)):
-        #     np_analysis_slider_layout = QHBoxLayout()
-        #     np_analysis_slider_layout.addWidget(QLabel('Value {}. '.format(i + 1)))
-        #     np_analysis_slider_layout.addWidget(slider)
-        #     np_analysis_slider_layout.addWidget(info)
-        #     layout.addLayout(np_analysis_slider_layout)
+        for i, (slider, info) in enumerate(zip(self.list_slider_count, self.list_slider_count_info)):
+            np_analysis_slider_layout = QHBoxLayout()
+            np_analysis_slider_layout.addWidget(QLabel('Value {}. '.format(i + 1)))
+            np_analysis_slider_layout.addWidget(slider)
+            np_analysis_slider_layout.addWidget(info)
+            layout.addLayout(np_analysis_slider_layout)
 
         layout.addWidget(self.button_count)
 
@@ -684,9 +684,7 @@ class MainWindow(QMainWindow):
 
     def RefreshSliderCountInfo(self):
         for slider, info in zip(self.list_slider_count, self.list_slider_count_info):
-            info.setText(str(slider.value()))
-        self.RunFilterGaussian()
-        self.RunFilterBilateral()
+            info.setText(str(slider.value()/10))
 
     def RunFilterGaussian(self):
         # fn = lambda img: np.transpose(
@@ -698,8 +696,8 @@ class MainWindow(QMainWindow):
         self.RunFilter(self.filter_gauss_checkbox.isChecked(), 'c_gauss', fn)
 
     def RunFilterErode(self):
-        fn = lambda img: cv2.erode(np.float32(img), None, iterations=self.slider_erode.value())
-        # fn = lambda img: ndimage.maximum_filter(-img, size=self.slider_erode.value())
+        # fn = lambda img: cv2.dilate(np.float32(img), None, iterations=self.slider_erode.value())
+        fn = lambda img: ndimage.maximum_filter(img, size=self.slider_erode.value())
 
         self.RunFilter(self.filter_erode_checkbox.isChecked(), 'y_erode', fn)
 
@@ -753,7 +751,7 @@ class MainWindow(QMainWindow):
     def CountButtonClick(self):
         for core in self.view.core_list:
             core.count_nps(int(self.line_count_start.text()), int(self.line_count_stop.text()),
-                           self.slider_threshold.value() / 10)
+                           self.list_slider_count[0].value()/10)
             core.type = 'diff'
             core.postprocessing = False
         self.view.set_range()
@@ -867,8 +865,8 @@ class MainWindow(QMainWindow):
         # if self.chosen_plots[0]:
         self.thread_complete()
         self.tabs.setCurrentIndex(1)
-        self.tabs.removeTab(3)
-        self.tabs.insertTab(3, self.ViewTabUI(), 'View')
+        # self.tabs.removeTab(3)
+        # self.tabs.insertTab(3, self.ViewTabUI(), 'View')
 
 
 app = QApplication(sys.argv)

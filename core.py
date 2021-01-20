@@ -418,162 +418,106 @@ class Core(object):
 
         return positions, colors
 
-    def detect_spots(self, f, threshold):
-        mask_positions = np.zeros(self.shape_img)
-
-        frame = self.frame(f)
-        mask = (frame < -1e-4 * threshold / 100 * 6) * 1
-        mask = mask.astype(np.uint8)
-        _, threshold_mask = cv2.threshold(
-            mask,
-            100,
-            255,
-            cv2.THRESH_BINARY_INV | cv2.THRESH_OTSU
-        )
-
-        patterns = cv2.findContours(
-            threshold_mask,
-            cv2.RETR_LIST,
-            cv2.CHAIN_APPROX_NONE
-        )[-2][: -1]
-
-        for p in patterns:
-            (x, y), radius = cv2.minEnclosingCircle(p)
-            if radius <= 1.1:
-                continue
-            center = (int(y), int(x))
-            mask_positions[center] = 1
-            # threshold_mask = cv2.circle(threshold_mask, (int(x), int(y)), int(_), (0, 255, 0), 2)
-
-        self._data_mask[:, :, f] = threshold_mask
-        return mask_positions
-
-    def track_nps(self, frame_first):
-        del self.stack_frames[0]
-        tracked_nps = []
-
-        start_position = np.nonzero(frame_first)
-
-        for (x, y) in np.transpose(start_position):
-            np_time_evolution = [np.array([x, y])]
-
-            for i in range(self.k * 2 - 1):
-
-                surroundings = self.stack_frames[i][
-                               x - self.dist:x + self.dist,
-                               y - self.dist:y + self.dist
-                               ]
-                new_positions = np.transpose(surroundings.nonzero())
-
-                if len(new_positions) == 0:
-                    if len(np_time_evolution) >= 2:
-                        tracked_nps.append(np_time_evolution)
-
-                    break
-                else:
-                    new_position = np.array([x, y]) - np.array([self.dist] * 2) + np.average(new_positions, 0).astype(
-                        np.int)
-                    np_time_evolution.append(new_position)
-                    self.stack_frames[i][
-                    x - self.dist:x + self.dist,
-                    y - self.dist:y + self.dist] = 0
-                    (x, y) = new_position
-
-        return tracked_nps
-
-    def process_binary(self, data):
-        data[data > 0.1] = 1
-        data = data.astype(int)
-        labeled_data, num = ndimage.label(data, np.ones((3, 3, 3)))
-        objects = ndimage.find_objects(labeled_data)
-        objects_out = []
-
-        for o in objects:
-            dim = labeled_data[o].shape
-            volume_rough = dim[0] * dim[1] * dim[2]
-            volume = len(labeled_data[o].nonzero()[0])
-
-            if volume < self.k * 2 or volume_rough / volume > 4 or volume / dim[2] <= 2:
-                data[o] = 0
-
-            elif dim[0] * dim[1] < 3:
-                data[o] = 0
-
-            elif (dim[0] < 2 or dim[1] < 2) and volume < self.k * 2:
-                data[o] = 0
-
-            elif 4 > dim[2] > self.k * 2 - 2:
-                data[o] = 0
-            else:
-                objects_out.append(o)
-
-        return data, objects_out
-
     def count_nps(self, start, stop, threshold):
+
+        def check_np(np_slice, erase=True):
+            if erase:
+                duration = False
+                error = False
+                success = True
+                failure = False
+                minor = False
+            else:
+                duration = purple
+                error = blue
+                success = green
+                failure = red
+                minor = black
+
+            length = np_slice[2].stop - np_slice[2].start
+            if 4 > length or length > self.k * 2 + 2:
+                return duration
+
+            amx_np = np.argmax(data_corr[np_slice])
+            amx_np = np.unravel_index([amx_np], data_corr[np_slice].shape)
+            mx_np = np.max(data_corr[np_slice][:, :, amx_np[2]])
+
+            dpx = 3
+
+            np_slice_extended = np.s_[np_slice[0].start - dpx: np_slice[0].stop + dpx,
+                                np_slice[1].start - dpx: np_slice[1].stop + dpx,
+                                np_slice[2].start: np_slice[2].stop]
+
+            # data_np = data_corr[np_slice_extended[:1]][amx_np]
+            data_np_labeled = data_labeled[np_slice_extended]
+
+            for i in np.unique(data_np_labeled):
+                if i in blacklist_npid or i == 0:
+                    continue
+                print('idnp {}'.format(i))
+
+                amx_i = np.argmax(data_corr[np_slices[i - 1]])
+                amx_i = np.unravel_index([amx_i], data_corr[np_slices[i - 1]].shape)
+                mx_i = np.max(data_corr[np_slices[i - 1]])
+
+                if np.abs(amx_i[2] - amx_np[2]) <= 2 and mx_i < mx_np:
+                    blacklist_npid.append(i - 1)
+                    continue
+                elif mx_i > mx_np:
+                    return minor
+            return success
+
+            # mask_np = np.zeros(data_np.shape)
+            # try:
+            #     mask_np[dpx:-dpx, dpx:-dpx] = np.ones(np.array(data_np.shape) - np.array([dpx * 2, dpx * 2]))
+            # except ValueError:
+            #     return error
+            #
+            # surrounding = data_np[mask_np == 0]
+            #
+            # if mx_np > threshold * np.average(np.fabs(surrounding)):
+            #     return success
+            # else:
+            #     return failure
+
         time0 = time.time()
-        print('Detecting NPs')
+        print('\nDetecting NPs')
         self.nps_in_frame = [[] for i in range(len(self))]
-        self.np_container =[]
+        self.np_container = []
+        blacklist_npid = []
 
         data = np.zeros(self.shape)
-        self._data_mask = np.zeros(self.shape)
+        data_corr = np.zeros(self.shape)
 
-        # for f in range(len(self)):
         for f in range(start + self.k * 2, stop):
             data[:, :, f] = self.frame(f)
 
-        data, np_slices = self.process_binary(data)
+        data[data > 0.1] = 1
+        data = data.astype(np.uint8)
 
-        idnp = 0
-        for np_slice in np_slices:
-            x = (np_slice[0].start + np_slice[0].stop) / 2
-            y = (np_slice[1].start + np_slice[1].stop) / 2
-            dt = int(np_slice[2].stop - np_slice[2].start)
+        data_corr[:, :, start + self.k * 2:stop] = self._data_corr[:, :, start + self.k * 2:stop]
 
-            nnp = NanoParticle(idnp, np_slice[2].start, [np.array([x, y])] * dt)
-            self.np_container.append(nnp)
-            for i in range(dt):
-                self.nps_in_frame[np_slice[2].start + i].append(idnp)
-            idnp += 1
+        data_labeled, _ = ndimage.label(data, np.ones((3, 3, 3)))
+        np_slices = ndimage.find_objects(data_labeled)
+
+        for idnp, np_slice in enumerate(np_slices):
+            if check_np(np_slice):
+            # if True:
+                x = (np_slice[0].start + np_slice[0].stop) / 2
+                y = (np_slice[1].start + np_slice[1].stop) / 2
+                dt = int(np_slice[2].stop - np_slice[2].start)
+
+                nnp = NanoParticle(idnp, np_slice[2].start, [np.array([x, y])] * dt)
+                # nnp.color = check_np(np_slice, erase=False)
+
+                if idnp in blacklist_npid:
+                    nnp.color = yellow
+                self.np_container.append(nnp)
+                for i in range(dt):
+                    self.nps_in_frame[np_slice[2].start + i].append(idnp)
 
         self._data_mask = data
         self.show_nps = True
 
         print('\n--elapsed time--\n{:.2f} s'.format(time.time() - time0))
         return
-
-        img_type = self.type
-        # self.type = 'corr'
-        # self.make_correlation()
-
-        self._data_mask = np.zeros(self.shape)
-        self.nps_in_frame = [[] for i in range(len(self))]
-        self.stack_frames = [np.zeros(self.shape_img)] * 2 * self.k
-
-        idnp = 0
-        for f in range(start + self.k * 2, stop):
-            print('\r\t{}/ {}'.format(f + 1, stop), end='')
-
-            # tracked_nps = self.track_nps(self.stack_frames[0])
-            #
-            # for np_positions in tracked_nps:
-            #     nnp = NanoParticle(idnp, f - self.k * 2, np_positions)
-            #
-            #     self.np_container.append(nnp)
-            #
-            #     for i in range(len(np_positions)):
-            #         self.nps_in_frame[f - self.k * 2 + i].append(idnp)
-            #
-            #     # for i, (y, x) in enumerate(np_positions):
-            #     #     self._data_mask[y, x, f - 2 * self.k + i] = 1
-            #
-            #     idnp += 1
-
-            mask_positions = self.detect_spots(f, threshold)
-            self.stack_frames.append(mask_positions)
-
-        self.type = img_type
-        self.show_nps = True
-
-        print('\n--elapsed time--\n{:.2f} s'.format(time.time() - time0))
-        return mask_positions

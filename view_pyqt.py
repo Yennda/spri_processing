@@ -81,7 +81,7 @@ class Canvas(FigureCanvasQTAgg):
                         5,
                         color=c,
                         fill=False,
-                        alpha=0.5,
+                        alpha=0.7,
                         lw=2)
                     self.view.axes[i].add_patch(circle)
 
