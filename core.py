@@ -32,7 +32,6 @@ class Core(object):
             'four_r': INIT_FOUR,
             'four_d': INIT_FOUR,
             'four_i': INIT_FOUR
-
         }
         self.__video_stats = None
 
@@ -46,7 +45,7 @@ class Core(object):
         # np_counting
         self.stack_frames = []
         self.dist = 4
-        self.np_container = []
+        self.np_container = None
         self.nps_in_frame = []
         self.show_nps = False
 
@@ -397,7 +396,7 @@ class Core(object):
 
     def histogram(self):
         frame = self.frame(self._f)
-        n = 20
+        n = 100
         values = np.linspace(np.min(frame), np.max(frame), n)
         counts = ndimage.measurements.histogram(
             frame,
@@ -483,7 +482,7 @@ class Core(object):
         print('\nDetecting NPs')
         self.nps_in_frame = [[] for i in range(len(self))]
         self.np_container = []
-        self.graphs['np_pos'] = [0 for i in range(len(self))]
+        self.graphs['nps_pos'] = [0 for i in range(len(self))]
         blacklist_npid = []
 
         data = np.zeros(self.shape)
@@ -514,7 +513,7 @@ class Core(object):
                     nnp.color = yellow
                 self.np_container.append(nnp)
 
-                self.graphs['np_pos'][np_slice[2].start] += 1
+                self.graphs['nps_pos'][np_slice[2].start] += 1
                 for i in range(dt):
                     self.nps_in_frame[np_slice[2].start + i].append(idnp)
             else:

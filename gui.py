@@ -125,11 +125,14 @@ class MainWindow(QMainWindow):
         self.checkbox_1 = QCheckBox('SPR')
         self.checkbox_1.setChecked(True)
         self.checkbox_2 = QCheckBox('intensity')
-        self.checkbox_2.setStatusTip('Takes a while')
+        self.checkbox_2.setStatusTip('!Takes a while to compute!')
         self.checkbox_3 = QCheckBox('histogram')
-        self.checkbox_3.setStatusTip('')
-        self.checkbox_4 = QCheckBox('std')
-        self.checkbox_4.setStatusTip('Takes a while')
+        self.checkbox_3.setStatusTip('!Slows done online browsing!')
+        self.checkbox_4 = QCheckBox('NP counts')
+        self.checkbox_4.setStatusTip('Works automatically.')
+        self.checkbox_4.setChecked(True)
+        self.checkbox_4.setDisabled(True)
+
 
         self.filter_gauss_checkbox = gw.checkbox_filter('Gaussian', False, self.RunFilterGaussian)
         self.slider_gauss = gw.slider(0, 50, 1, 10, self.RefreshSliderGaussInfo)
@@ -182,11 +185,10 @@ class MainWindow(QMainWindow):
             self.slider_downsample_info,
             self.checkbox_1,
             self.checkbox_2,
-            self.checkbox_3,
-            self.checkbox_4
+            self.checkbox_3
         ]
 
-        self.button_build = gw.button('arrow.png', 'Build', self.font, True, self.BuildButtonClick)
+        self.button_build = gw.button('arrow', 'Build', self.font, True, self.BuildButtonClick)
         self.button_build.setStatusTip('Builds the view of the data. It usually takes a while.')
 
         self.button_correlate = gw.button('arrow', 'Correlation', self.font, True, self.CorrelateButtonClick)
@@ -496,15 +498,15 @@ class MainWindow(QMainWindow):
     def np_info_create(self):
         if self.view == None:
             text = 'Info will be displayed after image data processing.'
-        elif self.view.core_list[0].np_container != []:
+        elif self.view.core_list[0].np_container is not None:
             text = str()
 
             for core in self.view.core_list:
                 text += 'channel {}.\n'.format(core.file[-1])
                 text += '\tpresent: {}\n'.format(len(core.nps_in_frame[self.view.f]))
-                text += '\ttotal: {}\n'.format(sum(core.graphs['np_pos']))
-                text += '\tcurrently adsorbed: {}\n'.format(core.graphs['np_pos'][self.view.f])
-                text += '\tadsorbed up to now: {}\n'.format(sum(core.graphs['np_pos'][:self.view.f]))
+                text += '\ttotal: {}\n'.format(sum(core.graphs['nps_pos']))
+                text += '\tcurrently adsorbed: {}\n'.format(core.graphs['nps_pos'][self.view.f])
+                text += '\tadsorbed up to now: {}\n'.format(sum(core.graphs['nps_pos'][:self.view.f]))
                 text += '-' * 35 + '\n'
         else:
             text = 'Info will be displayed after image data processing.'
@@ -646,24 +648,15 @@ class MainWindow(QMainWindow):
             info.setText(str(slider.value() / 10))
 
     def RunFilterGaussian(self):
-        # fn = lambda img: np.transpose(
-        #     scipy.signal.decimate(np.transpose(scipy.signal.decimate(img, int(self.slider_gauss.value()/10+1))),
-        #                           int(self.slider_gauss.value()/10+1)))
-        # fn = lambda img: scipy.signal.medfilt2d(img, self.slider_gauss.value() // 2 * 2 + 1)
         fn = lambda img: gaussian_filter(img, self.slider_gauss.value() / 10)
-
         self.RunFilter(self.filter_gauss_checkbox.isChecked(), 'c_gauss', fn)
 
     def RunFilterErode(self):
-        # fn = lambda img: cv2.dilate(np.float32(img), None, iterations=self.slider_erode.value())
         fn = lambda img: ndimage.maximum_filter(img, size=self.slider_erode.value())
-
         self.RunFilter(self.filter_erode_checkbox.isChecked(), 'y_erode', fn)
 
     def RunFilterThreshold(self):
-        # fn = lambda img: cv2.dilate(np.float32(img), None, iterations=self.slider_dilate.value())
         fn = lambda img: (img > np.std(img) * self.slider_threshold.value() / 10) * np.max(img)
-
         self.RunFilter(self.filter_threshold_checkbox.isChecked(), 'z_dilate', fn)
 
     def RunFilterBilateral(self):
@@ -720,6 +713,20 @@ class MainWindow(QMainWindow):
         self.view.set_range()
         self.view.canvas_img.next_frame(0)
 
+        self.chosen_plots = [
+            tl.BoolFromCheckBox(self.checkbox_1),
+            tl.BoolFromCheckBox(self.checkbox_2),
+            tl.BoolFromCheckBox(self.checkbox_3),
+            False
+        ]
+        canvas_plot = self.view.show_plots(self.chosen_plots)
+        canvas_plot.main_window = self
+
+        self.plot_window = PlotWindow(canvas_plot)
+        self.plot_window.show()
+
+        self.tabs.setCurrentIndex(3)
+
     def ViewButtonClick(self):
         OKDialog('Message', 'Sorry, not implemented yet.', self)
 
@@ -770,8 +777,8 @@ class MainWindow(QMainWindow):
             self.progress_bar.setVisible(False)
 
     def BuildButtonClick(self, s):
-
         self.view = View(self)
+
         for i, channel in enumerate(self.channel_checkbox_list):
             if channel.checkState() == 2:
                 core = Core(self.folder, self.file + '_{}'.format(i + 1))
@@ -788,7 +795,7 @@ class MainWindow(QMainWindow):
             tl.BoolFromCheckBox(self.checkbox_1),
             tl.BoolFromCheckBox(self.checkbox_2),
             tl.BoolFromCheckBox(self.checkbox_3),
-            tl.BoolFromCheckBox(self.checkbox_4)
+            False
         ]
 
         self.progress_bar.setVisible(True)

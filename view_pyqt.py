@@ -308,7 +308,7 @@ class View(object):
         self.fig = None
         self.axes = None
         self.text = []
-        self.chosen_plots_indices = None
+        self.chosen_plot_indices = None
         self.axes_plot_list = None
 
         self.idea3d = None
@@ -329,12 +329,6 @@ class View(object):
                 'xlabel': 'frame',
                 'ylabel': 'I/area [a.u./px]'
             },
-            # {
-            #     'key': 'intensity_int',
-            #     'title': 'Int. intensity per px, normalized by laser intensity',
-            #     'xlabel': 'frame',
-            #     'ylabel': 'I/area [a.u./px]'
-            # },
             {
                 'key': 'histogram',
                 'title': 'Histogram',
@@ -342,10 +336,10 @@ class View(object):
                 'ylabel': 'count'
             },
             {
-                'key': 'std_int',
-                'title': 'Std of int., normalized by laser intensity',
+                'key': 'nps_pos',
+                'title': 'Counts of NPs',
                 'xlabel': 'frame',
-                'ylabel': 'std [a.u./]'
+                'ylabel': 'Count'
             }
         ]
 
@@ -362,26 +356,27 @@ class View(object):
             location.xy = [self.f, y]
 
         self.fig.suptitle(self.frame_info())
+
         for i, core in enumerate(self.core_list):
             self.img_shown[i].set_array(core.frame(self.f))
 
-            # if 2 in self.view.chosen_plot_indices:
-            #     axes = self.view.axes_plot_list[self.view.chosen_plot_indices.index(2)]
-            #     for j, core in enumerate(self.view.core_list):
-            #         values, counts = core.histogram()
-            #         axes.clear()
-            #         axes.bar(
-            #             values,
-            #             counts,
-            #             width=values[1] - values[0],
-            #             color=COLORS[j],
-            #             alpha=0.5,
-            #             label='channel {}.'.format(j)
-            #         )
+            if 2 in self.chosen_plot_indices:
+                axes = self.axes_plot_list[self.chosen_plot_indices.index(2)]
+                for j, core in enumerate(self.core_list):
+                    values, counts = core.histogram()
+                    axes.clear()
+                    axes.bar(
+                        values,
+                        counts,
+                        width=values[1] - values[0],
+                        color=COLORS[j],
+                        alpha=0.5,
+                        label='channel {}.'.format(j)
+                    )
 
             if core.show_nps:
                 positions, colors = core.frame_np(self.f)
-                [p.remove() for p in reversed(self.axes[i].patches) if p.get_radius() == 5]
+                [p.remove() for p in self.axes[i].patches]
 
                 for (p, c) in zip(positions, colors):
                     circle = mpatches.Circle(
@@ -394,8 +389,9 @@ class View(object):
                     self.axes[i].add_patch(circle)
 
         self.canvas_img.draw()
-        if not self.canvas_plot is None:
+        if self.canvas_plot is not None:
             self.canvas_plot.draw()
+
         self.main_window.RefreshNPInfo()
 
     @property
@@ -513,6 +509,9 @@ class View(object):
             self.locations.append(location)
             ax.add_patch(location)
 
+        if self.core_list[0].np_container is not None:
+            chosen_plots[3] = True
+
         self.chosen_plot_indices = [i for i in range(len(chosen_plots)) if chosen_plots[i]]
         number_of_plots = len(self.chosen_plot_indices)
 
@@ -558,6 +557,29 @@ class View(object):
                         alpha=0.5,
                         label='channel {}.'.format(j)
                     )
+
+                elif self.plots[i]['key'] == 'nps_pos':
+
+                    nps_add = [sum(core.graphs['nps_pos'][:i]) for i in range(len(core))]
+
+                    axes.plot(
+                        nps_add,
+                        linewidth=2,
+                        color=COLORS[j],
+                        alpha=0.5,
+                        label='channel {}.'.format(j)
+                    )
+
+                    axes.bar(
+                        np.arange(0, len(core), 1),
+                        core.graphs['nps_pos'],
+                        linewidth=1,
+                        color=COLORS[j],
+                        alpha=0.5,
+                        label='channel {}.'.format(j)
+                    )
+
+                    add_time_bar(axes)
                 else:
                     axes.plot(
                         core.graphs[self.plots[i]['key']],
