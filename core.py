@@ -219,6 +219,20 @@ class Core(object):
         else:
             print('Could not save the pattern.')
 
+    def save_csv(self, name=None):
+        if not os.path.isdir(self.folder + FOLDER_SAVED):
+            os.mkdir(self.folder + FOLDER_SAVED)
+
+        if name == None:
+            name = self.file
+
+        file_name = self.folder + FOLDER_SAVED + '/' + name + '.csv'
+
+        with open(file_name, mode='w') as f:
+            nps_add = [sum(self.graphs['nps_pos'][:i]) for i in range(len(self))]
+            for i in range(len(self)):
+                f.write('{}, {}, {}\n'.format(i, self.graphs['nps_pos'][i], nps_add[i]))
+
     def save_idea(self, name=None):
         if not os.path.isdir(self.folder + FOLDER_IDEAS):
             os.mkdir(self.folder + FOLDER_IDEAS)
@@ -416,41 +430,44 @@ class Core(object):
         return positions, colors
 
     def count_nps(self, start, stop, dpx):
+        duration = False
+        error = False
+        success = True
+        failure = False
+        minor = False
 
-        def check_np(np_slice, erase=True):
-            if erase:
-                duration = False
-                error = False
-                success = True
-                failure = False
-                minor = False
-            else:
-                duration = purple
-                error = blue
-                success = green
-                failure = red
-                minor = black
+        # duration = purple
+        # error = blue
+        # success = green
+        # failure = red
+        # minor = black
 
+        def check_np(slice):
             x0_np = np.array([
-                np_slice[0].start,
-                np_slice[1].start,
-                np_slice[2].start
+                slice[0].start,
+                slice[1].start,
+                slice[2].start
+            ])
+            x1_np = np.array([
+                slice[0].stop,
+                slice[1].stop,
+                slice[2].stop
             ])
 
-            length = np_slice[2].stop - np_slice[2].start
-            if 5 > length:  # or length > self.k * 2 + 2:
+            if 5 > x1_np[2] - x0_np[2]:
                 return duration
 
-            amx_np = np.argmax(data_corr[np_slice])
-            amx_np = np.unravel_index([amx_np], data_corr[np_slice].shape)
-            mx_np = np.max(data_corr[np_slice][:, :, amx_np[2]])
+            amx_np = np.argmax(data_corr[slice])
+            amx_np = np.unravel_index([amx_np], data_corr[slice].shape)
+            mx_np = np.max(data_corr[slice][:, :, amx_np[2]])
 
-            np_slice_extended = np.s_[np_slice[0].start - dpx: np_slice[0].stop + dpx,
-                                np_slice[1].start - dpx: np_slice[1].stop + dpx,
-                                np_slice[2].start: np_slice[2].stop]
+            slice_extended = np.s_[
+                             x0_np[0] - dpx: x1_np[0] + dpx,
+                             x0_np[1] - dpx: x1_np[1] + dpx,
+                             x0_np[2]: x1_np[1]
+                             ]
 
-            # data_np = data_corr[np_slice_extended[:1]][amx_np]
-            data_np_labeled = data_labeled[np_slice_extended]
+            data_np_labeled = data_labeled[slice_extended]
 
             for npi in np.unique(data_np_labeled):
                 if npi - 1 in blacklist_npid or npi == 0:
@@ -458,8 +475,6 @@ class Core(object):
 
                 amx_i = np.argmax(data_corr[np_slices[npi - 1]])
                 amx_i = np.unravel_index([amx_i], data_corr[np_slices[npi - 1]].shape)
-                np_slices[npi - 1][2].start
-
                 mx_i = np.max(data_corr[np_slices[npi - 1]])
 
                 x0_i = np.array([
@@ -478,6 +493,7 @@ class Core(object):
 
         time0 = time.time()
         print('\nDetecting NPs')
+
         self.nps_in_frame = [[] for i in range(len(self))]
         self.np_container = []
         self.graphs['nps_pos'] = [0 for i in range(len(self))]
@@ -505,7 +521,7 @@ class Core(object):
                 dt = int(np_slice[2].stop - np_slice[2].start)
 
                 nnp = NanoParticle(idnp, np_slice[2].start, [np.array([x, y])] * dt)
-                # nnp.color = check_np(np_slice, erase=False)
+                # nnp.color = check_np(np_slice)
 
                 if idnp in blacklist_npid:
                     nnp.color = yellow

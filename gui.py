@@ -194,6 +194,7 @@ class MainWindow(QMainWindow):
         self.button_correlate = gw.button('arrow', 'Correlation', self.font, True, self.CorrelateButtonClick)
 
         self.button_export = gw.button(None, 'Export data', self.font, True, self.ExportButtonClick)
+        self.button_export_csv = gw.button(None, 'Export CSV', self.font, True, self.ExportCSVButtonClick)
 
         self.button_count = gw.button('count-cat-icon', 'Count NPs', self.font, True, self.CountButtonClick)
         self.button_count.setStatusTip('Counts nanoparticles.')
@@ -479,6 +480,7 @@ class MainWindow(QMainWindow):
 
         layout = QVBoxLayout()
         layout.addWidget(self.button_export)
+        layout.addWidget(self.button_export_csv)
 
         layout.addStretch(1)
         Tab.setLayout(layout)
@@ -726,6 +728,7 @@ class MainWindow(QMainWindow):
         canvas_plot = self.view.show_plots(self.chosen_plots)
         canvas_plot.main_window = self
 
+        self.plot_window.close()
         self.plot_window = PlotWindow(canvas_plot)
         self.plot_window.show()
 
@@ -738,6 +741,11 @@ class MainWindow(QMainWindow):
         for core in self.view.core_list:
             core.save_data()
 
+    def ExportCSVButtonClick(self):
+        if self.view.core_list[0].np_container is not None:
+            for core in self.view.core_list:
+                core.save_csv()
+
     def OpenButtonClick(self, s):
         dlg = QFileDialog(self)
 
@@ -746,6 +754,7 @@ class MainWindow(QMainWindow):
             self.button_build.setDisabled(False)
             self.button_correlate.setDisabled(False)
             self.button_export.setDisabled(False)
+            self.button_export_csv.setDisabled(False)
             self.tool_file_info.setDisabled(False)
 
             if self.width[0] < self.height[0]:
