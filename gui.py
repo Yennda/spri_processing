@@ -1,3 +1,4 @@
+import collections
 import sys
 import os
 import re
@@ -133,7 +134,6 @@ class MainWindow(QMainWindow):
         self.checkbox_4.setChecked(True)
         self.checkbox_4.setDisabled(True)
 
-
         self.filter_gauss_checkbox = gw.checkbox_filter('Gaussian', False, self.RunFilterGaussian)
         self.slider_gauss = gw.slider(0, 50, 1, 10, self.RefreshSliderGaussInfo)
         self.slider_gauss_info = gw.value_label('1')
@@ -257,7 +257,7 @@ class MainWindow(QMainWindow):
             self.slider_erode_info,
             self.filter_erode_checkbox
         ]
-        self.forms_np_recognition =[
+        self.forms_np_recognition = [
             self.slider_threshold,
             self.slider_threshold_info,
             self.filter_threshold_checkbox,
@@ -355,7 +355,6 @@ class MainWindow(QMainWindow):
         ))
 
         layout.addLayout(wiener_layout_box)
-
 
         bilateral_layout_box = QVBoxLayout()
         layout.addWidget(self.filter_bilateral_checkbox)
@@ -564,7 +563,15 @@ class MainWindow(QMainWindow):
         OKDialog('file info', fi, self)
 
     def RefreshNPInfo(self):
-        self.np_info_label.setText(self.np_info_create())
+
+        # if self.tabs.currentIndex() == 2:
+        #     if self.view is not None and self.view.core_list[0]._data_corr is not None:
+        #         self.view.change_type(None, 'corr')
+        #         self.view.set_range()
+        #         self.view.canvas_img.next_frame(0)
+
+        if self.tabs.currentIndex() == 3:
+            self.np_info_label.setText(self.np_info_create())
 
     def RefreshSliderInfo(self):
         self.slider_k_info.setText(str(self.slider_k.value()))
@@ -657,7 +664,7 @@ class MainWindow(QMainWindow):
 
     def RunFilterThreshold(self):
         fn = lambda img: (img > np.std(img) * self.slider_threshold.value() / 10) * np.max(img)
-        self.RunFilter(self.filter_threshold_checkbox.isChecked(), 'z_dilate', fn)
+        self.RunFilter(self.filter_threshold_checkbox.isChecked(), 'z_threshold', fn)
 
     def RunFilterBilateral(self):
         fn = lambda img: cv2.bilateralFilter(np.float32(img), int(self.slider_bilateral_d.value()),
@@ -672,10 +679,6 @@ class MainWindow(QMainWindow):
             fn = lambda img: scipy.signal.wiener(img, self.slider_wiener.value(),
                                                  10 ** (self.slider_wiener_noise.value() / 100 - 8)
                                                  )
-        if self.filter_gauss_checkbox.isChecked():
-            fn = lambda img: img - scipy.signal.wiener(img, self.slider_wiener.value(),
-                                                       10 ** (self.slider_wiener_noise.value() / 100 - 8)
-                                                       )
         self.RunFilter(self.filter_wiener_checkbox.isChecked(), 'a_wiener', fn)
 
     def RunFilter(self, checked, ftype, fn):
@@ -689,7 +692,8 @@ class MainWindow(QMainWindow):
 
             for core in self.view.core_list:
                 core.postprocessing_filters[ftype] = fn
-        dict(sorted(core.postprocessing_filters.items()))
+
+        core.postprocessing_filters = collections.OrderedDict(sorted(core.postprocessing_filters.items()))
         self.view.canvas_img.next_frame(0)
 
     def CorrelateButtonClick(self):

@@ -303,13 +303,8 @@ class Core(object):
 
             if self._data_corr is not None:
                 image = self._data_corr[:, :, f]
-                # print('Shape of corr: {}'.format(self._raw_corr.shape))
-                #
-                # print('Shape of image: {}'.format(image.shape))
-            else:
-                # self.make_correlation()
-                # image = self._data_corr[:, :, f]
 
+            else:
                 sequence_diff = np.zeros((self.shape_img[0], self.shape_img[1], 4 * self.k))
                 for i in range(4 * self.k):
                     diff_image = self.frame_diff(f + 2 * self.k - i)
@@ -373,8 +368,8 @@ class Core(object):
         return 'done'
 
     def make_correlation(self):
+        time0 = time.time()
         if self.idea3d is None:
-            image = np.zeros(self.shape_img[0])
             raise Exception('No selected NP patter for file {}'.format(self.file))
 
         img_type = self.type
@@ -382,6 +377,7 @@ class Core(object):
 
         raw_diff = np.zeros(self.shape)
         print('Processing data for correlation')
+
         for f in range(len(self)):
             print('\r\t{}/ {}'.format(f + 1, len(self)), end='')
             raw_diff[:, :, f] = self.frame(f)
@@ -393,6 +389,8 @@ class Core(object):
         ) * 1e5
 
         self.type = img_type
+
+        print('\n--elapsed time--\n{:.2f} s'.format(time.time() - time0))
 
     def histogram(self):
         frame = self.frame(self._f)

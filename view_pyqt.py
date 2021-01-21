@@ -418,6 +418,14 @@ class View(object):
                 axes.set_ylabel('channel {}. | {}'.format(axes.core.file[-1:], axes.core.type))
             else:
                 axes.set_xlabel('channel {}. | {}'.format(axes.core.file[-1:], axes.core.type))
+        # else:
+        #     for core, axes in zip(self.core_list, self.axes):
+        #         core.type = itype
+        #         if self.orientation:
+        #             axes.set_ylabel('channel {}. | {}'.format(axes.core.file[-1:], axes.core.type))
+        #         else:
+        #             axes.set_xlabel('channel {}. | {}'.format(axes.core.file[-1:], axes.core.type))
+
 
     def mouse_click_spr(self, event):
         if event.button == 1:
