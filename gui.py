@@ -114,7 +114,7 @@ class MainWindow(QMainWindow):
         self.slider_downsample = gw.slider(1, 100, 1, 0, self.RefreshSliderDownSampleInfo)
         self.slider_downsample.setStatusTip(
             'N-times downsample the raw data in time.')
-        self.slider_downsample_info = QLabel('0')
+        self.slider_downsample_info = gw.value_label('0')
 
         self.slider_k = gw.slider(1, 100, 1, 10, self.RefreshSliderInfo)
         self.slider_k.setStatusTip(
@@ -145,6 +145,9 @@ class MainWindow(QMainWindow):
         self.filter_threshold_checkbox = gw.checkbox_filter('Threshold', False, self.RunFilterThreshold)
         self.slider_threshold = gw.slider(0, 100, 1, 50, self.RefreshSliderThresholdInfo)
         self.slider_threshold_info = gw.value_label('5')
+
+        self.filter_distance_label = QLabel('Min. distance')
+        self.filter_distance_label.setMinimumWidth(min_label_width)
         self.slider_distance = gw.slider(0, 20, 1, 3, self.RefreshSliderDistanceInfo)
         self.slider_distance_info = gw.value_label('3')
 
@@ -194,7 +197,7 @@ class MainWindow(QMainWindow):
         self.button_correlate = gw.button('arrow', 'Correlation', self.font, True, self.CorrelateButtonClick)
 
         self.button_export = gw.button(None, 'Export data', self.font, True, self.ExportButtonClick)
-        self.button_export_csv = gw.button(None, 'Export CSV', self.font, True, self.ExportCSVButtonClick)
+        self.button_export_csv = gw.button(None, 'Export NP info as CSV', self.font, True, self.ExportCSVButtonClick)
 
         self.button_count = gw.button('count-cat-icon', 'Count NPs', self.font, True, self.CountButtonClick)
         self.button_count.setStatusTip('Counts nanoparticles.')
@@ -409,8 +412,9 @@ class MainWindow(QMainWindow):
             self.slider_threshold_info
         ))
 
+
         layout.addLayout(gw.layout_slider(
-            QLabel('Min. distance'),
+            self.filter_distance_label,
             self.slider_distance,
             self.slider_distance_info
         ))
@@ -566,11 +570,12 @@ class MainWindow(QMainWindow):
 
     def RefreshNPInfo(self):
 
-        # if self.tabs.currentIndex() == 2:
-        #     if self.view is not None and self.view.core_list[0]._data_corr is not None:
-        #         self.view.change_type(None, 'corr')
-        #         self.view.set_range()
-        #         self.view.canvas_img.next_frame(0)
+        if self.tabs.currentIndex() == 2:
+            print('sada')
+            if self.view is not None and self.view.core_list[0]._data_corr is not None:
+                self.view.change_type(None, 'corr')
+                self.view.set_range()
+                # self.view.canvas_img.next_frame(0)
 
         if self.tabs.currentIndex() == 3:
             self.np_info_label.setText(self.np_info_create())
@@ -713,9 +718,11 @@ class MainWindow(QMainWindow):
         for core in self.view.core_list:
             core.count_nps(int(self.line_count_start.text()), int(self.line_count_stop.text()),
                            self.slider_distance.value())
-            core.type = 'diff'
+            # core.type = 'diff'
             self.filters_checkbox.setChecked(False)
             core.postprocessing = False
+
+        self.view.change_type(None, 'diff')
         self.view.set_range()
         self.view.canvas_img.next_frame(0)
 

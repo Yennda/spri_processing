@@ -430,17 +430,17 @@ class Core(object):
         return positions, colors
 
     def count_nps(self, start, stop, dpx):
-        duration = False
-        error = False
-        success = True
-        failure = False
-        minor = False
+        # duration = False
+        # error = False
+        # success = True
+        # failure = False
+        # minor = False
 
-        # duration = purple
-        # error = blue
-        # success = green
-        # failure = red
-        # minor = black
+        duration = purple
+        error = blue
+        success = green
+        failure = red
+        minor = black
 
         def check_np(slice):
             x0_np = np.array([
@@ -454,7 +454,11 @@ class Core(object):
                 slice[2].stop
             ])
 
+            print('len {}'.format(5 > x1_np[2] - x0_np[2]))
+            print('len {}'.format(x1_np[2] - x0_np[2]))
+
             if 5 > x1_np[2] - x0_np[2]:
+                print('ej!!!')
                 return duration
 
             amx_np = np.argmax(data_corr[slice])
@@ -514,14 +518,14 @@ class Core(object):
         np_slices = ndimage.find_objects(data_labeled)
 
         for idnp, np_slice in enumerate(np_slices):
-            if check_np(np_slice):
-                # if True:
+            # if check_np(np_slice):
+            if True:
                 x = (np_slice[0].start + np_slice[0].stop) / 2
                 y = (np_slice[1].start + np_slice[1].stop) / 2
                 dt = int(np_slice[2].stop - np_slice[2].start)
 
                 nnp = NanoParticle(idnp, np_slice[2].start, [np.array([x, y])] * dt)
-                # nnp.color = check_np(np_slice)
+                nnp.color = check_np(np_slice)
 
                 if idnp in blacklist_npid:
                     nnp.color = yellow
