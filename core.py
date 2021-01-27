@@ -57,6 +57,7 @@ class Core(object):
         self.reference = None
 
         self.idea3d = None
+        self.autocorrelation_max = None
 
         self._load_data()
         self.load_idea()
@@ -260,6 +261,12 @@ class Core(object):
 
             print('Pattern saved')
 
+            self.autocorrelation_max = np.max(scipy.signal.correlate(
+                self.idea3d,
+                self.idea3d,
+                mode='same'
+            ) * 1e5)
+
         else:
             print('Could not save the pattern.')
 
@@ -270,6 +277,13 @@ class Core(object):
         file_name = self.folder + FOLDER_IDEAS + '/' + name
         try:
             self.idea3d = np.load(file_name + '.npy')
+
+            self.autocorrelation_max = np.max(scipy.signal.correlate(
+                self.idea3d,
+                self.idea3d,
+                mode='same'
+            ) * 1e5)
+
             return True
         except FileNotFoundError:
             return False
@@ -352,9 +366,13 @@ class Core(object):
 
         if self.threshold and self.type == 'corr':
             if self.threshold_value > 0:
-                image = (image > np.std(image) * self.threshold_value) * self._range[self.type][1]
+                image = ndimage.maximum_filter(image, size=2)
+                # image = (image > np.std(image) * self.threshold_value) * self._range[self.type][1]
+                image = (image > self.autocorrelation_max * self.threshold_value/50) * self._range[self.type][1]
+
             else:
-                image = (image < np.std(image) * self.threshold_value) * self._range[self.type][1]
+                image = -ndimage.maximum_filter(-image, size=2)
+                image = (image < self.autocorrelation_max * self.threshold_value/50) * self._range[self.type][1]
 
         return image
 
@@ -418,6 +436,8 @@ class Core(object):
         ) * 1e5
 
         self.type = img_type
+        self._range['corr'] = [- np.max(self._data_corr[:, :, self.k * 3:]),
+                               np.max(self._data_corr[:, :, self.k * 3:])]
 
         print('\n--elapsed time--\n{:.2f} s'.format(time.time() - time0))
 

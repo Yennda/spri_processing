@@ -525,18 +525,21 @@ class MainWindow(QMainWindow):
                 text += 'channel {}.\n'.format(core.file[-1])
                 text += '\tpresent: {}\n'.format(len(core.nps_in_frame[self.view.f]))
                 text += '\ttotal: {}\n'.format(sum(core.graphs['nps_pos']))
+                text += '\t' + '-' * 27 + '\n'
                 text += '\tcurrently adsorbed: {}\n'.format(core.graphs['nps_pos'][self.view.f])
                 text += '\tcurrently dedsorbed: {}\n'.format(core.graphs['nps_neg'][self.view.f])
+                text += '\t' + '-' * 27 + '\n'
 
                 text += '\tadsorbed up to now: {}\n'.format(sum(core.graphs['nps_pos'][:self.view.f]))
                 text += '\tdesorbed up to now: {}\n'.format(sum(core.graphs['nps_neg'][:self.view.f]))
+                text += '\t' + '-' * 27 + '\n'
 
                 text += '\tbalance: {}\n'.format(
                     sum(core.graphs['nps_pos'][:self.view.f]) -
                     sum(core.graphs['nps_neg'][:self.view.f])
                 )
 
-                text += '-' * 35 + '\n'
+                text += '=' * 35 + '\n'
         else:
             text = 'Info will be displayed after image data processing.'
         return text

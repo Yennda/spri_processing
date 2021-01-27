@@ -1,5 +1,6 @@
 import numpy as np
 from PIL import Image
+import scipy.signal
 import os
 
 import matplotlib
@@ -380,7 +381,7 @@ class View(object):
 
                 [p.remove() for p in reversed(self.axes[i].patches)]
 
-                for (p, c) in zip(positions, colors):
+                for (p, c) in zip(reversed(positions), reversed(colors)):
                     circle = mpatches.Circle(
                         p,
                         5,
@@ -428,7 +429,6 @@ class View(object):
                 else:
                     axes.set_xlabel('channel {}. | {}'.format(axes.core.file[-1:], axes.core.type))
                     axes.set_xlabel('channel {}. | {}'.format(axes.core.file[-1:], axes.core.type))
-
 
     def mouse_click_spr(self, event):
         if event.button == 1:
@@ -572,12 +572,12 @@ class View(object):
                 elif self.plots[i]['key'] == 'nps_pos':
 
                     nps_add_pos = np.array([sum(core.graphs['nps_pos'][:i]) for i in range(len(core))])
-                    nps_add_neg = np.array([-1*sum(core.graphs['nps_neg'][:i]) for i in range(len(core))])
+                    nps_add_neg = np.array([-1 * sum(core.graphs['nps_neg'][:i]) for i in range(len(core))])
                     axes_diff = axes.twinx()
                     axes_diff.bar(
-                        np.arange(0, len(core), 1),
-                        core.graphs['nps_pos'],
-                        linewidth=1,
+                        np.arange(0, len(core), len(core) // 50),
+                        scipy.signal.decimate(core.graphs['nps_pos'], len(core) // 50) * len(core) // 50,
+                        width=len(core) // 50 * 0.8,
                         color=COLORS[j],
                         alpha=0.5,
                         label='channel {}.'.format(j)
@@ -593,7 +593,7 @@ class View(object):
                     )
 
                     axes.plot(
-                        nps_add_pos - nps_add_neg,
+                        nps_add_pos + nps_add_neg,
                         linewidth=2,
                         color=COLORS[j],
                         alpha=0.5,
@@ -601,9 +601,9 @@ class View(object):
                     )
 
                     axes_diff.bar(
-                        np.arange(0, len(core), 1),
-                        -core.graphs['nps_neg'],
-                        linewidth=1,
+                        np.arange(0, len(core), len(core) // 50),
+                        -scipy.signal.decimate(core.graphs['nps_neg'], len(core) // 50) * len(core) // 50,
+                        width=len(core) // 50 * 0.8,
                         color=COLORS[j],
                         alpha=0.5,
                         label='channel {}.'.format(j)
@@ -617,7 +617,6 @@ class View(object):
                         alpha=0.5,
                         label='channel {}.'.format(j)
                     )
-
 
                     add_time_bar(axes)
                 else:
