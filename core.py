@@ -41,11 +41,13 @@ class Core(object):
         self.fourier_level = 30
         self.postprocessing = True
         self.postprocessing_filters = dict()
+        self.threshold = False
+        self.threshold_value = 0
 
         # np_counting
         self.stack_frames = []
         self.dist = 4
-        self.np_container = None
+        self.np_container = []
         self.nps_in_frame = []
         self.show_nps = False
 
@@ -86,6 +88,14 @@ class Core(object):
         return video_width, video_height, video_length
 
     def _load_video(self):
+        if FOLDER_SAVED in self.folder:
+            print(self.folder)
+            video = np.load(self.folder + self.file + '.npy')
+            self.folder = self.folder.replace(FOLDER_SAVED, '')
+            print(self.folder)
+
+            return video
+
         with open(self.folder + self.file + '.bin', mode='rb') as fid:
             video = np.fromfile(fid, dtype=np.float64)
             fid.close()
@@ -195,7 +205,7 @@ class Core(object):
         self.type = type_buffer
         return intensity
 
-    def save_data(self, name=None):
+    def save_data(self, start, stop, name=None):
         if not os.path.isdir(self.folder + FOLDER_SAVED):
             os.mkdir(self.folder + FOLDER_SAVED)
 
@@ -205,7 +215,7 @@ class Core(object):
         file_name = self.folder + FOLDER_SAVED + '/' + name
 
         data = np.zeros(self.shape)
-        for f in range(len(self)):
+        for f in range(start, stop):
             data[:, :, f] = self.frame(f)
 
         if tl.before_save_file(file_name) or name == self.file:
@@ -336,10 +346,15 @@ class Core(object):
 
                 image = out[:, :, 2 * self.k]
 
-        # if self.postprocessing and len(self.postprocessing_filters) != 0 and self.type != 'corr':
-        if self.postprocessing and len(self.postprocessing_filters) != 0:
+        if self.postprocessing and len(self.postprocessing_filters) != 0 and self.type != 'corr':
             for p in self.postprocessing_filters.values():
                 image = p(image)
+
+        if self.threshold and self.type == 'corr':
+            if self.threshold_value > 0:
+                image = (image > np.std(image) * self.threshold_value) * self._range[self.type][1]
+            else:
+                image = (image < np.std(image) * self.threshold_value) * self._range[self.type][1]
 
         return image
 
@@ -429,18 +444,31 @@ class Core(object):
 
         return positions, colors
 
-    def count_nps(self, start, stop, dpx):
-        # duration = False
-        # error = False
-        # success = True
-        # failure = False
-        # minor = False
+    def run_count_nps(self, start, stop, dpx):
+        self.np_container = []
+        self.nps_in_frame = [[] for i in range(len(self))]
 
-        duration = purple
-        error = blue
-        success = green
-        failure = red
-        minor = black
+        self.count_nps(start, stop, dpx)
+
+        self.threshold_value *= -1
+        self.count_nps(start, stop, dpx)
+        self.threshold_value *= -1
+
+    def count_nps(self, start, stop, dpx, ):
+        if self.threshold_value > 0:
+            color = green
+            plot = 'nps_pos'
+        else:
+            color = red
+            plot = 'nps_neg'
+
+        duration = False
+        success = True
+        minor = False
+
+        # duration = purple
+        # success = green
+        # minor = black
 
         def check_np(slice):
             x0_np = np.array([
@@ -454,11 +482,10 @@ class Core(object):
                 slice[2].stop
             ])
 
-            print('len {}'.format(5 > x1_np[2] - x0_np[2]))
-            print('len {}'.format(x1_np[2] - x0_np[2]))
+            # print('len {}'.format(5 > x1_np[2] - x0_np[2]))
+            # print('len {}'.format(x1_np[2] - x0_np[2]))
 
             if 5 > x1_np[2] - x0_np[2]:
-                print('ej!!!')
                 return duration
 
             amx_np = np.argmax(data_corr[slice])
@@ -498,46 +525,49 @@ class Core(object):
         time0 = time.time()
         print('\nDetecting NPs')
 
-        self.nps_in_frame = [[] for i in range(len(self))]
-        self.np_container = []
-        self.graphs['nps_pos'] = [0 for i in range(len(self))]
+        self.graphs[plot] = np.array([0 for i in range(len(self))])
         blacklist_npid = []
 
-        data = np.zeros(self.shape)
+        data_threshold = np.zeros(self.shape)
         data_corr = np.zeros(self.shape)
 
         for f in range(start + self.k * 2, stop):
-            data[:, :, f] = self.frame(f)
+            data_threshold[:, :, f] = self.frame(f)
 
-        data[data > 0.1] = 1
-        data = data.astype(np.uint8)
+        data_threshold[data_threshold > 0.1] = 1
+        data_threshold = data_threshold.astype(np.uint8)
 
-        data_corr[:, :, start + self.k * 2:stop] = self._data_corr[:, :, start + self.k * 2:stop]
+        if self.threshold_value > 0:
+            data_corr[:, :, start + self.k * 2:stop] = self._data_corr[:, :, start + self.k * 2:stop]
+        else:
+            data_corr[:, :, start + self.k * 2:stop] = self._data_corr[:, :, start + self.k * 2:stop] * -1
 
-        data_labeled, _ = ndimage.label(data, np.ones((3, 3, 3)))
+        data_labeled, _ = ndimage.label(data_threshold, np.ones((3, 3, 3)))
         np_slices = ndimage.find_objects(data_labeled)
 
-        for idnp, np_slice in enumerate(np_slices):
-            # if check_np(np_slice):
-            if True:
+        for np_slice in np_slices:
+            idnp = len(self.np_container)
+            if check_np(np_slice):
+                # if True:
                 x = (np_slice[0].start + np_slice[0].stop) / 2
                 y = (np_slice[1].start + np_slice[1].stop) / 2
                 dt = int(np_slice[2].stop - np_slice[2].start)
 
-                nnp = NanoParticle(idnp, np_slice[2].start, [np.array([x, y])] * dt)
-                nnp.color = check_np(np_slice)
+                nnp = NanoParticle(idnp, np_slice[2].start, [np.array([x, y])] * dt, positive=self.threshold_value > 0)
+                nnp.color = color
+                # nnp.color = check_np(np_slice)
 
                 if idnp in blacklist_npid:
                     nnp.color = yellow
                 self.np_container.append(nnp)
 
-                self.graphs['nps_pos'][np_slice[2].start] += 1
+                self.graphs[plot][np_slice[2].start] += 1
                 for i in range(dt):
                     self.nps_in_frame[np_slice[2].start + i].append(idnp)
             else:
                 self.np_container.append(None)
 
-        self._data_mask = data
+        self._data_mask = data_threshold
         self.show_nps = True
 
         print('\n--elapsed time--\n{:.2f} s'.format(time.time() - time0))

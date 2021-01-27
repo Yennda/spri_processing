@@ -143,7 +143,7 @@ class MainWindow(QMainWindow):
         self.slider_erode_info = gw.value_label('1')
 
         self.filter_threshold_checkbox = gw.checkbox_filter('Threshold', False, self.RunFilterThreshold)
-        self.slider_threshold = gw.slider(0, 100, 1, 50, self.RefreshSliderThresholdInfo)
+        self.slider_threshold = gw.slider(0, 200, 1, 50, self.RefreshSliderThresholdInfo)
         self.slider_threshold_info = gw.value_label('5')
 
         self.filter_distance_label = QLabel('Min. distance')
@@ -209,6 +209,14 @@ class MainWindow(QMainWindow):
         self.line_count_stop = QLineEdit()
         self.line_count_stop.setText('100')
         self.line_count_stop.textChanged.connect(self.RefreshCountRange)
+
+        self.line_export_start = QLineEdit()
+        self.line_export_start.setText('0')
+        self.line_export_start.textChanged.connect(self.RefreshExportRange)
+
+        self.line_export_stop = QLineEdit()
+        self.line_export_stop.setText('100')
+        self.line_export_stop.textChanged.connect(self.RefreshExportRange)
 
         self.view_channel_buttons = []
 
@@ -279,7 +287,8 @@ class MainWindow(QMainWindow):
         self.tabs.addTab(self.NPInfoUI(), 'NP Info')  # 3
         # self.tabs.addTab(self.ViewTabUI(), 'View')  # 4
         self.tabs.addTab(self.ExportsTabUI(), 'Exports')  # 5
-        self.tabs.currentChanged.connect(self.RefreshNPInfo)
+        self.tabs.tabBarClicked.connect(self.RefreshNPInfo)
+        # self.tabs.currentChanged.connect(self.RefreshNPInfo)
         layout.addWidget(self.tabs)
 
         self.setStatusBar(QStatusBar(self))
@@ -412,7 +421,6 @@ class MainWindow(QMainWindow):
             self.slider_threshold_info
         ))
 
-
         layout.addLayout(gw.layout_slider(
             self.filter_distance_label,
             self.slider_distance,
@@ -483,6 +491,13 @@ class MainWindow(QMainWindow):
         Tab = QWidget()
 
         layout = QVBoxLayout()
+        np_analysis_layout = QHBoxLayout()
+        np_analysis_layout.addWidget(QLabel('start:'))
+        np_analysis_layout.addWidget(self.line_export_start)
+        np_analysis_layout.addWidget(QLabel('stop:'))
+        np_analysis_layout.addWidget(self.line_export_stop)
+        layout.addLayout(np_analysis_layout)
+
         layout.addWidget(self.button_export)
         layout.addWidget(self.button_export_csv)
 
@@ -511,7 +526,16 @@ class MainWindow(QMainWindow):
                 text += '\tpresent: {}\n'.format(len(core.nps_in_frame[self.view.f]))
                 text += '\ttotal: {}\n'.format(sum(core.graphs['nps_pos']))
                 text += '\tcurrently adsorbed: {}\n'.format(core.graphs['nps_pos'][self.view.f])
+                text += '\tcurrently dedsorbed: {}\n'.format(core.graphs['nps_neg'][self.view.f])
+
                 text += '\tadsorbed up to now: {}\n'.format(sum(core.graphs['nps_pos'][:self.view.f]))
+                text += '\tdesorbed up to now: {}\n'.format(sum(core.graphs['nps_neg'][:self.view.f]))
+
+                text += '\tbalance: {}\n'.format(
+                    sum(core.graphs['nps_pos'][:self.view.f]) -
+                    sum(core.graphs['nps_neg'][:self.view.f])
+                )
+
                 text += '-' * 35 + '\n'
         else:
             text = 'Info will be displayed after image data processing.'
@@ -569,12 +593,11 @@ class MainWindow(QMainWindow):
         OKDialog('file info', fi, self)
 
     def RefreshNPInfo(self):
-
         if self.tabs.currentIndex() == 2:
-            print('sada')
             if self.view is not None and self.view.core_list[0]._data_corr is not None:
-                self.view.change_type(None, 'corr')
-                self.view.set_range()
+                pass
+                # self.view.change_type(None, 'corr')
+                # self.view.set_range()
                 # self.view.canvas_img.next_frame(0)
 
         if self.tabs.currentIndex() == 3:
@@ -657,6 +680,21 @@ class MainWindow(QMainWindow):
             elif int(self.line_count_stop.text()) > len(self.view.core_list[0]):
                 self.line_count_stop.setText(str(len(self.view.core_list[0])))
 
+    def RefreshExportRange(self):
+        start = re.fullmatch(r'[0-9]+', self.line_export_start.text()) is None
+        stop = re.fullmatch(r'[0-9]+', self.line_export_stop.text()) is None
+
+        if start:
+            self.line_export_start.setText('0')
+        if stop:
+            self.line_export_stop.setText(str(len(self.view.core_list[0])))
+
+        else:
+            if int(self.line_export_stop.text()) < int(self.line_export_start.text()) + self.view.core_list[0].k:
+                self.line_export_start.setText('0')
+            elif int(self.line_export_stop.text()) > len(self.view.core_list[0]):
+                self.line_export_stop.setText(str(len(self.view.core_list[0])))
+
     def RefreshSliderCountInfo(self):
         for slider, info in zip(self.list_slider_count, self.list_slider_count_info):
             info.setText(str(slider.value() / 10))
@@ -670,8 +708,11 @@ class MainWindow(QMainWindow):
         self.RunFilter(self.filter_erode_checkbox.isChecked(), 'y_erode', fn)
 
     def RunFilterThreshold(self):
-        fn = lambda img: (img > np.std(img) * self.slider_threshold.value() / 10) * np.max(img)
-        self.RunFilter(self.filter_threshold_checkbox.isChecked(), 'z_threshold', fn)
+        for core in self.view.core_list:
+            core.threshold = self.filter_threshold_checkbox.isChecked()
+            core.threshold_value = self.slider_threshold.value() / 10
+
+        self.view.canvas_img.next_frame(0)
 
     def RunFilterBilateral(self):
         fn = lambda img: cv2.bilateralFilter(np.float32(img), int(self.slider_bilateral_d.value()),
@@ -706,7 +747,7 @@ class MainWindow(QMainWindow):
     def CorrelateButtonClick(self):
         for core in self.view.core_list:
             core.make_correlation()
-            core.type = 'corr'
+        self.view.change_type(None, 'corr')
         self.view.set_range()
         self.view.canvas_img.next_frame(0)
         self.tabs.setCurrentIndex(2)
@@ -716,8 +757,8 @@ class MainWindow(QMainWindow):
 
     def CountButtonClick(self):
         for core in self.view.core_list:
-            core.count_nps(int(self.line_count_start.text()), int(self.line_count_stop.text()),
-                           self.slider_distance.value())
+            core.run_count_nps(int(self.line_count_start.text()), int(self.line_count_stop.text()),
+                               self.slider_distance.value())
             # core.type = 'diff'
             self.filters_checkbox.setChecked(False)
             core.postprocessing = False
@@ -746,7 +787,7 @@ class MainWindow(QMainWindow):
 
     def ExportButtonClick(self):
         for core in self.view.core_list:
-            core.save_data()
+            core.save_data(int(self.line_export_start.text()), int(self.line_export_stop.text()))
 
     def ExportCSVButtonClick(self):
         if self.view.core_list[0].np_container is not None:

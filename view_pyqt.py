@@ -209,6 +209,7 @@ class Canvas(FigureCanvasQTAgg):
             self.next_frame(-1)
         elif event.key == 'f':
             self.main_window.filters_checkbox.click()
+            self.main_window.filter_threshold_checkbox.click()
 
         if event.canvas.figure is self.view.fig and event.inaxes is not None:
             core_list = [event.inaxes.core]
@@ -376,7 +377,8 @@ class View(object):
 
             if core.show_nps:
                 positions, colors = core.frame_np(self.f)
-                [p.remove() for p in self.axes[i].patches]
+
+                [p.remove() for p in reversed(self.axes[i].patches)]
 
                 for (p, c) in zip(positions, colors):
                     circle = mpatches.Circle(
@@ -424,6 +426,7 @@ class View(object):
                 if self.orientation:
                     axes.set_ylabel('channel {}. | {}'.format(axes.core.file[-1:], axes.core.type))
                 else:
+                    axes.set_xlabel('channel {}. | {}'.format(axes.core.file[-1:], axes.core.type))
                     axes.set_xlabel('channel {}. | {}'.format(axes.core.file[-1:], axes.core.type))
 
 
@@ -517,7 +520,7 @@ class View(object):
             self.locations.append(location)
             ax.add_patch(location)
 
-        if self.core_list[0].np_container is not None:
+        if self.core_list[0].np_container != []:
             chosen_plots[3] = True
 
         self.chosen_plot_indices = [i for i in range(len(chosen_plots)) if chosen_plots[i]]
@@ -568,17 +571,10 @@ class View(object):
 
                 elif self.plots[i]['key'] == 'nps_pos':
 
-                    nps_add = [sum(core.graphs['nps_pos'][:i]) for i in range(len(core))]
-
-                    axes.plot(
-                        nps_add,
-                        linewidth=2,
-                        color=COLORS[j],
-                        alpha=0.5,
-                        label='channel {}.'.format(j)
-                    )
-
-                    axes.bar(
+                    nps_add_pos = np.array([sum(core.graphs['nps_pos'][:i]) for i in range(len(core))])
+                    nps_add_neg = np.array([-1*sum(core.graphs['nps_neg'][:i]) for i in range(len(core))])
+                    axes_diff = axes.twinx()
+                    axes_diff.bar(
                         np.arange(0, len(core), 1),
                         core.graphs['nps_pos'],
                         linewidth=1,
@@ -586,6 +582,42 @@ class View(object):
                         alpha=0.5,
                         label='channel {}.'.format(j)
                     )
+
+                    axes.plot(
+                        nps_add_pos,
+                        linewidth=2,
+                        ls='--',
+                        color=COLORS[j],
+                        alpha=0.5,
+                        label='channel {}.'.format(j)
+                    )
+
+                    axes.plot(
+                        nps_add_pos - nps_add_neg,
+                        linewidth=2,
+                        color=COLORS[j],
+                        alpha=0.5,
+                        label='channel {}.'.format(j)
+                    )
+
+                    axes_diff.bar(
+                        np.arange(0, len(core), 1),
+                        -core.graphs['nps_neg'],
+                        linewidth=1,
+                        color=COLORS[j],
+                        alpha=0.5,
+                        label='channel {}.'.format(j)
+                    )
+
+                    axes.plot(
+                        nps_add_neg,
+                        linewidth=2,
+                        ls='--',
+                        color=COLORS[j],
+                        alpha=0.5,
+                        label='channel {}.'.format(j)
+                    )
+
 
                     add_time_bar(axes)
                 else:
