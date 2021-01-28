@@ -20,6 +20,8 @@ class Core(object):
         self._data_raw = None
         self._data_mask = None
         self._data_corr = None
+        self._data_diff_std = None
+        self._data_corr_std = None
 
         self._time_info = None
         self._ref_frame = 0
@@ -206,7 +208,7 @@ class Core(object):
         self.type = type_buffer
         return intensity
 
-    def save_data(self, start, stop, name=None):
+    def export_data(self, start, stop, name=None):
         if not os.path.isdir(self.folder + FOLDER_SAVED):
             os.mkdir(self.folder + FOLDER_SAVED)
 
@@ -225,12 +227,12 @@ class Core(object):
             # np.save(file_name + '_spanx' + '.npy', self._idea_span_x)
             # np.save(file_name + '_spany' + '.npy', self._idea_span_y)
 
-            print('Pattern saved')
+            print('Data exported')
 
         else:
-            print('Could not save the pattern.')
+            print('Could not export the data')
 
-    def save_csv(self, name=None):
+    def export_csv(self, name=None):
         if not os.path.isdir(self.folder + FOLDER_SAVED):
             os.mkdir(self.folder + FOLDER_SAVED)
 
@@ -243,6 +245,8 @@ class Core(object):
             nps_add = [sum(self.graphs['nps_pos'][:i]) for i in range(len(self))]
             for i in range(len(self)):
                 f.write('{}, {}, {}\n'.format(i, self.graphs['nps_pos'][i], nps_add[i]))
+
+        print('Data exported')
 
     def save_idea(self, name=None):
         if not os.path.isdir(self.folder + FOLDER_IDEAS):
@@ -368,11 +372,20 @@ class Core(object):
             if self.threshold_value > 0:
                 image = ndimage.maximum_filter(image, size=2)
                 # image = (image > np.std(image) * self.threshold_value) * self._range[self.type][1]
-                image = (image > self.autocorrelation_max * self.threshold_value/50) * self._range[self.type][1]
+
+                image = (image > self._data_corr_std[f] / np.average(
+                    self._data_corr_std[self.k * 3:]) * self.autocorrelation_max * self.threshold_value) * \
+                        self._range[self.type][1]
+
+                # image = (image > self.autocorrelation_max * self.threshold_value/50) * self._range[self.type][1]
 
             else:
                 image = -ndimage.maximum_filter(-image, size=2)
-                image = (image < self.autocorrelation_max * self.threshold_value/50) * self._range[self.type][1]
+                image = (image < self._data_corr_std[f] / np.average(
+                    self._data_corr_std[self.k * 3:]) * self.autocorrelation_max * self.threshold_value) * \
+                        self._range[self.type][1]
+
+                # image = (image < self.autocorrelation_max * self.threshold_value/50) * self._range[self.type][1]
 
         return image
 
@@ -423,11 +436,14 @@ class Core(object):
         self.type = 'diff'
 
         raw_diff = np.zeros(self.shape)
+        self._data_diff_std = []
+
         print('Processing data for correlation')
 
         for f in range(len(self)):
             print('\r\t{}/ {}'.format(f + 1, len(self)), end='')
             raw_diff[:, :, f] = self.frame(f)
+            self._data_diff_std.append(np.std(self.frame(f)))
 
         self._data_corr = scipy.signal.correlate(
             raw_diff,
@@ -435,6 +451,7 @@ class Core(object):
             mode='same'
         ) * 1e5
 
+        self._data_corr_std = np.std(self._data_corr, axis=(0, 1))
         self.type = img_type
         self._range['corr'] = [- np.max(self._data_corr[:, :, self.k * 3:]),
                                np.max(self._data_corr[:, :, self.k * 3:])]

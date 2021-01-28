@@ -144,7 +144,7 @@ class MainWindow(QMainWindow):
 
         self.filter_threshold_checkbox = gw.checkbox_filter('Threshold', False, self.RunFilterThreshold)
         self.slider_threshold = gw.slider(0, 200, 1, 50, self.RefreshSliderThresholdInfo)
-        self.slider_threshold_info = gw.value_label('5')
+        self.slider_threshold_info = gw.value_label('0.125')
 
         self.filter_distance_label = QLabel('Min. distance')
         self.filter_distance_label.setMinimumWidth(min_label_width)
@@ -625,7 +625,7 @@ class MainWindow(QMainWindow):
         self.RunFilterErode()
 
     def RefreshSliderThresholdInfo(self):
-        self.slider_threshold_info.setText(str(self.slider_threshold.value() / 10))
+        self.slider_threshold_info.setText(str(self.slider_threshold.value() / 400))
         self.RunFilterThreshold()
 
     def RefreshSliderDistanceInfo(self):
@@ -713,7 +713,7 @@ class MainWindow(QMainWindow):
     def RunFilterThreshold(self):
         for core in self.view.core_list:
             core.threshold = self.filter_threshold_checkbox.isChecked()
-            core.threshold_value = self.slider_threshold.value() / 10
+            core.threshold_value = self.slider_threshold.value()/400
 
         self.view.canvas_img.next_frame(0)
 
@@ -790,12 +790,12 @@ class MainWindow(QMainWindow):
 
     def ExportButtonClick(self):
         for core in self.view.core_list:
-            core.save_data(int(self.line_export_start.text()), int(self.line_export_stop.text()))
+            core.export_data(int(self.line_export_start.text()), int(self.line_export_stop.text()))
 
     def ExportCSVButtonClick(self):
         if self.view.core_list[0].np_container is not None:
             for core in self.view.core_list:
-                core.save_csv()
+                core.export_csv()
 
     def OpenButtonClick(self, s):
         dlg = QFileDialog(self)
