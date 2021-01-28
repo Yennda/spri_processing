@@ -373,8 +373,8 @@ class Core(object):
                 image = ndimage.maximum_filter(image, size=2)
                 # image = (image > np.std(image) * self.threshold_value) * self._range[self.type][1]
 
-                image = (image > self._data_corr_std[f] / np.average(
-                    self._data_corr_std[self.k * 3:]) * self.autocorrelation_max * self.threshold_value) * \
+                image = (image > (self._data_corr_std[f] / np.average(
+                    self._data_corr_std[self.k * 3:])) ** 2 * self.autocorrelation_max * self.threshold_value) * \
                         self._range[self.type][1]
 
                 # image = (image > self.autocorrelation_max * self.threshold_value/50) * self._range[self.type][1]

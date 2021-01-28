@@ -869,6 +869,7 @@ class MainWindow(QMainWindow):
 
         self.button_count.setDisabled(False)
         self.line_count_stop.setText(str(len(self.view.core_list[0])))
+        self.line_export_stop.setText(str(len(self.view.core_list[0])))
 
         # for item in self.forms_pre_processing:
         #     item.setDisabled(True)
