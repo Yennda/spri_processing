@@ -572,7 +572,7 @@ class View(object):
                 elif self.plots[i]['key'] == 'nps_pos':
 
                     nps_add_pos = np.array([sum(core.graphs['nps_pos'][:i]) for i in range(len(core))])
-                    nps_add_neg = np.array([-1 * sum(core.graphs['nps_neg'][:i]) for i in range(len(core))])
+                    # nps_add_neg = np.array([-1 * sum(core.graphs['nps_neg'][:i]) for i in range(len(core))])
                     axes_diff = axes.twinx()
                     axes_diff.bar(
                         np.arange(0, len(core), len(core) // 50),
@@ -592,31 +592,52 @@ class View(object):
                         label='channel {}.'.format(j)
                     )
 
-                    axes.plot(
-                        nps_add_pos + nps_add_neg,
-                        linewidth=2,
-                        color=COLORS[j],
-                        alpha=0.5,
-                        label='channel {}.'.format(j)
-                    )
+                    corr_std = []
+                    avg = np.average(core._data_corr_std[core.k * 3:])
+                    for cs in core._data_corr_std[core.k * 3:]:
+                        if cs / avg > 1:
+                            corr_std.append((cs / avg) ** 2)
+                        else:
+                            corr_std.append(1)
 
-                    axes_diff.bar(
-                        np.arange(0, len(core), len(core) // 50),
-                        -scipy.signal.decimate(core.graphs['nps_neg'], len(core) // 50) * len(core) // 50,
-                        width=len(core) // 50 * 0.8,
-                        color=COLORS[j],
-                        alpha=0.5,
-                        label='channel {}.'.format(j)
-                    )
+                    axes_threshold = axes.twinx()
+                    axes_threshold.set_yticks([])
 
-                    axes.plot(
-                        nps_add_neg,
+                    axes_threshold.plot(
+                        np.arange(core.k * 3, len(core)),
+                        corr_std,
                         linewidth=2,
                         ls='--',
-                        color=COLORS[j],
+                        color=COLORS[j + 1],
                         alpha=0.5,
                         label='channel {}.'.format(j)
                     )
+
+                    # axes.plot(
+                    #     nps_add_pos + nps_add_neg,
+                    #     linewidth=2,
+                    #     color=COLORS[j],
+                    #     alpha=0.5,
+                    #     label='channel {}.'.format(j)
+                    # )
+                    #
+                    # axes_diff.bar(
+                    #     np.arange(0, len(core), len(core) // 50),
+                    #     -scipy.signal.decimate(core.graphs['nps_neg'], len(core) // 50) * len(core) // 50,
+                    #     width=len(core) // 50 * 0.8,
+                    #     color=COLORS[j],
+                    #     alpha=0.5,
+                    #     label='channel {}.'.format(j)
+                    # )
+                    #
+                    # axes.plot(
+                    #     nps_add_neg,
+                    #     linewidth=2,
+                    #     ls='--',
+                    #     color=COLORS[j],
+                    #     alpha=0.5,
+                    #     label='channel {}.'.format(j)
+                    # )
 
                     add_time_bar(axes)
                 else:

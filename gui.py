@@ -518,7 +518,7 @@ class MainWindow(QMainWindow):
     def np_info_create(self):
         if self.view == None:
             text = 'Info will be displayed after image data processing.'
-        elif self.view.core_list[0].np_container is not None:
+        elif self.view.core_list[0].np_container != []:
             text = str()
 
             for core in self.view.core_list:
@@ -527,17 +527,17 @@ class MainWindow(QMainWindow):
                 text += '\ttotal: {}\n'.format(sum(core.graphs['nps_pos']))
                 text += '\t' + '-' * 27 + '\n'
                 text += '\tcurrently adsorbed: {}\n'.format(core.graphs['nps_pos'][self.view.f])
-                text += '\tcurrently dedsorbed: {}\n'.format(core.graphs['nps_neg'][self.view.f])
+                # text += '\tcurrently dedsorbed: {}\n'.format(core.graphs['nps_neg'][self.view.f])
                 text += '\t' + '-' * 27 + '\n'
 
                 text += '\tadsorbed up to now: {}\n'.format(sum(core.graphs['nps_pos'][:self.view.f]))
-                text += '\tdesorbed up to now: {}\n'.format(sum(core.graphs['nps_neg'][:self.view.f]))
+                # text += '\tdesorbed up to now: {}\n'.format(sum(core.graphs['nps_neg'][:self.view.f]))
                 text += '\t' + '-' * 27 + '\n'
 
-                text += '\tbalance: {}\n'.format(
-                    sum(core.graphs['nps_pos'][:self.view.f]) -
-                    sum(core.graphs['nps_neg'][:self.view.f])
-                )
+                # text += '\tbalance: {}\n'.format(
+                #     sum(core.graphs['nps_pos'][:self.view.f]) -
+                #     sum(core.graphs['nps_neg'][:self.view.f])
+                # )
 
                 text += '=' * 35 + '\n'
         else:

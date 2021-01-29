@@ -373,9 +373,13 @@ class Core(object):
                 image = ndimage.maximum_filter(image, size=2)
                 # image = (image > np.std(image) * self.threshold_value) * self._range[self.type][1]
 
-                image = (image > (self._data_corr_std[f] / np.average(
-                    self._data_corr_std[self.k * 3:])) ** 2 * self.autocorrelation_max * self.threshold_value) * \
-                        self._range[self.type][1]
+                level = self._data_corr_std[f] / np.average(self._data_corr_std[self.k * 3:])
+
+                if level > 1:
+                    image = (image > level ** 2 * self.autocorrelation_max * self.threshold_value) * \
+                            self._range[self.type][1]
+                else:
+                    image = (image > self.autocorrelation_max * self.threshold_value) * self._range[self.type][1]
 
                 # image = (image > self.autocorrelation_max * self.threshold_value/50) * self._range[self.type][1]
 
@@ -487,9 +491,9 @@ class Core(object):
 
         self.count_nps(start, stop, dpx)
 
-        self.threshold_value *= -1
-        self.count_nps(start, stop, dpx)
-        self.threshold_value *= -1
+        # self.threshold_value *= -1
+        # self.count_nps(start, stop, dpx)
+        # self.threshold_value *= -1
 
     def count_nps(self, start, stop, dpx, ):
         if self.threshold_value > 0:
