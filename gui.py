@@ -198,6 +198,7 @@ class MainWindow(QMainWindow):
 
         self.button_export = gw.button(None, 'Export data', self.font, True, self.ExportButtonClick)
         self.button_export_csv = gw.button(None, 'Export NP info as CSV', self.font, True, self.ExportCSVButtonClick)
+        self.button_export_parameters = gw.button(None, 'Export parameters', self.font, True, self.ExportParametersButtonClick)
 
         self.button_count = gw.button('count-cat-icon', 'Count NPs', self.font, True, self.CountButtonClick)
         self.button_count.setStatusTip('Counts nanoparticles.')
@@ -500,6 +501,7 @@ class MainWindow(QMainWindow):
 
         layout.addWidget(self.button_export)
         layout.addWidget(self.button_export_csv)
+        layout.addWidget(self.button_export_parameters)
 
         layout.addStretch(1)
         Tab.setLayout(layout)
@@ -713,7 +715,7 @@ class MainWindow(QMainWindow):
     def RunFilterThreshold(self):
         for core in self.view.core_list:
             core.threshold = self.filter_threshold_checkbox.isChecked()
-            core.threshold_value = self.slider_threshold.value()/400
+            core.threshold_value = self.slider_threshold.value() / 400
 
         self.view.canvas_img.next_frame(0)
 
@@ -746,6 +748,48 @@ class MainWindow(QMainWindow):
 
         core.postprocessing_filters = collections.OrderedDict(sorted(core.postprocessing_filters.items()))
         self.view.canvas_img.next_frame(0)
+
+    def export_parameters(self):
+        if not os.path.isdir(self.folder + gv.FOLDER_SAVED):
+            os.mkdir(self.folder + gv.FOLDER_SAVED)
+
+        for core in self.view.core_list:
+            name = core.file
+
+            file_name = self.folder + gv.FOLDER_SAVED + '/' + 'parameters_' + name + '.txt'
+
+            parameters = [
+                self.slider_downsample_info,
+                self.slider_k_info,
+                self.slider_wiener_info,
+                self.slider_wiener_noise_info,
+                self.slider_bilateral_d_info,
+                self.slider_bilateral_color_info,
+                self.slider_bilateral_space_info,
+                self.slider_gauss_info,
+                self.slider_threshold_info,
+                self.slider_distance_info
+            ]
+
+            info = """
+self.slider_downsample_info,
+self.slider_k_info,
+self.slider_wiener_info,
+self.slider_wiener_noise_info,
+self.slider_bilateral_d_info,
+self.slider_bilateral_color_info,
+self.slider_bilateral_space_info,
+self.slider_gauss_info,
+self.slider_threshold_info,
+self.slider_distance_info
+            """
+
+            with open(file_name, mode='w') as f:
+                for p in parameters:
+                    f.write('{}\n'.format(p.text()))
+                f.write(info)
+
+            print('Parameters exported')
 
     def CorrelateButtonClick(self):
         for core in self.view.core_list:
@@ -797,6 +841,9 @@ class MainWindow(QMainWindow):
             for core in self.view.core_list:
                 core.export_csv()
 
+    def ExportParametersButtonClick(self):
+        self.export_parameters()
+
     def OpenButtonClick(self, s):
         dlg = QFileDialog(self)
 
@@ -806,6 +853,7 @@ class MainWindow(QMainWindow):
             self.button_correlate.setDisabled(False)
             self.button_export.setDisabled(False)
             self.button_export_csv.setDisabled(False)
+            self.button_export_parameters.setDisabled(False)
             self.tool_file_info.setDisabled(False)
 
             if self.width[0] < self.height[0]:

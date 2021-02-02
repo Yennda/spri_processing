@@ -1,11 +1,10 @@
 import os
 import time
 
-import cv2
 import numpy as np
-import scipy as sc
 import scipy.signal
 from scipy import ndimage
+
 
 from global_var import *
 import tools as tl
@@ -371,9 +370,13 @@ class Core(object):
         if self.threshold and self.type == 'corr':
             if self.threshold_value > 0:
                 image = ndimage.maximum_filter(image, size=2)
+
+                # scikit.
                 # image = (image > np.std(image) * self.threshold_value) * self._range[self.type][1]
 
                 level = self._data_corr_std[f] / np.average(self._data_corr_std[self.k * 3:])
+
+
 
                 if level > 1:
                     image = (image > level ** 2 * self.autocorrelation_max * self.threshold_value) * \

@@ -362,19 +362,20 @@ class View(object):
         for i, core in enumerate(self.core_list):
             self.img_shown[i].set_array(core.frame(self.f))
 
-            if 2 in self.chosen_plot_indices:
-                axes = self.axes_plot_list[self.chosen_plot_indices.index(2)]
-                for j, core in enumerate(self.core_list):
-                    values, counts = core.histogram()
-                    axes.clear()
-                    axes.bar(
-                        values,
-                        counts,
-                        width=values[1] - values[0],
-                        color=COLORS[j],
-                        alpha=0.5,
-                        label='channel {}.'.format(j)
-                    )
+            if self.chosen_plot_indices is not None:
+                if 2 in self.chosen_plot_indices:
+                    axes = self.axes_plot_list[self.chosen_plot_indices.index(2)]
+                    for j, core in enumerate(self.core_list):
+                        values, counts = core.histogram()
+                        axes.clear()
+                        axes.bar(
+                            values,
+                            counts,
+                            width=values[1] - values[0],
+                            color=COLORS[j],
+                            alpha=0.5,
+                            label='channel {}.'.format(j)
+                        )
 
             if core.show_nps:
                 positions, colors = core.frame_np(self.f)
@@ -550,14 +551,15 @@ class View(object):
 
             for j, core in enumerate(self.core_list):
                 if self.plots[i]['key'] == 'spr_signal':
-                    axes.plot(
-                        core.graphs['spr_signal'] - core.graphs['spr_signal'][0] + 1,
-                        linewidth=1,
-                        color=COLORS[j],
-                        alpha=0.5,
-                        label='channel {}.'.format(j)
-                    )
-                    add_time_bar(axes)
+                    if core.graphs['spr_signal'] is not None:
+                        axes.plot(
+                            core.graphs['spr_signal'] - core.graphs['spr_signal'][0] + 1,
+                            linewidth=1,
+                            color=COLORS[j],
+                            alpha=0.5,
+                            label='channel {}.'.format(j)
+                        )
+                        add_time_bar(axes)
 
                 elif self.plots[i]['key'] == 'histogram':
                     values, counts = core.histogram()
@@ -608,7 +610,7 @@ class View(object):
                         corr_std,
                         linewidth=2,
                         ls='--',
-                        color=COLORS[j + 1],
+                        color=red,
                         alpha=0.5,
                         label='channel {}.'.format(j)
                     )
