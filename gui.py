@@ -138,13 +138,20 @@ class MainWindow(QMainWindow):
         self.slider_gauss = gw.slider(0, 50, 1, 10, self.RefreshSliderGaussInfo)
         self.slider_gauss_info = gw.value_label('1')
 
-        self.filter_erode_checkbox = gw.checkbox_filter('maximum', False, self.RunFilterErode)
-        self.slider_erode = gw.slider(0, 50, 1, 10, self.RefreshSliderErodeInfo)
-        self.slider_erode_info = gw.value_label('1')
+        self.filter_erode_checkbox = gw.checkbox_filter('Fourier', False, self.RunFilterErode)
+        self.slider_erode = gw.slider(0, 400, 1, 200, self.RefreshSliderErodeInfo)
+        self.slider_erode_info = gw.value_label('0')
 
         self.filter_threshold_checkbox = gw.checkbox_filter('Threshold', False, self.RunFilterThreshold)
         self.slider_threshold = gw.slider(0, 200, 1, 50, self.RefreshSliderThresholdInfo)
         self.slider_threshold_info = gw.value_label('0.125')
+
+        self.slider_threshold_adaptive = gw.slider(0, 50, 1, 20, self.RefreshSliderThresholdInfo)
+        self.slider_threshold_adaptive_info = gw.value_label('2')
+
+        self.label_threshold = QLabel('\tAdaptive coefficient')
+        self.label_threshold.setMinimumWidth(min_label_width)
+
 
         self.filter_distance_label = QLabel('Min. distance')
         self.filter_distance_label.setMinimumWidth(min_label_width)
@@ -198,7 +205,8 @@ class MainWindow(QMainWindow):
 
         self.button_export = gw.button(None, 'Export data', self.font, True, self.ExportButtonClick)
         self.button_export_csv = gw.button(None, 'Export NP info as CSV', self.font, True, self.ExportCSVButtonClick)
-        self.button_export_parameters = gw.button(None, 'Export parameters', self.font, True, self.ExportParametersButtonClick)
+        self.button_export_parameters = gw.button(None, 'Export parameters', self.font, True,
+                                                  self.ExportParametersButtonClick)
 
         self.button_count = gw.button('count-cat-icon', 'Count NPs', self.font, True, self.CountButtonClick)
         self.button_count.setStatusTip('Counts nanoparticles.')
@@ -274,6 +282,10 @@ class MainWindow(QMainWindow):
             self.slider_threshold,
             self.slider_threshold_info,
             self.filter_threshold_checkbox,
+            self.label_threshold,
+            self.slider_threshold_adaptive,
+            self.slider_threshold_adaptive_info,
+            self.filter_distance_label,
             self.slider_distance_info,
             self.slider_distance,
         ]
@@ -420,6 +432,14 @@ class MainWindow(QMainWindow):
             self.filter_threshold_checkbox,
             self.slider_threshold,
             self.slider_threshold_info
+        ))
+
+
+
+        layout.addLayout(gw.layout_slider(
+            self.label_threshold,
+            self.slider_threshold_adaptive,
+            self.slider_threshold_adaptive_info
         ))
 
         layout.addLayout(gw.layout_slider(
@@ -623,11 +643,13 @@ class MainWindow(QMainWindow):
         self.RunFilterGaussian()
 
     def RefreshSliderErodeInfo(self):
-        self.slider_erode_info.setText(str(self.slider_erode.value()))
+        self.slider_erode_info.setText(str(self.slider_erode.value() - 200))
         self.RunFilterErode()
 
     def RefreshSliderThresholdInfo(self):
         self.slider_threshold_info.setText(str(self.slider_threshold.value() / 400))
+        self.slider_threshold_adaptive_info.setText(str(self.slider_threshold_adaptive.value()/10))
+
         self.RunFilterThreshold()
 
     def RefreshSliderDistanceInfo(self):
@@ -709,13 +731,17 @@ class MainWindow(QMainWindow):
         self.RunFilter(self.filter_gauss_checkbox.isChecked(), 'c_gauss', fn)
 
     def RunFilterErode(self):
-        fn = lambda img: ndimage.maximum_filter(img, size=self.slider_erode.value())
-        self.RunFilter(self.filter_erode_checkbox.isChecked(), 'y_erode', fn)
+        # fn = lambda img: ndimage.maximum_filter(img, size=self.slider_erode.value())
+
+        fn = lambda img: tl.fourier_filter_threshold(img, self.slider_erode.value() - 200)
+
+        self.RunFilter(self.filter_erode_checkbox.isChecked(), 'a_fourier', fn)
 
     def RunFilterThreshold(self):
         for core in self.view.core_list:
             core.threshold = self.filter_threshold_checkbox.isChecked()
             core.threshold_value = self.slider_threshold.value() / 400
+            core.threshold_adaptive = self.slider_threshold_adaptive.value()
 
         self.view.canvas_img.next_frame(0)
 
@@ -768,6 +794,7 @@ class MainWindow(QMainWindow):
                 self.slider_bilateral_space_info,
                 self.slider_gauss_info,
                 self.slider_threshold_info,
+                self.slider_threshold_adaptive_info,
                 self.slider_distance_info
             ]
 
@@ -781,6 +808,7 @@ self.slider_bilateral_color_info,
 self.slider_bilateral_space_info,
 self.slider_gauss_info,
 self.slider_threshold_info,
+self.slider_threshold_adaptive_info,
 self.slider_distance_info
             """
 

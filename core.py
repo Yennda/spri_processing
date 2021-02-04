@@ -5,7 +5,6 @@ import numpy as np
 import scipy.signal
 from scipy import ndimage
 
-
 from global_var import *
 import tools as tl
 from nanoparticle import NanoParticle
@@ -21,6 +20,9 @@ class Core(object):
         self._data_corr = None
         self._data_diff_std = None
         self._data_corr_std = None
+
+        self._mask_fourier = None
+        self._mask_ommit = None
 
         self._time_info = None
         self._ref_frame = 0
@@ -44,6 +46,7 @@ class Core(object):
         self.postprocessing_filters = dict()
         self.threshold = False
         self.threshold_value = 0
+        self.threshold_adaptive = False
 
         # np_counting
         self.stack_frames = []
@@ -62,6 +65,7 @@ class Core(object):
 
         self._load_data()
         self.load_idea()
+        self._mask_ommit = np.zeros(self.shape_img)
         self.ref_frame = 10
 
     def _load_data(self):
@@ -307,6 +311,11 @@ class Core(object):
         if self.type == 'diff':
             image = self.frame_diff(f)
 
+            if self._mask_fourier is not None:
+                f = np.fft.fft2(image)
+                f[self._mask_fourier] = 0
+                image = np.real(np.fft.ifft2(f))
+
         elif self.type == 'int':
             current = np.average(
                 self._data_raw[:, :, f // self.k * self.k - self.k: f // self.k * self.k],
@@ -376,15 +385,15 @@ class Core(object):
 
                 level = self._data_corr_std[f] / np.average(self._data_corr_std[self.k * 3:])
 
-
-
                 if level > 1:
-                    image = (image > level ** 2 * self.autocorrelation_max * self.threshold_value) * \
+
+                    image = (
+                                    image > level ** self.threshold_adaptive * self.autocorrelation_max * self.threshold_value) * \
                             self._range[self.type][1]
                 else:
                     image = (image > self.autocorrelation_max * self.threshold_value) * self._range[self.type][1]
 
-                # image = (image > self.autocorrelation_max * self.threshold_value/50) * self._range[self.type][1]
+                image = (image > self.autocorrelation_max * self.threshold_value / 50) * self._range[self.type][1]
 
             else:
                 image = -ndimage.maximum_filter(-image, size=2)
@@ -437,7 +446,7 @@ class Core(object):
     def make_correlation(self):
         time0 = time.time()
         if self.idea3d is None:
-            raise Exception('No selected NP patter for file {}'.format(self.file))
+            raise Exception('No selected NP patter for the file {}'.format(self.file))
 
         img_type = self.type
         self.type = 'diff'
@@ -595,6 +604,7 @@ class Core(object):
                 # if True:
                 x = (np_slice[0].start + np_slice[0].stop) / 2
                 y = (np_slice[1].start + np_slice[1].stop) / 2
+
                 dt = int(np_slice[2].stop - np_slice[2].start)
 
                 nnp = NanoParticle(idnp, np_slice[2].start, [np.array([x, y])] * dt, positive=self.threshold_value > 0)
@@ -603,9 +613,15 @@ class Core(object):
 
                 if idnp in blacklist_npid:
                     nnp.color = yellow
+
                 self.np_container.append(nnp)
 
-                self.graphs[plot][np_slice[2].start] += 1
+                if self._mask_ommit[int(x), int(y)]:
+                    nnp.color = red
+                else:
+
+                    self.graphs[plot][np_slice[2].start] += 1
+
                 for i in range(dt):
                     self.nps_in_frame[np_slice[2].start + i].append(idnp)
             else:

@@ -36,6 +36,10 @@ class Canvas(FigureCanvasQTAgg):
         self.plot_select_window = None
         self.main_window = None
 
+        self.mask = None
+        self.mask_img = None
+        self.toggle_selector = None
+
         if img:
             super(Canvas, self).__init__(view.fig)
             self.mpl_connect('axes_enter_event', self.mouse_enter)
@@ -52,7 +56,7 @@ class Canvas(FigureCanvasQTAgg):
         self.view.next_frame(df)
 
     def mouse_click_spr(self, event):
-        if event.button == 1:
+        if event.button == 1 and event.inaxes.get_title() != 'Histogram':
             self.next_frame(int(round(event.xdata)) - self.view.f)
 
     def mouse_enter(self, event):
@@ -120,6 +124,43 @@ class Canvas(FigureCanvasQTAgg):
 
         print('File SAVED @{}'.format(name))
 
+    def select_area(self, axes):
+
+        def toggle_selector(event):
+            pass
+
+        self.mask = np.zeros(axes.core.shape_img)
+
+        self.mask_img = axes.imshow(
+            self.mask,
+            cmap='gray',
+            zorder=1,
+            alpha=0.2,
+            vmin=0,
+            vmax=1
+        )
+
+        if self.toggle_selector is None:
+            self.toggle_selector = toggle_selector
+            self.toggle_selector.RS = RectangleSelector(
+                axes,
+                lambda eclick, erelease: self.handle_select_area(
+                    axes,
+                    eclick,
+                    erelease
+                ),
+                drawtype='box', useblit=True,
+                button=[1, 3],  # don't use middle button
+                minspanx=5,
+                minspany=5,
+                spancoords='pixels',
+                interactive=True
+            )
+        else:
+            self.toggle_selector.RS.set_active(True)
+
+        self.mpl_connect('key_press_event', self.toggle_selector)
+
     def select_np_pattern(self, axes):
         xlim = [int(i) for i in axes.get_xlim()]
         ylim = [int(i) for i in axes.get_ylim()]
@@ -162,6 +203,19 @@ class Canvas(FigureCanvasQTAgg):
         self.plot_select_window = SelectWindow(canvas_plot_select)
         self.plot_select_window.show()
         self.plot_select_window.activateWindow()
+
+    def handle_select_area(self, axes, eclick, erelease):
+        print(eclick)
+        print(erelease)
+        corner_1 = [tl.true_coordinate(b) for b in (eclick.xdata, eclick.ydata)]
+        corner_2 = [tl.true_coordinate(e) for e in (erelease.xdata, erelease.ydata)]
+        self.mask[corner_1[1]:corner_2[1], corner_1[0]:corner_2[0]] = 1
+
+        self.mask_img.set_array(
+            self.mask
+        )
+
+        self.draw()
 
     def handle_choose_idea(self, axes, shift, eclick, erelease):
         corner_1 = [tl.true_coordinate(b) for b in (eclick.xdata, eclick.ydata)]
@@ -220,6 +274,18 @@ class Canvas(FigureCanvasQTAgg):
                 self.save_frame(event.inaxes)
             elif event.key == 'd':
                 self.select_np_pattern(event.inaxes)
+            elif event.key == 't':
+                if self.mask is None:
+                    self.select_area(event.inaxes)
+                else:
+                    if event.inaxes.core.type == 'four_d':
+                        event.inaxes.core._mask_fourier = self.mask == 1
+                    elif event.inaxes.core.type == 'diff':
+                        event.inaxes.core._mask_ommit = self.mask == 1
+
+                    self.mask = None
+                    self.mask_img.remove()
+                    self.toggle_selector.RS.set_active(False)
 
         else:
             core_list = self.view.core_list
@@ -365,9 +431,13 @@ class View(object):
             if self.chosen_plot_indices is not None:
                 if 2 in self.chosen_plot_indices:
                     axes = self.axes_plot_list[self.chosen_plot_indices.index(2)]
+
+                    axes.cla()
+                    axes.set_title(self.plots[2]['title'])
+                    axes.set_xlabel(self.plots[2]['xlabel'])
+                    axes.set_ylabel(self.plots[2]['ylabel'])
                     for j, core in enumerate(self.core_list):
                         values, counts = core.histogram()
-                        axes.clear()
                         axes.bar(
                             values,
                             counts,
@@ -574,11 +644,15 @@ class View(object):
                 elif self.plots[i]['key'] == 'nps_pos':
 
                     nps_add_pos = np.array([sum(core.graphs['nps_pos'][:i]) for i in range(len(core))])
+
+                    nps_diff_pos = [np.sum(core.graphs['nps_pos'][i * len(core) // 50:(i + 1) * len(core) // 50]) for i
+                                    in range(50)]
+
                     # nps_add_neg = np.array([-1 * sum(core.graphs['nps_neg'][:i]) for i in range(len(core))])
                     axes_diff = axes.twinx()
                     axes_diff.bar(
-                        np.arange(0, len(core), len(core) // 50),
-                        scipy.signal.decimate(core.graphs['nps_pos'], len(core) // 50) * len(core) // 50,
+                        np.arange(0, len(nps_diff_pos)) * len(core) // 50,
+                        nps_diff_pos,
                         width=len(core) // 50 * 0.8,
                         color=COLORS[j],
                         alpha=0.5,

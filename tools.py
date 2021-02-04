@@ -43,7 +43,7 @@ def read_file_info(path):
     return int(width), int(height), (int(t2) - int(t0)) / 1e7, int(avg), int(len(lines)), float(ets)
 
 
-def fourier_filter(img, level, longpass):
+def fourier_filter(img, level, longpass=True):
     f = np.fft.fft2(img)
     magnitude_spectrum = 20 * np.log(np.abs(f))
 
@@ -55,6 +55,15 @@ def fourier_filter(img, level, longpass):
     ] = not longpass
 
     f[mask] = 0
+    return np.real(np.fft.ifft2(f))
+
+
+def fourier_filter_threshold(img, level):
+    f = np.fft.fft2(img)
+    f[f > np.exp(level / 20)] = 0
+
+    f[:25, :25] = 0
+    f[-25:, -25:] = 0
     return np.real(np.fft.ifft2(f))
 
 
@@ -94,6 +103,3 @@ def before_save_file(path):
         return False
 
     return True
-
-
-
