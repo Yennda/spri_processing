@@ -124,131 +124,128 @@ class Canvas(FigureCanvasQTAgg):
 
         print('File SAVED @{}'.format(name))
 
-    def select_area(self, axes):
+    def select_area(self, axes, what):
+        if self.mask is None:
+            if what == 'fourier':
+                self.view.change_type(axes, 'four_d')
+                self.set_range(axes)
+                self.mask = axes.core._mask_fourier
 
-        def toggle_selector(event):
-            pass
+            elif what == 'ommit':
+                self.mask = axes.core._mask_ommit
 
-        self.mask = np.zeros(axes.core.shape_img)
+            elif what == 'np':
+                self.view.change_type(axes, 'diff')
+                self.set_range(axes)
 
-        self.mask_img = axes.imshow(
-            self.mask,
-            cmap='gray',
-            zorder=1,
-            alpha=0.2,
-            vmin=0,
-            vmax=1
-        )
+            if self.mask is None:
+                self.mask = np.zeros(axes.core.shape_img)
 
-        if self.toggle_selector is None:
-            self.toggle_selector = toggle_selector
-            self.toggle_selector.RS = RectangleSelector(
-                axes,
-                lambda eclick, erelease: self.handle_select_area(
-                    axes,
-                    eclick,
-                    erelease
-                ),
-                drawtype='box', useblit=True,
-                button=[1, 3],  # don't use middle button
-                minspanx=5,
-                minspany=5,
-                spancoords='pixels',
-                interactive=True
+            self.mask_img = axes.imshow(
+                self.mask,
+                cmap='gray',
+                zorder=1,
+                alpha=0.2,
+                vmin=0,
+                vmax=1
             )
+
+            if axes.toggle_selector is None:
+                def toggle_selector(event):
+                    pass
+
+                axes.toggle_selector = toggle_selector
+                axes.toggle_selector.RS = RectangleSelector(
+                    axes,
+                    lambda eclick, erelease: self.handle_select_area(
+                        axes,
+                        what,
+                        eclick,
+                        erelease
+                    ),
+                    drawtype='box', useblit=True,
+                    button=[1, 3],  # don't use middle button
+                    minspanx=5,
+                    minspany=5,
+                    spancoords='pixels',
+                    interactive=True
+                )
+                self.mpl_connect('key_press_event', axes.toggle_selector)
+
+            else:
+                axes.toggle_selector.RS.set_active(True)
+
         else:
-            self.toggle_selector.RS.set_active(True)
 
-        self.mpl_connect('key_press_event', self.toggle_selector)
+            if what == 'fourier':
+                if len(self.mask.nonzero()[0]):
+                    print('jen nuly')
+                    axes.core._mask_fourier = None
 
-    def select_np_pattern(self, axes):
-        xlim = [int(i) for i in axes.get_xlim()]
-        ylim = [int(i) for i in axes.get_ylim()]
+                axes.core._mask_fourier = self.mask == 1
+                self.view.change_type(axes, 'diff')
+                self.set_range(axes)
 
-        img = axes.get_images()[0]
-        raw_idea = img.get_array()[
-                   ylim[1]: ylim[0],
-                   xlim[0]: xlim[1]
-                   ]
+            elif what == 'ommit':
+                if len(self.mask.nonzero()[0]):
+                    print('jen nuly')
+                    axes.core._mask_ommit = None
+                axes.core._mask_ommit = self.mask == 1
 
-        def toggle_selector(event):
-            pass
+            self.mask = None
+            self.mask_img.remove()
+            axes.toggle_selector.RS.set_active(False)
 
-        fig_idea, axes_idea = plt.subplots()
-        axes_idea.imshow(
-            raw_idea,
-            cmap='gray'
-        )
-
-        canvas_plot_select = FigureCanvasQTAgg(fig_idea)
-
-        toggle_selector.RS = RectangleSelector(
-            axes_idea,
-            lambda eclick, erelease: self.handle_choose_idea(
-                axes,
-                (ylim[1], xlim[0]),
-                eclick,
-                erelease
-            ),
-            drawtype='box', useblit=True,
-            button=[1, 3],  # don't use middle button
-            minspanx=5,
-            minspany=5,
-            spancoords='pixels',
-            interactive=True
-        )
-
-        plt.connect('key_press_event', toggle_selector)
-
-        self.plot_select_window = SelectWindow(canvas_plot_select)
-        self.plot_select_window.show()
-        self.plot_select_window.activateWindow()
-
-    def handle_select_area(self, axes, eclick, erelease):
-        print(eclick)
-        print(erelease)
-        corner_1 = [tl.true_coordinate(b) for b in (eclick.xdata, eclick.ydata)]
-        corner_2 = [tl.true_coordinate(e) for e in (erelease.xdata, erelease.ydata)]
-        self.mask[corner_1[1]:corner_2[1], corner_1[0]:corner_2[0]] = 1
-
-        self.mask_img.set_array(
-            self.mask
-        )
-
+        self.next_frame(0)
         self.draw()
 
-    def handle_choose_idea(self, axes, shift, eclick, erelease):
+    def handle_select_area(self, axes, what, eclick, erelease):
         corner_1 = [tl.true_coordinate(b) for b in (eclick.xdata, eclick.ydata)]
         corner_2 = [tl.true_coordinate(e) for e in (erelease.xdata, erelease.ydata)]
-        span_x = np.array([
-            shift[1] + corner_1[0] + 1 - 2,
-            shift[1] + corner_2[0] + 2
-        ])
-        span_y = np.array([
-            shift[0] + corner_1[1] + 1 - 2,
-            shift[0] + corner_2[1] + 2
-        ])
 
-        idea3d = np.zeros((span_y[1] - span_y[0], span_x[1] - span_x[0], 2 * axes.core.k))
+        if what == 'np':
+            xlim = [int(i) for i in axes.get_xlim()]
+            ylim = [int(i) for i in axes.get_ylim()]
+            shift = (ylim[1], xlim[0])
 
-        for i in range(2 * axes.core.k):
-            idea3d[:, :, i] = axes.core.frame(self.view.f + axes.core.k - i)[
-                              span_y[0]: span_y[1],
-                              span_x[0]: span_x[1]]
+            span_x = np.array([
+                shift[1] + corner_1[0] + 1 - 2,
+                shift[1] + corner_2[0] + 2
+            ])
+            span_y = np.array([
+                shift[0] + corner_1[1] + 1 - 2,
+                shift[0] + corner_2[1] + 2
+            ])
 
-        axes.core.idea3d = idea3d
-        print('Pattern chosen')
+            idea3d = np.zeros((span_y[1] - span_y[0], span_x[1] - span_x[0], 2 * axes.core.k))
 
-        axes.core.save_idea()
+            for i in range(2 * axes.core.k):
+                idea3d[:, :, i] = axes.core.frame(self.view.f + axes.core.k - i)[
+                                  span_y[0]: span_y[1],
+                                  span_x[0]: span_x[1]]
+
+            axes.core.idea3d = idea3d
+            print('Pattern chosen')
+
+            axes.core.save_idea()
+
+        else:
+            self.mask[corner_1[1]:corner_2[1], corner_1[0]:corner_2[0]] = 1
+
+            self.mask_img.set_array(
+                self.mask
+            )
+
+            self.draw()
+
+    def set_range(self, axes):
+        img = axes.get_images()[0]
+        img.set_clim(axes.core.range)
+        for txt, c in zip(self.view.text, self.view.core_list):
+            txt.set_text('rng = {:.4f}'.format(c.range[1]))
 
     def button_press(self, event):
         key_press_handler(event, self, self.toolbar)
-
-        def set_range(axes):
-            img = axes.get_images()[0]
-            img.set_clim(axes.core.range)
-            for txt, c in zip(self.view.text, self.view.core_list):
-                txt.set_text('rng = {:.4f}'.format(c.range[1]))
 
         if event.key == '9':
             self.next_frame(self.view.core_list[0].k * 10)
@@ -275,17 +272,8 @@ class Canvas(FigureCanvasQTAgg):
             elif event.key == 'd':
                 self.select_np_pattern(event.inaxes)
             elif event.key == 't':
-                if self.mask is None:
-                    self.select_area(event.inaxes)
-                else:
-                    if event.inaxes.core.type == 'four_d':
-                        event.inaxes.core._mask_fourier = self.mask == 1
-                    elif event.inaxes.core.type == 'diff':
-                        event.inaxes.core._mask_ommit = self.mask == 1
+                self.select_area(event.inaxes)
 
-                    self.mask = None
-                    self.mask_img.remove()
-                    self.toggle_selector.RS.set_active(False)
 
         else:
             core_list = self.view.core_list
@@ -296,63 +284,63 @@ class Canvas(FigureCanvasQTAgg):
             if event.key == '5':
                 core.range = [i * 1.2 for i in core.range]
                 # print('core: {}, range: {}'.format(core.file, core.range))
-                set_range(axes)
+                self.set_range(axes)
 
             elif event.key == '8':
                 core.range = [i / 1.2 for i in core.range]
                 # print('core: {}, range: {}'.format(core.file, core.range))
-                set_range(axes)
+                self.set_range(axes)
 
             elif event.key == 'ctrl+1':
                 self.view.change_type(axes, 'raw')
-                set_range(axes)
+                self.set_range(axes)
                 self.next_frame(0)
 
             elif event.key == 'ctrl+2':
                 self.view.change_type(axes, 'int')
-                set_range(axes)
+                self.set_range(axes)
                 self.next_frame(0)
 
             elif event.key == 'ctrl+3':
                 self.view.change_type(axes, 'diff')
-                set_range(axes)
+                self.set_range(axes)
                 self.next_frame(0)
 
             elif event.key == 'ctrl+5':
                 self.view.change_type(axes, 'diff')
-                set_range(axes)
+                self.set_range(axes)
                 self.next_frame(0)
                 self.main_window.filters_checkbox.click()
 
             elif event.key == 'ctrl+6':
                 self.view.change_type(axes, 'corr')
-                set_range(axes)
+                self.set_range(axes)
                 self.next_frame(0)
                 self.main_window.filters_checkbox.click()
 
             elif event.key == 'alt+1':
                 self.view.change_type(axes, 'four_r')
-                set_range(axes)
+                self.set_range(axes)
                 self.next_frame(0)
 
             elif event.key == 'alt+2':
                 self.view.change_type(axes, 'four_i')
-                set_range(axes)
+                self.set_range(axes)
                 self.next_frame(0)
 
             elif event.key == 'alt+3':
                 self.view.change_type(axes, 'four_d')
-                set_range(axes)
+                self.set_range(axes)
                 self.next_frame(0)
 
             elif event.key == 'alt+4':
                 self.view.change_type(axes, 'mask')
-                set_range(axes)
+                self.set_range(axes)
                 self.next_frame(0)
 
             elif event.key == 'ctrl+4':
                 self.view.change_type(axes, 'corr')
-                set_range(axes)
+                self.set_range(axes)
                 self.next_frame(0)
 
             elif event.key == 'i':
@@ -537,6 +525,7 @@ class View(object):
                 )
             )
             self.axes[i].core = core
+            self.axes[i].toggle_selector = None
 
             fontprops = fm.FontProperties(size=20)
             show_scalebar = AnchoredSizeBar(self.axes[i].transData,

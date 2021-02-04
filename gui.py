@@ -146,12 +146,11 @@ class MainWindow(QMainWindow):
         self.slider_threshold = gw.slider(0, 200, 1, 50, self.RefreshSliderThresholdInfo)
         self.slider_threshold_info = gw.value_label('0.125')
 
-        self.slider_threshold_adaptive = gw.slider(0, 50, 1, 20, self.RefreshSliderThresholdInfo)
-        self.slider_threshold_adaptive_info = gw.value_label('2')
+        self.slider_threshold_adaptive = gw.slider(0, 50, 1, 0, self.RefreshSliderThresholdInfo)
+        self.slider_threshold_adaptive_info = gw.value_label('0')
 
         self.label_threshold = QLabel('\tAdaptive coefficient')
         self.label_threshold.setMinimumWidth(min_label_width)
-
 
         self.filter_distance_label = QLabel('Min. distance')
         self.filter_distance_label.setMinimumWidth(min_label_width)
@@ -201,7 +200,18 @@ class MainWindow(QMainWindow):
         self.button_build = gw.button('arrow', 'Build', self.font, True, self.BuildButtonClick)
         self.button_build.setStatusTip('Builds the view of the data. It usually takes a while.')
 
+        self.fourier_box = QComboBox()
+        self.button_fourier = gw.button(None, 'Select', self.font, True, self.FourierButtonClick)
+        self.button_fourier_clear = gw.button(None, 'Clear', self.font, True, self.FourierRemoveButtonClick)
+
+        self.ommit_box = QComboBox()
+        self.button_ommit = gw.button(None, 'Select', self.font, True, self.OmmitButtonClick)
+        self.button_ommit_clear = gw.button(None, 'Clear', self.font, True, self.OmmitRemoveButtonClick)
+
         self.button_correlate = gw.button('arrow', 'Correlation', self.font, True, self.CorrelateButtonClick)
+
+        self.select_box = QComboBox()
+        self.button_select = gw.button(None, 'Select', self.font, True, self.SelectButtonClick)
 
         self.button_export = gw.button(None, 'Export data', self.font, True, self.ExportButtonClick)
         self.button_export_csv = gw.button(None, 'Export NP info as CSV', self.font, True, self.ExportCSVButtonClick)
@@ -414,6 +424,19 @@ class MainWindow(QMainWindow):
             self.slider_erode_info
         ))
 
+        layout_fourier_buttons = QHBoxLayout()
+        layout_fourier_buttons.addWidget(QLabel('Remove spatial freq.:'))
+        layout_fourier_buttons.addWidget(self.fourier_box)
+        layout_fourier_buttons.addWidget(self.button_fourier)
+        layout_fourier_buttons.addWidget(self.button_fourier_clear)
+        layout.addLayout(layout_fourier_buttons)
+
+        layout_select_buttons = QHBoxLayout()
+        layout_select_buttons.addWidget(QLabel('Pattern for correlation:'))
+        layout_select_buttons.addWidget(self.select_box)
+        layout_select_buttons.addWidget(self.button_select)
+        layout.addLayout(layout_select_buttons)
+
         for item in self.forms_image_filters + [self.filters_checkbox] + self.forms_np_recognition:
             item.setDisabled(True)
 
@@ -434,8 +457,6 @@ class MainWindow(QMainWindow):
             self.slider_threshold_info
         ))
 
-
-
         layout.addLayout(gw.layout_slider(
             self.label_threshold,
             self.slider_threshold_adaptive,
@@ -447,6 +468,13 @@ class MainWindow(QMainWindow):
             self.slider_distance,
             self.slider_distance_info
         ))
+
+        layout_ommit_buttons = QHBoxLayout()
+        layout_ommit_buttons.addWidget(QLabel('Ommit regions:'))
+        layout_ommit_buttons.addWidget(self.ommit_box)
+        layout_ommit_buttons.addWidget(self.button_ommit)
+        layout_ommit_buttons.addWidget(self.button_ommit_clear)
+        layout.addLayout(layout_ommit_buttons)
 
         np_analysis_layout = QHBoxLayout()
         np_analysis_layout.addWidget(QLabel('start:'))
@@ -545,6 +573,15 @@ class MainWindow(QMainWindow):
 
             for core in self.view.core_list:
                 text += 'channel {}.\n'.format(core.file[-1])
+
+                if core._mask_ommit is not None:
+                    text += '\tarea: {:.0f} px \t= {:.1f} mm2\n'.format(-np.sum(core._mask_ommit * 1 - 1),
+                                                                    -np.sum(
+                                                                        (core._mask_ommit) * 1 - 1) * 2.93 ** 2 / 1e6)
+                else:
+                    text += '\tarea: {:.0f} px \t= {:.1f} mm2\n'.format(core.shape_img[0] * core.shape_img[1],
+                                                                    core.shape_img[0] * core.shape_img[1] / 1e6)
+
                 text += '\tpresent: {}\n'.format(len(core.nps_in_frame[self.view.f]))
                 text += '\ttotal: {}\n'.format(sum(core.graphs['nps_pos']))
                 text += '\t' + '-' * 27 + '\n'
@@ -584,6 +621,7 @@ class MainWindow(QMainWindow):
         for i in range(4):
             if os.path.isfile(self.folder + self.file + '_{}.tsv'.format(i + 1)):
                 self.channel_checkbox_list[i].setDisabled(False)
+
                 if not info_done:
                     w, h, self.frame_time, self.avg, self.num_of_frames, self.ets = tl.read_file_info(
                         self.folder + self.file + '_{}'.format(i + 1))
@@ -621,10 +659,6 @@ class MainWindow(QMainWindow):
         if self.tabs.currentIndex() == 2:
             if self.view is not None and self.view.core_list[0]._data_corr is not None:
                 pass
-                # self.view.change_type(None, 'corr')
-                # self.view.set_range()
-                # self.view.canvas_img.next_frame(0)
-
         if self.tabs.currentIndex() == 3:
             self.np_info_label.setText(self.np_info_create())
 
@@ -648,7 +682,7 @@ class MainWindow(QMainWindow):
 
     def RefreshSliderThresholdInfo(self):
         self.slider_threshold_info.setText(str(self.slider_threshold.value() / 400))
-        self.slider_threshold_adaptive_info.setText(str(self.slider_threshold_adaptive.value()/10))
+        self.slider_threshold_adaptive_info.setText(str(self.slider_threshold_adaptive.value() / 10))
 
         self.RunFilterThreshold()
 
@@ -882,6 +916,12 @@ self.slider_distance_info
             self.button_export.setDisabled(False)
             self.button_export_csv.setDisabled(False)
             self.button_export_parameters.setDisabled(False)
+            self.button_fourier.setDisabled(False)
+            self.button_fourier_clear.setDisabled(False)
+            self.button_ommit.setDisabled(False)
+            self.button_ommit_clear.setDisabled(False)
+            self.button_select.setDisabled(False)
+
             self.tool_file_info.setDisabled(False)
 
             if self.width[0] < self.height[0]:
@@ -916,11 +956,72 @@ self.slider_distance_info
             canvas_img.setFocus()
             self.progress_bar.setVisible(False)
 
+    def FourierButtonClick(self):
+        if self.button_fourier.text() == 'Select':
+            self.button_fourier.setText('OK')
+            self.fourier_box.setDisabled(True)
+            self.button_fourier_clear.setDisabled(False)
+        else:
+            self.button_fourier.setText('Select')
+            self.fourier_box.setDisabled(False)
+            self.button_fourier_clear.setDisabled(True)
+
+        i = self.fourier_box.currentIndex()
+        self.view.canvas_img.select_area(self.view.axes[i], 'fourier')
+
+    def FourierRemoveButtonClick(self):
+        i = self.fourier_box.currentIndex()
+        self.view.canvas_img.mask = np.zeros(self.view.core_list[i].shape_img)
+        self.view.canvas_img.mask_img.set_array(
+            self.view.canvas_img.mask
+        )
+
+        self.view.next_frame(0)
+
+    def OmmitButtonClick(self):
+        if self.button_ommit.text() == 'Select':
+            self.button_ommit.setText('OK')
+            self.ommit_box.setDisabled(True)
+            self.button_ommit_clear.setDisabled(False)
+        else:
+            self.button_ommit.setText('Select')
+            self.ommit_box.setDisabled(False)
+            self.button_ommit_clear.setDisabled(True)
+
+        i = self.ommit_box.currentIndex()
+        self.view.canvas_img.select_area(self.view.axes[i], 'ommit')
+
+    def OmmitRemoveButtonClick(self):
+        i = self.ommit_box.currentIndex()
+        self.view.canvas_img.mask = np.zeros(self.view.core_list[i].shape_img)
+        self.view.canvas_img.mask_img.set_array(
+            self.view.canvas_img.mask
+        )
+
+        self.view.next_frame(0)
+
+    def SelectButtonClick(self):
+        if self.button_select.text() == 'Select':
+            self.button_select.setText('OK')
+            self.select_box.setDisabled(True)
+
+        else:
+            self.button_select.setText('Select')
+            self.button_select.setDisabled(False)
+
+        i = self.select_box.currentIndex()
+        self.view.canvas_img.select_area(self.view.axes[i], 'np')
+
     def BuildButtonClick(self, s):
         self.view = View(self)
+        self.fourier_box.clear()
 
         for i, channel in enumerate(self.channel_checkbox_list):
             if channel.checkState() == 2:
+                self.fourier_box.addItem('ch. {}'.format(i + 1))
+                self.ommit_box.addItem('ch. {}'.format(i + 1))
+                self.select_box.addItem('ch. {}'.format(i + 1))
+
                 core = Core(self.folder, self.file + '_{}'.format(i + 1))
                 core.k = self.slider_k.value()
                 core.downsample(self.slider_downsample.value())
