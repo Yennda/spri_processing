@@ -891,9 +891,9 @@ self.slider_distance_info
     def CorrelateButtonClick(self):
         for core in self.view.core_list:
             core.make_correlation()
-        # self.view.change_type(None, 'corr')
-        # self.view.set_range()
-        # self.view.canvas_img.next_frame(0)
+        self.view.change_type(None, 'corr')
+        self.view.set_range()
+        self.view.canvas_img.next_frame(0)
         self.tabs.setCurrentIndex(2)
 
         for item in self.forms_np_recognition:
@@ -1112,8 +1112,8 @@ self.slider_distance_info
         # if self.chosen_plots[0]:
         self.thread_complete()
         self.tabs.setCurrentIndex(1)
-        self.tabs.removeTab(4)
-        self.tabs.insertTab(4, self.ViewTabUI(), 'View')
+        # self.tabs.removeTab(4)
+        # self.tabs.insertTab(4, self.ViewTabUI(), 'View')
     #
     # def keyPressEvent(self, e):
     #     print('key pressed {}'.format(e.key()))

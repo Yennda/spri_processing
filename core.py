@@ -254,9 +254,10 @@ class Core(object):
         with open(file_name + '.csv', mode='w') as f:
             nps_add = [sum(self.graphs['nps_pos'][:i]) for i in range(len(self))]
             for i in range(len(self)):
-                f.write('{}, {}, {}, {}, {}, {}\n'.format(
+                f.write('{}, {}, {}, {}, {}, {}, {}\n'.format(
                     i,
                     self.spr_time[i],
+                    self.spr_time[i] + self.zero_time,
                     self.graphs['nps_pos'][i],
                     nps_add[i],
                     self.graphs['nps_pos'][i] / self.active_area / PX ** 2,
@@ -265,7 +266,7 @@ class Core(object):
 
         with open(file_name + '_log.txt', mode='w') as f:
             f.write(
-                'frame, time, NPs adsorbed in frame, sum of adsorbed NPs, NPs adsorbed in frame/mm2,sum of adsorbed NPs/mm2')
+                'frame, time [s], global time [min], NPs adsorbed in frame, sum of adsorbed NPs, NPs adsorbed in frame [/mm2],sum of adsorbed NPs [/mm2]')
 
         print('Data exported')
 
@@ -326,14 +327,11 @@ class Core(object):
 
     def frame(self, f):
         self._f = f
-        no_postpro = ['raw', 'corr', 'four_d', 'four_i', 'mask']
+        no_postpro = ['raw', 'four_d', 'four_i', 'mask', 'corr']
         if self.type == 'diff':
             image = self.frame_diff(f)
 
-            if self._mask_fourier is not None:
-                f = np.fft.fft2(image)
-                f[self._mask_fourier] = 0
-                image = np.real(np.fft.ifft2(f))
+
 
         elif self.type == 'int':
             current = np.average(
@@ -391,9 +389,16 @@ class Core(object):
 
                 image = out[:, :, 2 * self.k]
 
-        if self.postprocessing and len(self.postprocessing_filters) != 0 and self.type not in no_postpro:
-            for p in self.postprocessing_filters.values():
-                image = p(image)
+        if self.type not in no_postpro:
+            if self._mask_fourier is not None and self.postprocessing:
+                f = np.fft.fft2(image)
+                f[self._mask_fourier] = 0
+                image = np.real(np.fft.ifft2(f))
+            if self.postprocessing and len(self.postprocessing_filters) != 0:
+
+
+                for p in self.postprocessing_filters.values():
+                    image = p(image)
 
         if self.threshold and self.type == 'corr':
             if self.threshold_value > 0:
