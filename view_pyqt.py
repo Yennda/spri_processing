@@ -176,7 +176,6 @@ class Canvas(FigureCanvasQTAgg):
 
             if what == 'fourier':
                 if len(self.mask.nonzero()[0]) == 0:
-                    print('jen nuly fouriera')
                     axes.core._mask_fourier = None
 
                 axes.core._mask_fourier = self.mask == 1
@@ -185,7 +184,6 @@ class Canvas(FigureCanvasQTAgg):
 
             elif what == 'ommit':
                 if len(self.mask.nonzero()[0]) == 0:
-                    print('jen nuly')
                     axes.core._mask_ommit = None
                 axes.core._mask_ommit = self.mask == 1
 
@@ -199,20 +197,8 @@ class Canvas(FigureCanvasQTAgg):
     def handle_select_area(self, axes, what, eclick, erelease):
         corner_1 = [tl.true_coordinate(b) for b in (eclick.xdata, eclick.ydata)]
         corner_2 = [tl.true_coordinate(e) for e in (erelease.xdata, erelease.ydata)]
-        print(what)
-        if what == 'np':
-            # xlim = [int(i) for i in axes.get_xlim()]
-            # ylim = [int(i) for i in axes.get_ylim()]
-            # shift = (ylim[1], xlim[0])
 
-            # span_x = np.array([
-            #     shift[1] + corner_1[0] + 1 - 2,
-            #     shift[1] + corner_2[0] + 2
-            # ])
-            # span_y = np.array([
-            #     shift[0] + corner_1[1] + 1 - 2,
-            #     shift[0] + corner_2[1] + 2
-            # ])
+        if what == 'np':
             span_x = np.array([
                 corner_1[0] + 1 - 2,
                 corner_2[0] + 2
