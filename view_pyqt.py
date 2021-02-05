@@ -201,19 +201,26 @@ class Canvas(FigureCanvasQTAgg):
         corner_2 = [tl.true_coordinate(e) for e in (erelease.xdata, erelease.ydata)]
         print(what)
         if what == 'np':
-            xlim = [int(i) for i in axes.get_xlim()]
-            ylim = [int(i) for i in axes.get_ylim()]
-            shift = (ylim[1], xlim[0])
+            # xlim = [int(i) for i in axes.get_xlim()]
+            # ylim = [int(i) for i in axes.get_ylim()]
+            # shift = (ylim[1], xlim[0])
 
+            # span_x = np.array([
+            #     shift[1] + corner_1[0] + 1 - 2,
+            #     shift[1] + corner_2[0] + 2
+            # ])
+            # span_y = np.array([
+            #     shift[0] + corner_1[1] + 1 - 2,
+            #     shift[0] + corner_2[1] + 2
+            # ])
             span_x = np.array([
-                shift[1] + corner_1[0] + 1 - 2,
-                shift[1] + corner_2[0] + 2
+                corner_1[0] + 1 - 2,
+                corner_2[0] + 2
             ])
             span_y = np.array([
-                shift[0] + corner_1[1] + 1 - 2,
-                shift[0] + corner_2[1] + 2
+                corner_1[1] + 1 - 2,
+                corner_2[1] + 2
             ])
-
             idea3d = np.zeros((span_y[1] - span_y[0], span_x[1] - span_x[0], 2 * axes.core.k))
 
             for i in range(2 * axes.core.k):
