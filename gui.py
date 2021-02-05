@@ -1042,7 +1042,7 @@ self.slider_distance_info
 
         else:
             self.button_select.setText('Select')
-            self.button_select.setDisabled(False)
+            self.select_box.setDisabled(False)
 
         i = self.select_box.currentIndex()
         self.view.canvas_img.select_area(self.view.axes[i], 'np')
