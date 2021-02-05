@@ -331,8 +331,6 @@ class Core(object):
         if self.type == 'diff':
             image = self.frame_diff(f)
 
-
-
         elif self.type == 'int':
             current = np.average(
                 self._data_raw[:, :, f // self.k * self.k - self.k: f // self.k * self.k],
@@ -394,8 +392,8 @@ class Core(object):
                 f = np.fft.fft2(image)
                 f[self._mask_fourier] = 0
                 image = np.real(np.fft.ifft2(f))
-            if self.postprocessing and len(self.postprocessing_filters) != 0:
 
+            if self.postprocessing and len(self.postprocessing_filters) != 0:
 
                 for p in self.postprocessing_filters.values():
                     image = p(image)

@@ -1,6 +1,5 @@
 import numpy as np
 from PIL import Image
-import scipy.signal
 import os
 
 import matplotlib
@@ -10,13 +9,9 @@ import matplotlib.patches as mpatches
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 from matplotlib.backend_bases import key_press_handler
 from matplotlib.widgets import RectangleSelector
-
 from mpl_toolkits.axes_grid1.anchored_artists import AnchoredSizeBar
-from PyQt5 import QtCore
 
 from global_var import *
-from gui_windows import SelectWindow
-
 import tools as tl
 
 matplotlib.rc('font', family='serif')
@@ -126,60 +121,62 @@ class Canvas(FigureCanvasQTAgg):
 
     def select_area(self, axes, what):
         if self.mask is None:
+
+            self.mask = np.zeros(axes.core.shape_img)
             if what == 'fourier':
                 self.view.change_type(axes, 'four_d')
                 self.set_range(axes)
-                self.mask = axes.core._mask_fourier
+
+                if axes.core._mask_fourier is not None:
+                    self.mask = axes.core._mask_fourier * 1
 
             elif what == 'ommit':
-                self.mask = axes.core._mask_ommit
+                if axes.core._mask_ommit is not None:
+                    self.mask = axes.core._mask_ommit * 1
 
             elif what == 'np':
                 self.view.change_type(axes, 'diff')
                 self.set_range(axes)
 
-            if self.mask is None:
-                self.mask = np.zeros(axes.core.shape_img)
-
             self.mask_img = axes.imshow(
                 self.mask,
                 cmap='Blues',
                 zorder=1,
-                alpha=0.2,
+                alpha=0.3,
                 vmin=0,
                 vmax=1
             )
 
-            if axes.toggle_selector is None:
-                def toggle_selector(event):
-                    pass
+            # if axes.toggle_selector is None:
+            def toggle_selector(event):
+                pass
 
-                axes.toggle_selector = toggle_selector
-                axes.toggle_selector.RS = RectangleSelector(
+            axes.toggle_selector = toggle_selector
+            axes.toggle_selector.RS = RectangleSelector(
+                axes,
+                lambda eclick, erelease: self.handle_select_area(
                     axes,
-                    lambda eclick, erelease: self.handle_select_area(
-                        axes,
-                        what,
-                        eclick,
-                        erelease
-                    ),
-                    drawtype='box', useblit=True,
-                    button=[1, 3],  # don't use middle button
-                    minspanx=5,
-                    minspany=5,
-                    spancoords='pixels',
-                    interactive=True
-                )
-                self.mpl_connect('key_press_event', axes.toggle_selector)
+                    what,
+                    eclick,
+                    erelease
+                ),
+                drawtype='box', useblit=True,
+                button=[1, 3],  # don't use middle button
+                minspanx=5,
+                minspany=5,
+                spancoords='pixels',
+                interactive=True
+            )
+            self.mpl_connect('key_press_event', axes.toggle_selector)
 
-            else:
-                axes.toggle_selector.RS.set_active(True)
+            # else:
+            #     axes.toggle_selector.RS.set_active(True)
 
         else:
 
             if what == 'fourier':
-                if len(self.mask.nonzero()[0]):
-                    print('jen nuly')
+                if len(self.mask.nonzero()[0]) == 0:
+                    print('jen nuly fouriera')
                     axes.core._mask_fourier = None
 
                 axes.core._mask_fourier = self.mask == 1
@@ -187,7 +184,7 @@ class Canvas(FigureCanvasQTAgg):
                 self.set_range(axes)
 
             elif what == 'ommit':
-                if len(self.mask.nonzero()[0]):
+                if len(self.mask.nonzero()[0]) == 0:
                     print('jen nuly')
                     axes.core._mask_ommit = None
                 axes.core._mask_ommit = self.mask == 1
@@ -202,7 +199,7 @@ class Canvas(FigureCanvasQTAgg):
     def handle_select_area(self, axes, what, eclick, erelease):
         corner_1 = [tl.true_coordinate(b) for b in (eclick.xdata, eclick.ydata)]
         corner_2 = [tl.true_coordinate(e) for e in (erelease.xdata, erelease.ydata)]
-
+        print(what)
         if what == 'np':
             xlim = [int(i) for i in axes.get_xlim()]
             ylim = [int(i) for i in axes.get_ylim()]
@@ -269,11 +266,6 @@ class Canvas(FigureCanvasQTAgg):
 
             if event.key == 'a':
                 self.save_frame(event.inaxes)
-            elif event.key == 'd':
-                self.select_np_pattern(event.inaxes)
-            elif event.key == 't':
-                self.select_area(event.inaxes)
-
 
         else:
             core_list = self.view.core_list

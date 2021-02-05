@@ -14,14 +14,13 @@ from PyQt5 import QtCore, QtWidgets
 import matplotlib
 import scipy.signal
 import numpy as np
-from scipy import ndimage
 from scipy.ndimage import gaussian_filter
 
 import tools as tl
 import global_var as gv
 from core import Core
 from view_pyqt import View
-from gui_windows import OKDialog, PlotWindow, LoadingWindow
+from gui_windows import OKDialog, PlotWindow
 import gui_widgets as gw
 
 matplotlib.use('Qt5Agg')
@@ -1050,6 +1049,8 @@ self.slider_distance_info
     def BuildButtonClick(self, s):
         self.view = View(self)
         self.fourier_box.clear()
+        self.ommit_box.clear()
+        self.select_box.clear()
 
         for i, channel in enumerate(self.channel_checkbox_list):
             if channel.checkState() == 2:
