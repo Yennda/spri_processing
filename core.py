@@ -184,6 +184,13 @@ class Core(object):
     def ref_frame(self):
         return self._ref_frame
 
+    @property
+    def active_area(self):
+        if self._mask_ommit is not None:
+            return -np.sum(self._mask_ommit * 1 - 1)
+        else:
+            return self.area
+
     @ref_frame.setter
     def ref_frame(self, f):
         if f > self.k:
@@ -242,12 +249,23 @@ class Core(object):
         if name == None:
             name = self.file
 
-        file_name = self.folder + FOLDER_SAVED + '/' + name + '.csv'
+        file_name = self.folder + FOLDER_SAVED + '/' + name
 
-        with open(file_name, mode='w') as f:
+        with open(file_name + '.csv', mode='w') as f:
             nps_add = [sum(self.graphs['nps_pos'][:i]) for i in range(len(self))]
             for i in range(len(self)):
-                f.write('{}, {}, {}\n'.format(i, self.graphs['nps_pos'][i], nps_add[i]))
+                f.write('{}, {}, {}, {}, {}, {}\n'.format(
+                    i,
+                    self.spr_time[i],
+                    self.graphs['nps_pos'][i],
+                    nps_add[i],
+                    self.graphs['nps_pos'][i] / self.active_area / PX ** 2,
+                    nps_add[i] / self.active_area / PX ** 2
+                ))
+
+        with open(file_name + '_log.txt', mode='w') as f:
+            f.write(
+                'frame, time, NPs adsorbed in frame, sum of adsorbed NPs, NPs adsorbed in frame/mm2,sum of adsorbed NPs/mm2')
 
         print('Data exported')
 
@@ -308,6 +326,7 @@ class Core(object):
 
     def frame(self, f):
         self._f = f
+        no_postpro = ['raw', 'corr', 'four_d', 'four_i', 'mask']
         if self.type == 'diff':
             image = self.frame_diff(f)
 
@@ -372,7 +391,7 @@ class Core(object):
 
                 image = out[:, :, 2 * self.k]
 
-        if self.postprocessing and len(self.postprocessing_filters) != 0 and self.type != 'corr':
+        if self.postprocessing and len(self.postprocessing_filters) != 0 and self.type not in no_postpro:
             for p in self.postprocessing_filters.values():
                 image = p(image)
 

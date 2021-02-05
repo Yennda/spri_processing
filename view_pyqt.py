@@ -143,7 +143,7 @@ class Canvas(FigureCanvasQTAgg):
 
             self.mask_img = axes.imshow(
                 self.mask,
-                cmap='gray',
+                cmap='Blues',
                 zorder=1,
                 alpha=0.2,
                 vmin=0,
@@ -633,16 +633,23 @@ class View(object):
                 elif self.plots[i]['key'] == 'nps_pos':
 
                     nps_add_pos = np.array([sum(core.graphs['nps_pos'][:i]) for i in range(len(core))])
-
-                    nps_diff_pos = [np.sum(core.graphs['nps_pos'][i * len(core) // 50:(i + 1) * len(core) // 50]) for i
-                                    in range(50)]
-
                     # nps_add_neg = np.array([-1 * sum(core.graphs['nps_neg'][:i]) for i in range(len(core))])
+
+                    if len(core) > 3 * 50:
+                        width = len(core) // 50
+                        frames = np.arange(0, 50) * width
+                        nps_diff_pos = [np.sum(core.graphs['nps_pos'][i * width:(i + 1) * width]) for i
+                                        in range(50)]
+                    else:
+                        width = 1
+                        frames = np.arange(0, len(core))
+                        nps_diff_pos = core.graphs['nps_pos']
+
                     axes_diff = axes.twinx()
                     axes_diff.bar(
-                        np.arange(0, len(nps_diff_pos)) * len(core) // 50,
+                        frames,
                         nps_diff_pos,
-                        width=len(core) // 50 * 0.8,
+                        width=width * 0.8,
                         color=COLORS[j],
                         alpha=0.5,
                         label='channel {}.'.format(j)
@@ -651,7 +658,6 @@ class View(object):
                     axes.plot(
                         nps_add_pos,
                         linewidth=2,
-                        ls='--',
                         color=COLORS[j],
                         alpha=0.5,
                         label='channel {}.'.format(j)
@@ -661,7 +667,7 @@ class View(object):
                     avg = np.average(core._data_corr_std[core.k * 3:])
                     for cs in core._data_corr_std[core.k * 3:]:
                         if cs / avg > 1:
-                            corr_std.append((cs / avg) ** 2)
+                            corr_std.append((cs / avg) ** core.threshold_adaptive)
                         else:
                             corr_std.append(1)
 
@@ -672,8 +678,8 @@ class View(object):
                         np.arange(core.k * 3, len(core)),
                         corr_std,
                         linewidth=2,
-                        ls='--',
-                        color=red,
+                        ls='dotted',
+                        color=COLORS[j],
                         alpha=0.5,
                         label='channel {}.'.format(j)
                     )

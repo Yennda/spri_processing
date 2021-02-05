@@ -95,6 +95,9 @@ class MainWindow(QMainWindow):
         self.font = self.button_open.font()
         self.font.setPointSize(14)
 
+        self.font_small = self.button_open.font()
+        self.font_small.setPointSize(10)
+
         self.button_open.setStatusTip(
             'Open any raw file from the desired measurement.')
         self.button_open.setFont(self.font)
@@ -201,17 +204,17 @@ class MainWindow(QMainWindow):
         self.button_build.setStatusTip('Builds the view of the data. It usually takes a while.')
 
         self.fourier_box = QComboBox()
-        self.button_fourier = gw.button(None, 'Select', self.font, True, self.FourierButtonClick)
-        self.button_fourier_clear = gw.button(None, 'Clear', self.font, True, self.FourierRemoveButtonClick)
+        self.button_fourier = gw.button(None, 'Select', self.font_small, True, self.FourierButtonClick)
+        self.button_fourier_clear = gw.button(None, 'Clear', self.font_small, True, self.FourierRemoveButtonClick)
 
         self.ommit_box = QComboBox()
-        self.button_ommit = gw.button(None, 'Select', self.font, True, self.OmmitButtonClick)
-        self.button_ommit_clear = gw.button(None, 'Clear', self.font, True, self.OmmitRemoveButtonClick)
+        self.button_ommit = gw.button(None, 'Select', self.font_small, True, self.OmmitButtonClick)
+        self.button_ommit_clear = gw.button(None, 'Clear', self.font_small, True, self.OmmitRemoveButtonClick)
 
         self.button_correlate = gw.button('arrow', 'Correlation', self.font, True, self.CorrelateButtonClick)
 
         self.select_box = QComboBox()
-        self.button_select = gw.button(None, 'Select', self.font, True, self.SelectButtonClick)
+        self.button_select = gw.button(None, 'Select', self.font_small, True, self.SelectButtonClick)
 
         self.button_export = gw.button(None, 'Export data', self.font, True, self.ExportButtonClick)
         self.button_export_csv = gw.button(None, 'Export NP info as CSV', self.font, True, self.ExportCSVButtonClick)
@@ -237,8 +240,6 @@ class MainWindow(QMainWindow):
         self.line_export_stop.setText('100')
         self.line_export_stop.textChanged.connect(self.RefreshExportRange)
 
-        self.view_channel_buttons = []
-
         self.progress_bar = QProgressBar(self)
         self.progress_bar.setGeometry(200, 80, 250, 20)
         self.progress_bar.setVisible(False)
@@ -261,6 +262,8 @@ class MainWindow(QMainWindow):
         self.tool_help.setStatusTip("[help]")
         self.tool_help.triggered.connect(self.toolbarHelp)
         toolbar.addAction(self.tool_help)
+
+        self.radio_channel_view = []
 
         self.np_info_label = QLabel(self.np_info_create())
 
@@ -310,8 +313,8 @@ class MainWindow(QMainWindow):
         self.tabs.addTab(self.NPInfoUI(), 'NP Info')  # 3
         # self.tabs.addTab(self.ViewTabUI(), 'View')  # 4
         self.tabs.addTab(self.ExportsTabUI(), 'Exports')  # 5
-        self.tabs.tabBarClicked.connect(self.RefreshNPInfo)
-        # self.tabs.currentChanged.connect(self.RefreshNPInfo)
+        self.tabs.tabBarClicked.connect(self.RefreshTabs)
+
         layout.addWidget(self.tabs)
 
         self.setStatusBar(QStatusBar(self))
@@ -424,15 +427,19 @@ class MainWindow(QMainWindow):
             self.slider_erode_info
         ))
 
+        label_fourier = QLabel('Remove spatial freq.:')
+        label_fourier.setMinimumWidth(200)
         layout_fourier_buttons = QHBoxLayout()
-        layout_fourier_buttons.addWidget(QLabel('Remove spatial freq.:'))
+        layout_fourier_buttons.addWidget(label_fourier)
         layout_fourier_buttons.addWidget(self.fourier_box)
         layout_fourier_buttons.addWidget(self.button_fourier)
         layout_fourier_buttons.addWidget(self.button_fourier_clear)
         layout.addLayout(layout_fourier_buttons)
 
+        label_select = QLabel('Pattern for correlation:')
+        label_select.setMinimumWidth(200)
         layout_select_buttons = QHBoxLayout()
-        layout_select_buttons.addWidget(QLabel('Pattern for correlation:'))
+        layout_select_buttons.addWidget(label_select)
         layout_select_buttons.addWidget(self.select_box)
         layout_select_buttons.addWidget(self.button_select)
         layout.addLayout(layout_select_buttons)
@@ -470,7 +477,9 @@ class MainWindow(QMainWindow):
         ))
 
         layout_ommit_buttons = QHBoxLayout()
-        layout_ommit_buttons.addWidget(QLabel('Ommit regions:'))
+        label_ommit = QLabel('Ommit regions:')
+        label_ommit.setMinimumWidth(200)
+        layout_ommit_buttons.addWidget(label_ommit)
         layout_ommit_buttons.addWidget(self.ommit_box)
         layout_ommit_buttons.addWidget(self.button_ommit)
         layout_ommit_buttons.addWidget(self.button_ommit_clear)
@@ -512,23 +521,27 @@ class MainWindow(QMainWindow):
                 layout_channel = QHBoxLayout()
                 layout_channel.addWidget(QLabel('channel {}.'.format(core.file[-1])))
 
-                for key in self.view.core_list[0]._range.keys():
+                layout_direct = QVBoxLayout()
+                for itype in ['raw', 'int', 'diff', 'corr']:
                     channel = []
 
-                    button = QPushButton(key)
-
-                    font = self.button_open.font()
-                    font.setPointSize(8)
-                    button.setFont(font)
-
-                    if key == core.type:
-                        button.setDisabled(True)
-                    button.clicked.connect(self.ViewButtonClick)
-
-                    layout_channel.addWidget(button)
+                    button = QRadioButton(itype)
+                    button.toggled.connect(lambda: self.RefreshRadioDirect(itype))
                     channel.append(button)
+                    layout_direct.addWidget(button)
 
-                self.view_channel_buttons.append(channel)
+                layout_fourier = QVBoxLayout()
+                layout_fourier.addWidget(QLabel('Fourier of:'))
+                for itype in ['raw', 'int', 'diff']:
+                    channel = []
+                    button = QRadioButton(itype)
+                    button.toggled.connect(lambda: self.RefreshRadioFourier(itype))
+                    channel.append(button)
+                    layout_fourier.addWidget(button)
+                layout_channel.addLayout(layout_direct)
+                layout_channel.addLayout(layout_fourier)
+
+                self.radio_channel_view.append(channel)
 
                 layout.addLayout(layout_channel)
 
@@ -575,19 +588,22 @@ class MainWindow(QMainWindow):
                 text += 'channel {}.\n'.format(core.file[-1])
 
                 if core._mask_ommit is not None:
-                    text += '\tarea: {:.0f} px \t= {:.1f} mm2\n'.format(-np.sum(core._mask_ommit * 1 - 1),
-                                                                    -np.sum(
-                                                                        (core._mask_ommit) * 1 - 1) * 2.93 ** 2 / 1e6)
+                    text += '\tarea: {:.0f} px \t= {:.1f} mm2\t = {:.1f}%\n'.format(
+                        core.active_area,
+                        core.active_area * gv.PX ** 2,
+                        core.active_area / core.area * 100
+                    )
                 else:
-                    text += '\tarea: {:.0f} px \t= {:.1f} mm2\n'.format(core.shape_img[0] * core.shape_img[1],
-                                                                    core.shape_img[0] * core.shape_img[1] / 1e6)
+                    text += '\tarea: {:.0f} px \t= {:.1f} mm2\n'.format(core.area, core.area / 1e6)
+                text += '\ttotal: {}\n'.format(sum(core.graphs['nps_pos']))
+                text += '\ttotal density: {:.1f} /mm^2\n'.format(
+                    sum(core.graphs['nps_pos']) / core.active_area / gv.PX ** 2)
+                text += '\t' + '-' * 27 + '\n'
 
                 text += '\tpresent: {}\n'.format(len(core.nps_in_frame[self.view.f]))
-                text += '\ttotal: {}\n'.format(sum(core.graphs['nps_pos']))
-                text += '\t' + '-' * 27 + '\n'
+
                 text += '\tcurrently adsorbed: {}\n'.format(core.graphs['nps_pos'][self.view.f])
                 # text += '\tcurrently dedsorbed: {}\n'.format(core.graphs['nps_neg'][self.view.f])
-                text += '\t' + '-' * 27 + '\n'
 
                 text += '\tadsorbed up to now: {}\n'.format(sum(core.graphs['nps_pos'][:self.view.f]))
                 # text += '\tdesorbed up to now: {}\n'.format(sum(core.graphs['nps_neg'][:self.view.f]))
@@ -656,11 +672,24 @@ class MainWindow(QMainWindow):
         OKDialog('file info', fi, self)
 
     def RefreshNPInfo(self):
-        if self.tabs.currentIndex() == 2:
-            if self.view is not None and self.view.core_list[0]._data_corr is not None:
-                pass
         if self.tabs.currentIndex() == 3:
             self.np_info_label.setText(self.np_info_create())
+
+    def RefreshTabs(self):
+        pass
+        # print(self.tabs.currentIndex())
+        # if self.view is not None and self.view.core_list[0]._data_corr is not None:
+        #     if self.tabs.currentIndex() == 2:
+        #         self.view.change_type(None, 'corr')
+        #         self.view.set_range()
+        #         self.view.canvas_img.next_frame(0)
+        #         self.view.canvas_img.draw()
+        #
+        #     if self.tabs.currentIndex() == 1:
+        #         self.view.change_type(None, 'diff')
+        #         self.view.set_range()
+        #         self.view.canvas_img.next_frame(0)
+        #         self.view.canvas_img.draw()
 
     def RefreshSliderInfo(self):
         self.slider_k_info.setText(str(self.slider_k.value()))
@@ -711,6 +740,12 @@ class MainWindow(QMainWindow):
             self.orientation_checkbox.setText('Vertical layout')
         else:
             self.orientation_checkbox.setText('Horizontal layout')
+
+    def RefreshRadioDirect(self, itype):
+        print(itype)
+
+    def RefreshRadioFourier(self, itype):
+        print(itype)
 
     def RefreshFilters(self):
         if self.filters_checkbox.isChecked():
@@ -856,9 +891,9 @@ self.slider_distance_info
     def CorrelateButtonClick(self):
         for core in self.view.core_list:
             core.make_correlation()
-        self.view.change_type(None, 'corr')
-        self.view.set_range()
-        self.view.canvas_img.next_frame(0)
+        # self.view.change_type(None, 'corr')
+        # self.view.set_range()
+        # self.view.canvas_img.next_frame(0)
         self.tabs.setCurrentIndex(2)
 
         for item in self.forms_np_recognition:
@@ -1077,9 +1112,9 @@ self.slider_distance_info
         # if self.chosen_plots[0]:
         self.thread_complete()
         self.tabs.setCurrentIndex(1)
-        # self.tabs.removeTab(3)
-        # self.tabs.insertTab(3, self.ViewTabUI(), 'View')
-
+        self.tabs.removeTab(4)
+        self.tabs.insertTab(4, self.ViewTabUI(), 'View')
+    #
     # def keyPressEvent(self, e):
     #     print('key pressed {}'.format(e.key()))
 

@@ -15,6 +15,7 @@ INIT_RANGE = [-0.0075, 0.0075]
 INIT_CORR = [-50, 200]
 INIT_FOUR = [-50, 50]
 
+PX = 2.93e-3 #mm
 #vertical
 LMIN, LMAX = [400, 800]
 SMIN, SMAX = [0, -1]
