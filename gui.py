@@ -109,6 +109,8 @@ class MainWindow(QMainWindow):
         self.orientation_checkbox.clicked.connect(self.RefreshOrientationInfo)
         self.orientation_checkbox.setChecked(True)
 
+        self.transpose_checkbox = QCheckBox('Change orientation')
+
         self.channel_checkbox_list = []
         for i in range(1, 5):
             self.channel_checkbox_list.append(QCheckBox('channel {}'.format(i)))
@@ -192,6 +194,7 @@ class MainWindow(QMainWindow):
 
         self.forms_pre_processing = self.channel_checkbox_list + [
             self.orientation_checkbox,
+            self.transpose_checkbox,
             self.slider_downsample,
             self.slider_downsample_info,
             self.checkbox_1,
@@ -341,7 +344,10 @@ class MainWindow(QMainWindow):
         label.setAlignment(Qt.AlignCenter)
         layout.addWidget(label)
 
-        layout.addWidget(self.orientation_checkbox)
+        layout_orientation = QHBoxLayout()
+        layout_orientation.addWidget(self.orientation_checkbox)
+        layout_orientation.addWidget(self.transpose_checkbox)
+        layout.addLayout(layout_orientation)
 
         layout.addLayout(gw.layout_slider(
             QLabel('Downsample'),
@@ -809,7 +815,7 @@ class MainWindow(QMainWindow):
         for core in self.view.core_list:
             core.threshold = self.filter_threshold_checkbox.isChecked()
             core.threshold_value = self.slider_threshold.value() / 400
-            core.threshold_adaptive = self.slider_threshold_adaptive.value()
+            core.threshold_adaptive = self.slider_threshold_adaptive.value() / 10
 
         self.view.canvas_img.next_frame(0)
 
@@ -1059,6 +1065,8 @@ self.slider_distance_info
                 self.select_box.addItem('ch. {}'.format(i + 1))
 
                 core = Core(self.folder, self.file + '_{}'.format(i + 1))
+                if tl.BoolFromCheckBox(self.transpose_checkbox):
+                    core._data_raw = np.swapaxes(core._data_raw, 0, 1)
                 core.k = self.slider_k.value()
                 core.downsample(self.slider_downsample.value())
                 self.view.add_core(core)

@@ -142,12 +142,13 @@ class Core(object):
                 self.graphs[key] = scipy.signal.decimate(self.graphs[key], k)
 
     def _synchronize(self):
-        try:
-            with open(self.folder + NAME_GLOBAL_SPR + self.file[-2:] + '.tsv', 'r') as spr:
-                contents = spr.readlines()
-        except FileNotFoundError:
-            self.zero_time = 0
-            return
+        for name_global_spr in [NAME_GLOBAL_SPR, 'spr_integral']:
+            try:
+                with open(self.folder + name_global_spr + self.file[-2:] + '.tsv', 'r') as spr:
+                    contents = spr.readlines()
+            except FileNotFoundError:
+                self.zero_time = 0
+                return
 
         time = []
         signal = []

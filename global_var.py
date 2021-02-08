@@ -7,7 +7,7 @@ FOLDER_SAVED = 'saved_data'
 
 NAME_RAW = 'raw'
 NAME_LOCAL_SPR = 'spr'
-NAME_GLOBAL_SPR = 'spr_integral'
+NAME_GLOBAL_SPR = 'spr_global'
 
 # INIT_RANGE = [-0.01. 0.01]
 # INIT_RANGE = [-0.003, 0.003]
@@ -16,9 +16,12 @@ INIT_CORR = [-50, 200]
 INIT_FOUR = [-50, 50]
 
 PX = 2.93e-3 #mm
-#vertical
-LMIN, LMAX = [400, 800]
+
+LMIN, LMAX = [0, -1]
 SMIN, SMAX = [0, -1]
+#vertical
+# LMIN, LMAX = [400, 800]
+# SMIN, SMAX = [0, -1]
 # SMIN, SMAX = [0, 200]
 
 # horizontal
