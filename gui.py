@@ -1067,6 +1067,9 @@ self.slider_distance_info
                 core = Core(self.folder, self.file + '_{}'.format(i + 1))
                 if tl.BoolFromCheckBox(self.transpose_checkbox):
                     core._data_raw = np.swapaxes(core._data_raw, 0, 1)
+                    core._mask_ommit = np.zeros(core.shape_img)
+
+
                 core.k = self.slider_k.value()
                 core.downsample(self.slider_downsample.value())
                 self.view.add_core(core)

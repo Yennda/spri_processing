@@ -17,11 +17,11 @@ INIT_FOUR = [-50, 50]
 
 PX = 2.93e-3 #mm
 
-LMIN, LMAX = [0, -1]
-SMIN, SMAX = [0, -1]
-#vertical
-# LMIN, LMAX = [400, 800]
+# LMIN, LMAX = [0, -1]
 # SMIN, SMAX = [0, -1]
+#vertical
+LMIN, LMAX = [400, 800]
+SMIN, SMAX = [0, -1]
 # SMIN, SMAX = [0, 200]
 
 # horizontal

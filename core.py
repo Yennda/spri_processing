@@ -252,22 +252,36 @@ class Core(object):
 
         file_name = self.folder + FOLDER_SAVED + '/' + name
 
+        corr_std = [0 for i in range(self.k * 3)]
+        avg = np.average(self._data_corr_std[self.k * 3:])
+        for cs in self._data_corr_std[self.k * 3:]:
+            if cs / avg > 1:
+                corr_std.append((cs / avg) ** self.threshold_adaptive)
+            else:
+                corr_std.append(1)
+
         with open(file_name + '.csv', mode='w') as f:
             nps_add = [sum(self.graphs['nps_pos'][:i]) for i in range(len(self))]
             for i in range(len(self)):
-                f.write('{}, {}, {}, {}, {}, {}, {}\n'.format(
+                f.write('{}, {}, {}, {}, {}, {}, {}, {}, {}\n'.format(
                     i,
                     self.spr_time[i],
                     self.spr_time[i] + self.zero_time,
                     self.graphs['nps_pos'][i],
                     nps_add[i],
                     self.graphs['nps_pos'][i] / self.active_area / PX ** 2,
-                    nps_add[i] / self.active_area / PX ** 2
+                    nps_add[i] / self.active_area / PX ** 2,
+                    corr_std[i],
+                    self.active_area,
+                    self.active_area * PX ** 2
                 ))
 
         with open(file_name + '_log.txt', mode='w') as f:
             f.write(
-                'frame, time [s], global time [min], NPs adsorbed in frame, sum of adsorbed NPs, NPs adsorbed in frame [/mm2],sum of adsorbed NPs [/mm2]')
+                'frame, time [s], global time [min], NPs adsorbed in frame,' +
+                'sum of adsorbed NPs, NPs adsorbed in frame [/mm2],sum of adsorbed NPs [/mm2],' +
+                'area [px], area [mm2]'
+            )
 
         print('Data exported')
 
@@ -541,6 +555,7 @@ class Core(object):
         duration = False
         success = True
         minor = False
+        bright_defect = False
 
         # duration = purple
         # success = green
@@ -567,6 +582,9 @@ class Core(object):
             amx_np = np.argmax(data_corr[slice])
             amx_np = np.unravel_index([amx_np], data_corr[slice].shape)
             mx_np = np.max(data_corr[slice][:, :, amx_np[2]])
+
+            if mx_np > 2 * self.autocorrelation_max:
+                return bright_defect
 
             slice_extended = np.s_[
                              x0_np[0] - dpx: x1_np[0] + dpx,
@@ -624,7 +642,6 @@ class Core(object):
         for np_slice in np_slices:
             idnp = len(self.np_container)
             if check_np(np_slice):
-                # if True:
                 x = (np_slice[0].start + np_slice[0].stop) / 2
                 y = (np_slice[1].start + np_slice[1].stop) / 2
 

@@ -259,6 +259,24 @@ class Canvas(FigureCanvasQTAgg):
 
             if event.key == 'a':
                 self.save_frame(event.inaxes)
+            # elif event.key == 'd':
+            #     axes = event.inaxes
+            #     xlim = [int(i) for i in axes.get_xlim()]
+            #     ylim = [int(i) for i in axes.get_ylim()]
+            #     print(xlim)
+            #     print(ylim)
+            #     axes.core._data_raw = axes.core._data_raw[
+            #                           ylim[1]: ylim[0],
+            #                           xlim[0]: xlim[1],
+            #                           :
+            #                           ]
+            #
+            #     axes.cla()
+            #     self.next_frame(0)
+            #
+            #     print('po')
+            #     print(xlim)
+            #     print(ylim)
 
         else:
             core_list = self.view.core_list
