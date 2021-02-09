@@ -146,9 +146,10 @@ class Core(object):
             try:
                 with open(self.folder + name_global_spr + self.file[-2:] + '.tsv', 'r') as spr:
                     contents = spr.readlines()
+                    break
             except FileNotFoundError:
                 self.zero_time = 0
-                return
+
 
         time = []
         signal = []
