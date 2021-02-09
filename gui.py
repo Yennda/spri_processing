@@ -905,7 +905,15 @@ self.slider_distance_info
             item.setDisabled(False)
 
     def CountButtonClick(self):
+        self.view.change_type(None, 'corr')
+        self.view.set_range()
+        self.view.canvas_img.next_frame(0)
+
         for core in self.view.core_list:
+            if not core.threshold:
+                self.filter_threshold_checkbox.setChecked(True)
+                core.threshold = True
+
             core.run_count_nps(int(self.line_count_start.text()), int(self.line_count_stop.text()),
                                self.slider_distance.value())
             # core.type = 'diff'
@@ -1068,7 +1076,6 @@ self.slider_distance_info
                 if tl.BoolFromCheckBox(self.transpose_checkbox):
                     core._data_raw = np.swapaxes(core._data_raw, 0, 1)
                     core._mask_ommit = np.zeros(core.shape_img)
-
 
                 core.k = self.slider_k.value()
                 core.downsample(self.slider_downsample.value())
