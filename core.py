@@ -263,7 +263,7 @@ class Core(object):
         with open(file_name + '.csv', mode='w') as f:
             nps_add = [sum(self.graphs['nps_pos'][:i]) for i in range(len(self))]
             for i in range(len(self)):
-                f.write('{}, {}, {}, {}, {}, {}, {}, {}, {}\n'.format(
+                f.write('{}, {}, {}, {}, {}, {}, {}, {}, {}, {}\n'.format(
                     i,
                     self.spr_time[i],
                     self.spr_time[i] + self.zero_time,
@@ -280,7 +280,7 @@ class Core(object):
             f.write(
                 'frame, time [s], global time [min], NPs adsorbed in frame,' +
                 'sum of adsorbed NPs, NPs adsorbed in frame [/mm2],sum of adsorbed NPs [/mm2],' +
-                'area [px], area [mm2]'
+                'threshold, area [px], area [mm2]'
             )
 
         print('Data exported')
