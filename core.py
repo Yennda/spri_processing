@@ -150,7 +150,6 @@ class Core(object):
             except FileNotFoundError:
                 self.zero_time = 0
 
-
         time = []
         signal = []
 
@@ -285,6 +284,70 @@ class Core(object):
             )
 
         print('Data exported')
+
+    def export_np_csv(self, name=None):
+        if not os.path.isdir(self.folder + FOLDER_SAVED):
+            os.mkdir(self.folder + FOLDER_SAVED)
+
+        if name == None:
+            name = self.file
+
+        file_name = self.folder + FOLDER_SAVED + '/nps_' + name
+
+        with open(file_name + '.csv', mode='w') as f:
+            for npp in self.np_container:
+                if npp.color == green:
+                    f.write(
+                        '{}, {}, {}, {}\n'.format(
+                            npp.positions[0][0],
+                            npp.positions[0][1],
+                            npp.first_frame,
+                            len(npp.positions)
+                        ))
+
+        with open(file_name + '_log.txt', mode='w') as f:
+            f.write('x, y, first_frame, duration [frames]')
+
+            print('Data exported')
+
+    def import_np_csv(self, name=None):
+        if name == None:
+            name = self.file
+
+        file_name = self.folder + FOLDER_SAVED + '/nps_' + name
+        try:
+            with open(file_name + '.csv', 'r') as csv:
+                contents = csv.readlines()
+
+            self.np_container = []
+            self.nps_in_frame = [[] for i in range(len(self))]
+
+            for i, line in enumerate(contents):
+                line_split = line.split(', ')
+
+                first_frame = int(line_split[2])
+                duration = int(line_split[3])
+                positions = [np.array([float(line_split[0]), float(line_split[1])])] * duration
+
+                nnp = NanoParticle(
+                    i,
+                    first_frame,
+                    positions,
+                    positive=True
+                )
+                nnp.color = green
+
+                for j in range(duration):
+                    self.nps_in_frame[first_frame + j].append(i)
+
+                self.np_container.append(nnp)
+
+            self.show_nps = True
+            print('NPs succesfully imported.')
+
+        except FileNotFoundError:
+            print('"{}"  not found. Diseable ploting of SPR. '.format(file_name))
+            return None, None
 
     def save_idea(self, name=None):
         if not os.path.isdir(self.folder + FOLDER_IDEAS):
@@ -625,6 +688,7 @@ class Core(object):
 
         data_threshold = np.zeros(self.shape)
         data_corr = np.zeros(self.shape)
+        self._data_mask = np.zeros(self.shape)
 
         for f in range(start + self.k * 2, stop):
             data_threshold[:, :, f] = self.frame(f)
@@ -660,15 +724,15 @@ class Core(object):
                 if self._mask_ommit[int(x), int(y)]:
                     nnp.color = red
                 else:
-
                     self.graphs[plot][np_slice[2].start] += 1
+                    self._data_mask[int(x), int(y), int(np_slice[2].start):] = 1
 
                 for i in range(dt):
                     self.nps_in_frame[np_slice[2].start + i].append(idnp)
-            else:
-                self.np_container.append(None)
+            # else:
+            #     self.np_container.append(None)
 
-        self._data_mask = data_threshold
+        # self._data_mask = data_threshold
         self.show_nps = True
 
         print('\n--elapsed time--\n{:.2f} s'.format(time.time() - time0))

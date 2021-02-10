@@ -114,7 +114,6 @@ class MainWindow(QMainWindow):
         self.crop_checkbox = QCheckBox('Crop')
         self.crop_checkbox.setChecked(True)
 
-
         self.channel_checkbox_list = []
         for i in range(1, 5):
             self.channel_checkbox_list.append(QCheckBox('channel {}'.format(i)))
@@ -217,15 +216,20 @@ class MainWindow(QMainWindow):
         self.button_ommit = gw.button(None, 'Select', self.font_small, True, self.OmmitButtonClick)
         self.button_ommit_clear = gw.button(None, 'Clear', self.font_small, True, self.OmmitRemoveButtonClick)
 
-        self.button_correlate = gw.button('count-cat-icon', 'Correlation', self.font, True, self.CorrelateButtonClick)
+        self.button_correlate = gw.button('brain', 'Correlation', self.font, True, self.CorrelateButtonClick)
 
         self.select_box = QComboBox()
         self.button_select = gw.button(None, 'Select', self.font_small, True, self.SelectButtonClick)
 
         self.button_export = gw.button('poison', 'Export data', self.font, True, self.ExportButtonClick)
-        self.button_export_csv = gw.button('table', 'Export NP info as CSV', self.font, True, self.ExportCSVButtonClick)
+        self.button_export_csv = gw.button('table', 'Export NP counts', self.font, True,
+                                           self.ExportCSVButtonClick)
         self.button_export_parameters = gw.button('application-export', 'Export parameters', self.font, True,
                                                   self.ExportParametersButtonClick)
+        self.button_export_nps = gw.button('beans', 'Export NPs', self.font, True,
+                                           self.ExportNPsButtonClick)
+        self.button_import_nps = gw.button(None, 'Import', self.font, True,
+                                           self.ImportNPsButtonClick)
 
         self.button_count = gw.button('count-cat-icon', 'Count NPs', self.font, True, self.CountButtonClick)
         self.button_count.setStatusTip('Counts nanoparticles.')
@@ -574,6 +578,11 @@ class MainWindow(QMainWindow):
         layout.addWidget(self.button_export)
         layout.addWidget(self.button_export_csv)
         layout.addWidget(self.button_export_parameters)
+
+        layout_nps_ie = QHBoxLayout()
+        layout_nps_ie.addWidget(self.button_export_nps)
+        layout_nps_ie.addWidget(self.button_import_nps)
+        layout.addLayout(layout_nps_ie)
 
         layout.addStretch(1)
         Tab.setLayout(layout)
@@ -960,6 +969,16 @@ self.slider_distance_info
     def ExportParametersButtonClick(self):
         self.export_parameters()
 
+    def ExportNPsButtonClick(self):
+        if self.view.core_list[0].np_container is not None:
+            for core in self.view.core_list:
+                core.export_np_csv()
+
+    def ImportNPsButtonClick(self):
+        if self.view.core_list[0].np_container is not None:
+            for core in self.view.core_list:
+                core.import_np_csv()
+
     def OpenButtonClick(self, s):
         dlg = QFileDialog(self)
 
@@ -967,9 +986,13 @@ self.slider_distance_info
             self.file_name_label.setText('folder path: ... {}\nfile name: {}'.format(self.folder[-20:], self.file))
             self.button_build.setDisabled(False)
             self.button_correlate.setDisabled(False)
+
             self.button_export.setDisabled(False)
             self.button_export_csv.setDisabled(False)
             self.button_export_parameters.setDisabled(False)
+            self.button_export_nps.setDisabled(False)
+            self.button_import_nps.setDisabled(False)
+
             self.button_fourier.setDisabled(False)
             self.button_fourier_clear.setDisabled(False)
             self.button_ommit.setDisabled(False)
