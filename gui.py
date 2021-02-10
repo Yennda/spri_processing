@@ -206,7 +206,7 @@ class MainWindow(QMainWindow):
             self.checkbox_3
         ]
 
-        self.button_build = gw.button('arrow', 'Build', self.font, True, self.BuildButtonClick)
+        self.button_build = gw.button('count-cat-icon', 'Build', self.font, True, self.BuildButtonClick)
         self.button_build.setStatusTip('Builds the view of the data. It usually takes a while.')
 
         self.fourier_box = QComboBox()
@@ -217,14 +217,14 @@ class MainWindow(QMainWindow):
         self.button_ommit = gw.button(None, 'Select', self.font_small, True, self.OmmitButtonClick)
         self.button_ommit_clear = gw.button(None, 'Clear', self.font_small, True, self.OmmitRemoveButtonClick)
 
-        self.button_correlate = gw.button('arrow', 'Correlation', self.font, True, self.CorrelateButtonClick)
+        self.button_correlate = gw.button('count-cat-icon', 'Correlation', self.font, True, self.CorrelateButtonClick)
 
         self.select_box = QComboBox()
         self.button_select = gw.button(None, 'Select', self.font_small, True, self.SelectButtonClick)
 
-        self.button_export = gw.button(None, 'Export data', self.font, True, self.ExportButtonClick)
-        self.button_export_csv = gw.button(None, 'Export NP info as CSV', self.font, True, self.ExportCSVButtonClick)
-        self.button_export_parameters = gw.button(None, 'Export parameters', self.font, True,
+        self.button_export = gw.button('poison', 'Export data', self.font, True, self.ExportButtonClick)
+        self.button_export_csv = gw.button('table', 'Export NP info as CSV', self.font, True, self.ExportCSVButtonClick)
+        self.button_export_parameters = gw.button('application-export', 'Export parameters', self.font, True,
                                                   self.ExportParametersButtonClick)
 
         self.button_count = gw.button('count-cat-icon', 'Count NPs', self.font, True, self.CountButtonClick)

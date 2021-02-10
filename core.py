@@ -119,7 +119,7 @@ class Core(object):
             time = []
             signal = []
 
-            for line in contents[:-1]:
+            for line in contents[:]:
                 line_split = line.split('\t')
                 time.append(float(line_split[0]))
                 signal.append(float(line_split[1]))
