@@ -111,6 +111,10 @@ class MainWindow(QMainWindow):
 
         self.transpose_checkbox = QCheckBox('Change orientation')
 
+        self.crop_checkbox = QCheckBox('Crop')
+        self.crop_checkbox.setChecked(True)
+
+
         self.channel_checkbox_list = []
         for i in range(1, 5):
             self.channel_checkbox_list.append(QCheckBox('channel {}'.format(i)))
@@ -348,6 +352,8 @@ class MainWindow(QMainWindow):
         layout_orientation.addWidget(self.orientation_checkbox)
         layout_orientation.addWidget(self.transpose_checkbox)
         layout.addLayout(layout_orientation)
+
+        layout.addWidget(self.crop_checkbox)
 
         layout.addLayout(gw.layout_slider(
             QLabel('Downsample'),
@@ -1073,9 +1079,14 @@ self.slider_distance_info
                 self.select_box.addItem('ch. {}'.format(i + 1))
 
                 core = Core(self.folder, self.file + '_{}'.format(i + 1))
+
                 if tl.BoolFromCheckBox(self.transpose_checkbox):
                     core._data_raw = np.swapaxes(core._data_raw, 0, 1)
                     core._mask_ommit = np.zeros(core.shape_img)
+
+                if tl.BoolFromCheckBox(self.crop_checkbox):
+                    core.crop()
+                core.ref_frame = 0
 
                 core.k = self.slider_k.value()
                 core.downsample(self.slider_downsample.value())

@@ -22,7 +22,6 @@ PX = 2.93e-3 #mm
 #vertical
 LMIN, LMAX = [400, 800]
 SMIN, SMAX = [0, -1]
-# SMIN, SMAX = [0, 200]
 
 # horizontal
 # YMIN, YMAX = [400, 800]

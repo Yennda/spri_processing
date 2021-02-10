@@ -71,14 +71,14 @@ class Core(object):
     def _load_data(self):
         self.__video_stats = self._load_stats()
         self._data_raw = self._load_video()
+        self.spr_time, self.graphs['spr_signal'] = self._load_spr()
+        self._synchronize()
 
+    def crop(self):
         if self._data_raw.shape[0] < self._data_raw.shape[1]:
             self._data_raw = self._data_raw[SMIN: SMAX, LMIN: LMAX, :]
         else:
             self._data_raw = self._data_raw[LMIN: LMAX, SMIN: SMAX, :]
-
-        self.spr_time, self.graphs['spr_signal'] = self._load_spr()
-        self._synchronize()
 
     def _load_stats(self):
         suffix = '.tsv'
