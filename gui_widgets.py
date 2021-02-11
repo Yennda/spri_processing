@@ -65,5 +65,6 @@ def combo_box():
     ]
     for item in items:
         cb.addItem(item)
+    cb.setCurrentText('diff')
 
     return cb
