@@ -50,3 +50,20 @@ def layout_slider(label, slider, info):
     layout.addWidget(slider)
     layout.addWidget(info)
     return layout
+
+def combo_box():
+    cb = QComboBox()
+    items = [
+        'raw',
+        'int',
+        'diff',
+        'corr',
+        'four_r',
+        'four_i',
+        'four_d',
+        'mask'
+    ]
+    for item in items:
+        cb.addItem(item)
+
+    return cb

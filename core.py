@@ -421,7 +421,10 @@ class Core(object):
             image = self._data_raw[:, :, f]
 
         elif self.type == 'mask':
-            image = self._data_mask[:, :, f]
+            if self._data_mask is None:
+                image = np.zeros(self.shape_img)
+            else:
+                image = self._data_mask[:, :, f]
 
         elif self.type == 'four_r':
             image_pre = self._data_raw[:, :, f]

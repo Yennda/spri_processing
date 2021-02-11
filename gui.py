@@ -1,4 +1,5 @@
 import collections
+import copy
 import sys
 import os
 import re
@@ -313,8 +314,24 @@ class MainWindow(QMainWindow):
             self.slider_distance,
         ]
 
-        # layout:
         layout = QVBoxLayout()
+
+        self.layout_view = QHBoxLayout()
+        self.view_cb_list = []
+
+        for i in range(4):
+            view_cb = gw.combo_box()
+            view_cb.currentIndexChanged.connect(
+                lambda event, cbval=view_cb: self.change_view(event, cbval))
+            view_cb.setDisabled(True)
+            self.view_cb_list.append(view_cb)
+
+            self.layout_view.addWidget(QLabel('ch. {}'.format(i + 1)))
+            self.layout_view.addWidget(view_cb)
+
+        self.layout_view.addStretch(1)
+
+        layout.addLayout(self.layout_view)
 
         self.tabs = QTabWidget()
         self.tabs.addTab(self.openTabUI(), 'Open')  # 0
@@ -327,10 +344,13 @@ class MainWindow(QMainWindow):
 
         layout.addWidget(self.tabs)
 
+        widget = QWidget()
+        widget.setLayout(layout)
+
         self.setStatusBar(QStatusBar(self))
         self.statusBar().setMinimumSize(400, 40)
         self.statusBar().setStyleSheet("border :1px solid gray;")
-        self.setCentralWidget(self.tabs)
+        self.setCentralWidget(widget)
 
     def openTabUI(self):
 
@@ -908,6 +928,12 @@ self.slider_distance_info
 
             print('Parameters exported')
 
+    def change_view(self, event, view_box):
+        i = int(view_box.objectName())
+        self.view.change_type(self.view.axes[i], view_box.currentText())
+        self.view.set_range()
+        self.view.canvas_img.next_frame(0)
+
     def CorrelateButtonClick(self):
         for core in self.view.core_list:
             core.make_correlation()
@@ -1094,6 +1120,9 @@ self.slider_distance_info
         self.fourier_box.clear()
         self.ommit_box.clear()
         self.select_box.clear()
+        num_of_channel = 0
+
+        [self.view_cb_list[i].setDisabled(True) for i in range(4)]
 
         for i, channel in enumerate(self.channel_checkbox_list):
             if channel.checkState() == 2:
@@ -1103,17 +1132,25 @@ self.slider_distance_info
 
                 core = Core(self.folder, self.file + '_{}'.format(i + 1))
 
-                if tl.BoolFromCheckBox(self.transpose_checkbox):
-                    core._data_raw = np.swapaxes(core._data_raw, 0, 1)
-                    core._mask_ommit = np.zeros(core.shape_img)
+                self.view_cb_list[i].setDisabled(False)
+                self.view_cb_list[i].setObjectName(str(num_of_channel))
+                num_of_channel += 1
 
                 if tl.BoolFromCheckBox(self.crop_checkbox):
                     core.crop()
-                core.ref_frame = 0
+                    core.ref_frame = 0
+
+                if tl.BoolFromCheckBox(self.transpose_checkbox):
+                    core._data_raw = np.swapaxes(core._data_raw, 0, 1)
+
+                core._mask_ommit = np.zeros(core.shape_img)
 
                 core.k = self.slider_k.value()
                 core.downsample(self.slider_downsample.value())
                 self.view.add_core(core)
+
+        self.layout_view.addStretch(1)
+
         if len(self.view.core_list) == 0:
             OKDialog('error', 'no channels selected')
             return

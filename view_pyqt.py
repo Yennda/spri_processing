@@ -479,6 +479,7 @@ class View(object):
     def change_type(self, axes, itype):
         if axes is not None:
             axes.core.type = itype
+
             if self.orientation:
                 axes.set_ylabel('channel {}. | {}'.format(axes.core.file[-1:], axes.core.type))
             else:
@@ -486,6 +487,7 @@ class View(object):
         else:
             for core, axes in zip(self.core_list, self.axes):
                 core.type = itype
+
                 if self.orientation:
                     axes.set_ylabel('channel {}. | {}'.format(axes.core.file[-1:], axes.core.type))
                 else:
