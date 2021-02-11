@@ -146,24 +146,27 @@ class Core(object):
             try:
                 with open(self.folder + name_global_spr + self.file[-2:] + '.tsv', 'r') as spr:
                     contents = spr.readlines()
-                    break
+
+                    time = []
+                    signal = []
+
+                    for line in contents[:-1]:
+                        line_split = line.split('\t')
+                        time.append(float(line_split[0]))
+                        signal.append(float(line_split[1]))
+                    beginning = list(self.graphs['spr_signal'][:2])
+                    for i in range(len(signal)):
+                        if signal[i:i + 2] == beginning:
+                            self.zero_time = time[i]
+                            break
+                        elif i == len(signal) - 2:
+                            self.zero_time = 0
+                    return
+
             except FileNotFoundError:
                 self.zero_time = 0
 
-        time = []
-        signal = []
 
-        for line in contents[:-1]:
-            line_split = line.split('\t')
-            time.append(float(line_split[0]))
-            signal.append(float(line_split[1]))
-        beginning = list(self.graphs['spr_signal'][:2])
-        for i in range(len(signal)):
-            if signal[i:i + 2] == beginning:
-                self.zero_time = time[i]
-                break
-            elif i == len(signal) - 2:
-                self.zero_time = 0
                 # raise Exception('Could not match global and local SPR signals.')
 
     def __len__(self):
