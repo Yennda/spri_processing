@@ -59,7 +59,8 @@ Mouse scrolling moves the time
 '7' and '9' jumps 100 frames in time
 '8' and '5' increase or decrease contrast
 'ctrl + 1 or 2 or 3 or 4 or 5' switches to raw, integral, differential image, correlation or differential without any filters
-'alt + 1 or 2 or 3 or 4 or 5' switches to fourier transformed raw, integral or differential image
+'alt + 1 or 2 or 3' switches to fourier transformed raw, integral or differential image
+'alt + 4' shows position of all the detected NPs
 'i' sets the current frame as a reference for the integral image
 'f' turns on/off all the filters
 
@@ -80,7 +81,7 @@ https://github.com/Yennda/spri_processing
 Institute of Photonics and Elctronics, Czech Academy of Sciences
 www.ufe.cz
 
-2020
+2021
 
 
 
