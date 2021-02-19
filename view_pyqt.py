@@ -668,26 +668,28 @@ class View(object):
                         label='channel {}.'.format(j)
                     )
 
-                    corr_std = []
-                    avg = np.average(core._data_corr_std[core.k * 3:])
-                    for cs in core._data_corr_std[core.k * 3:]:
-                        if cs / avg > 1:
-                            corr_std.append((cs / avg) ** core.threshold_adaptive)
-                        else:
-                            corr_std.append(1)
 
-                    axes_threshold = axes.twinx()
-                    axes_threshold.set_yticks([])
+                    if core._data_corr_std is not None:
+                        corr_std = []
+                        avg = np.average(core._data_corr_std[core.k * 3:])
+                        for cs in core._data_corr_std[core.k * 3:]:
+                            if cs / avg > 1:
+                                corr_std.append((cs / avg) ** core.threshold_adaptive)
+                            else:
+                                corr_std.append(1)
 
-                    axes_threshold.plot(
-                        np.arange(core.k * 3, len(core)),
-                        corr_std,
-                        linewidth=2,
-                        ls='dotted',
-                        color=COLORS[j],
-                        alpha=0.5,
-                        label='channel {}.'.format(j)
-                    )
+                        axes_threshold = axes.twinx()
+                        axes_threshold.set_yticks([])
+
+                        axes_threshold.plot(
+                            np.arange(core.k * 3, len(core)),
+                            corr_std,
+                            linewidth=2,
+                            ls='dotted',
+                            color=COLORS[j],
+                            alpha=0.5,
+                            label='channel {}.'.format(j)
+                        )
 
                     # axes.plot(
                     #     nps_add_pos + nps_add_neg,

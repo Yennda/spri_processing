@@ -324,6 +324,7 @@ class Core(object):
 
             self.np_container = []
             self.nps_in_frame = [[] for i in range(len(self))]
+            self.graphs['nps_pos'] = np.array([0 for i in range(len(self))])
 
             for i, line in enumerate(contents):
                 line_split = line.split(', ')
@@ -339,6 +340,8 @@ class Core(object):
                     positive=True
                 )
                 nnp.color = green
+
+                self.graphs['nps_pos'][first_frame] += 1
 
                 for j in range(duration):
                     self.nps_in_frame[first_frame + j].append(i)

@@ -2,6 +2,8 @@ import numpy as np
 import scipy.signal
 import os
 import random
+from scipy.ndimage import gaussian_filter
+
 
 from scipy import ndimage
 
@@ -57,6 +59,13 @@ def fourier_filter(img, level, longpass=True):
     f[mask] = 0
     return np.real(np.fft.ifft2(f))
 
+def fourier_filter_gauss(img, level):
+    f = np.fft.fft2(img)
+    magnitude_spectrum = 20 * np.log(np.abs(f))
+
+    magnitude_spectrum = gaussian_filter(magnitude_spectrum, level)
+
+    return np.real(np.fft.ifft2(np.exp(magnitude_spectrum/20)))
 
 def fourier_filter_threshold(img, level):
     f = np.fft.fft2(img)

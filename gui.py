@@ -843,6 +843,7 @@ class MainWindow(QMainWindow):
         # fn = lambda img: ndimage.maximum_filter(img, size=self.slider_erode.value())
 
         fn = lambda img: tl.fourier_filter_threshold(img, self.slider_erode.value() - 200)
+        # fn = lambda img: tl.fourier_filter_gauss(img, self.slider_erode.value() /100 )
 
         self.RunFilter(self.filter_erode_checkbox.isChecked(), 'a_fourier', fn)
 
@@ -1004,6 +1005,13 @@ self.slider_distance_info
         if self.view.core_list[0].np_container is not None:
             for core in self.view.core_list:
                 core.import_np_csv()
+
+            canvas_plot = self.view.show_plots(self.chosen_plots)
+            canvas_plot.main_window = self
+
+            self.plot_window.close()
+            self.plot_window = PlotWindow(canvas_plot)
+            self.plot_window.show()
 
     def OpenButtonClick(self, s):
         dlg = QFileDialog(self)
