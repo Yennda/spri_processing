@@ -63,16 +63,19 @@ class Core(object):
         self.idea3d = None
         self.autocorrelation_max = None
 
+        time0 = time.time()
         self._load_data()
         self.load_idea()
         self._mask_ommit = np.zeros(self.shape_img)
         self.ref_frame = 10
+        print('\n--elapsed time--\n{:.2f} s'.format(time.time() - time0))
 
     def _load_data(self):
         self.__video_stats = self._load_stats()
         self._data_raw = self._load_video()
         self.spr_time, self.graphs['spr_signal'] = self._load_spr()
         self._synchronize()
+
 
     def crop(self):
         if self._data_raw.shape[0] < self._data_raw.shape[1]:
@@ -656,8 +659,8 @@ class Core(object):
             amx_np = np.unravel_index([amx_np], data_corr[slice].shape)
             mx_np = np.max(data_corr[slice][:, :, amx_np[2]])
 
-            if mx_np > 2 * self.autocorrelation_max:
-                return bright_defect
+            # if mx_np > 2 * self.autocorrelation_max:
+            #     return bright_defect
 
             slice_extended = np.s_[
                              x0_np[0] - dpx: x1_np[0] + dpx,

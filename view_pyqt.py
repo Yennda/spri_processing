@@ -636,6 +636,8 @@ class View(object):
                     )
 
                 elif self.plots[i]['key'] == 'nps_pos':
+                    if not core.show_nps:
+                        continue
 
                     nps_add_pos = np.array([sum(core.graphs['nps_pos'][:i]) for i in range(len(core))])
                     # nps_add_neg = np.array([-1 * sum(core.graphs['nps_neg'][:i]) for i in range(len(core))])
@@ -667,7 +669,6 @@ class View(object):
                         alpha=0.5,
                         label='channel {}.'.format(j)
                     )
-
 
                     if core._data_corr_std is not None:
                         corr_std = []
