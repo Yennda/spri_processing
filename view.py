@@ -36,7 +36,7 @@ class View(object):
         self.img_shown = []
 
     def add_core(self, core):
-        core.synchronize()
+        # core.synchronize()
         self.core_list.append(core)
         if self.length > len(core) or self.length == 0:
             self.length = len(core)

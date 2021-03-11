@@ -2,12 +2,30 @@ FOLDER_EXPORTS = 'exports'
 FOLDER_EXPORTS_NP = 'exports_np'
 FOLDER_IDEAS = 'ideas'
 FOLDER_BIOEXPORTS = '/exports_bio'
+FOLDER_SAVED = 'saved_data'
+
+
 NAME_RAW = 'raw'
 NAME_LOCAL_SPR = 'spr'
-NAME_GLOBAL_SPR = 'spr_integral'
+NAME_GLOBAL_SPR = 'spr_global'
 
 # INIT_RANGE = [-0.01. 0.01]
-INIT_RANGE = [-0.003, 0.003]
+# INIT_RANGE = [-0.003, 0.003]
+INIT_RANGE = [-0.0075, 0.0075]
+INIT_CORR = [-50, 200]
+INIT_FOUR = [-50, 50]
+
+PX = 2.93e-3 #mm
+
+# LMIN, LMAX = [0, -1]
+# SMIN, SMAX = [0, -1]
+#vertical
+LMIN, LMAX = [400, 800]
+SMIN, SMAX = [0, -1]
+
+# horizontal
+# YMIN, YMAX = [400, 800]
+# XMIN, XMAX = [0, -1]
 
 yellow = '#ffb200'
 red = '#DD5544'
@@ -40,8 +58,11 @@ Mouse scrolling moves the time
 '4' and '6' jumps 10 frames in time
 '7' and '9' jumps 100 frames in time
 '8' and '5' increase or decrease contrast
-'ctrl + 1 or 2 or 3' switches to raw, integral or differential image
+'ctrl + 1 or 2 or 3 or 4 or 5' switches to raw, integral, differential image, correlation or differential without any filters
+'alt + 1 or 2 or 3' switches to fourier transformed raw, integral or differential image
+'alt + 4' shows position of all the detected NPs
 'i' sets the current frame as a reference for the integral image
+'f' turns on/off all the filters
 
 The shortcuts work locally for the active channel (mouse within its area) or globally for all the channels (mouse outside any channel).
 
@@ -53,13 +74,14 @@ Official MATPLOTLIB shortcuts at https://matplotlib.org/users/navigation_toolbar
 LICENCE
 -------
 This work is licensed under a Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License.
+
 Jan Bukáček, bukacek@ufe.cz
 https://github.com/Yennda/spri_processing
 
 Institute of Photonics and Elctronics, Czech Academy of Sciences
 www.ufe.cz
 
-2020
+2021
 
 
 

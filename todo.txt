@@ -1,0 +1,7 @@
+- use of GPU (ideally)
+- loading of parameters and subsequent automatic processing
+- switching between view from the main window, tab View
+- write documentation
+    https://realpython.com/documenting-python-code/
+    https://docs.python-guide.org/writing/documentation/
+- setup the git correctly
