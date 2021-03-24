@@ -4,9 +4,11 @@ import time
 import numpy as np
 import scipy.signal
 from scipy import ndimage
+from numba import jit
 
 from global_var import *
 import tools as tl
+import tools_numba as ntl
 from nanoparticle import NanoParticle
 
 
@@ -564,15 +566,27 @@ class Core(object):
         img_type = self.type
         self.type = 'diff'
 
-        raw_diff = np.zeros(self.shape)
-        self._data_diff_std = []
+        raw_diff = ntl.raw_diff(self._data_raw, self.k, self.idea3d)
+
+        # raw_diff = np.zeros(self.shape)
+        # self._data_diff_std = []
+        # start = time.time()
+        # for f in range(len(self)):
+        #     raw_diff[:, :, f], std = ntl.frame_diff(self._data_raw, self.k, f)
+        #     self._data_diff_std.append(std)
+
+        # print('\n--numba time--\n{:.2f} s'.format(time.time() - start))
+
+        # raw_diff = np.zeros(self.shape)
+        # self._data_diff_std = []
 
         print('Processing data for correlation')
 
-        for f in range(len(self)):
-            print('\r\t{}/ {}'.format(f + 1, len(self)), end='')
-            raw_diff[:, :, f] = self.frame(f)
-            self._data_diff_std.append(np.std(self.frame(f)))
+        # for f in range(len(self)):
+        #     print('\r\t{}/ {}'.format(f + 1, len(self)), end='')
+        #     raw_diff[:, :, f] = self.frame(f)
+        #     self._data_diff_std.append(np.std(self.frame(f)))
+        # print('\n--elapsed time--\n{:.2f} s'.format(time.time() - time0))
 
         self._data_corr = scipy.signal.correlate(
             raw_diff,
@@ -585,7 +599,7 @@ class Core(object):
         self._range['corr'] = [- np.max(self._data_corr[:, :, self.k * 3:]),
                                np.max(self._data_corr[:, :, self.k * 3:])]
 
-        print('\n--elapsed time--\n{:.2f} s'.format(time.time() - time0))
+        print('\n--correlation elapsed time--\n{:.2f} s'.format(time.time() - time0))
 
     def histogram(self):
         frame = self.frame(self._f)

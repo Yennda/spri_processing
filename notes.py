@@ -1,62 +1,41 @@
-import sys
-import time
+def frame_diff(self, f):
+    current = np.sum(
+        self._data_raw[:, :, f - self.k + 1: f + 1],
+        axis=2
+    ) / self.k
+    previous = np.sum(
+        self._data_raw[:, :, f - 2 * self.k + 1: f - self.k + 1],
+        axis=2
+    ) / self.k
+    return current - previous
 
-import numpy as np
+def make_correlation(self):
+    time0 = time.time()
+    if self.idea3d is None:
+        raise Exception('No selected NP patter for the file {}'.format(self.file))
 
-from matplotlib.backends.qt_compat import QtCore, QtWidgets
-if QtCore.qVersion() >= "5.":
-    from matplotlib.backends.backend_qt5agg import (
-        FigureCanvas, NavigationToolbar2QT as NavigationToolbar)
-else:
-    from matplotlib.backends.backend_qt4agg import (
-        FigureCanvas, NavigationToolbar2QT as NavigationToolbar)
-from matplotlib.figure import Figure
+    img_type = self.type
+    self.type = 'diff'
 
+    raw_diff = np.zeros(self.shape)
+    self._data_diff_std = []
 
-class ApplicationWindow(QtWidgets.QMainWindow):
-    def __init__(self):
-        super().__init__()
-        self._main = QtWidgets.QWidget()
-        self.setCentralWidget(self._main)
-        layout = QtWidgets.QVBoxLayout(self._main)
+    print('Processing data for correlation')
 
-        static_canvas = FigureCanvas(Figure(figsize=(5, 3)))
-        layout.addWidget(static_canvas)
-        self.addToolBar(NavigationToolbar(static_canvas, self))
+    for f in range(len(self)):
+        print('\r\t{}/ {}'.format(f + 1, len(self)), end='')
+        raw_diff[:, :, f] = self.frame(f)
+        self._data_diff_std.append(np.std(self.frame(f)))
 
-        dynamic_canvas = FigureCanvas(Figure(figsize=(5, 3)))
-        layout.addWidget(dynamic_canvas)
-        self.addToolBar(QtCore.Qt.BottomToolBarArea,
-                        NavigationToolbar(dynamic_canvas, self))
+    self._data_corr = scipy.signal.correlate(
+        raw_diff,
+        self.idea3d,
+        mode='same'
+    ) * 1e5
 
-        self._static_ax = static_canvas.figure.subplots()
-        t = np.linspace(0, 10, 501)
-        self._static_ax.plot(t, np.tan(t), ".")
+    self._data_corr_std = np.std(self._data_corr, axis=(0, 1))
+    self.type = img_type
+    self._range['corr'] = [- np.max(self._data_corr[:, :, self.k * 3:]),
+                           np.max(self._data_corr[:, :, self.k * 3:])]
 
-        self._dynamic_ax = dynamic_canvas.figure.subplots()
-        t = np.linspace(0, 10, 101)
-        # Set up a Line2D.
-        self._line, = self._dynamic_ax.plot(t, np.sin(t + time.time()))
-        self._timer = dynamic_canvas.new_timer(50)
-        self._timer.add_callback(self._update_canvas)
-        self._timer.start()
-
-    def _update_canvas(self):
-        t = np.linspace(0, 10, 101)
-        # Shift the sinusoid as a function of time.
-        self._line.set_data(t, np.sin(t + time.time()))
-        self._line.figure.canvas.draw()
-
-
-if __name__ == "__main__":
-    # Check whether there is already a running QApplication (e.g., if running
-    # from an IDE).
-    qapp = QtWidgets.QApplication.instance()
-    if not qapp:
-        qapp = QtWidgets.QApplication(sys.argv)
-
-    app = ApplicationWindow()
-    app.show()
-    app.activateWindow()
-    app.raise_()
-    qapp.exec_()
+    print('\n--elapsed time--\n{:.2f} s'.format(time.time() - time0))
