@@ -1216,10 +1216,10 @@ self.slider_distance_info
     # def keyPressEvent(self, e):
     #     print('key pressed {}'.format(e.key()))
 
+if __name__ == '__main__':
+    app = QApplication(sys.argv)
+    app.setFont(QFont('Courier', 8))
 
-app = QApplication(sys.argv)
-app.setFont(QFont('Courier', 8))
-
-window = MainWindow()
-window.show()
-app.exec_()
+    window = MainWindow()
+    window.show()
+    app.exec_()

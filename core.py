@@ -9,6 +9,45 @@ from global_var import *
 import tools as tl
 from nanoparticle import NanoParticle
 
+import multiprocessing
+
+
+def foo(f):
+    out = 0
+    for i in range(f):
+        out += 1 / f
+    print(out)
+    return (out)
+
+
+def frame(data_raw, k, mask_fourier, postprocessing_filters, postprocessing, queue):
+    data_out = np.empty(data_raw.shape)
+    for f in range(2 * k, data_raw.shape[2]):
+        current = np.sum(
+            data_raw[:, :, f - k + 1: f + 1],
+            axis=2
+        ) / k
+        previous = np.sum(
+            data_raw[:, :, f - 2 * k + 1: f - k + 1],
+            axis=2
+        ) / k
+
+        image = current - previous
+
+        if mask_fourier is not None and postprocessing:
+            ff = np.fft.fft2(image)
+            ff[mask_fourier] = 0
+            image = np.real(np.fft.ifft2(ff))
+
+        if postprocessing and len(postprocessing_filters) != 0:
+
+            for p in postprocessing_filters.values():
+                image = p(image)
+        data_out[:, :, f] = image
+
+    queue.put(data_out[:, :, 2 * k:])
+    print('process finished')
+
 
 class Core(object):
     def __init__(self, folder, file):
@@ -75,7 +114,6 @@ class Core(object):
         self._data_raw = self._load_video()
         self.spr_time, self.graphs['spr_signal'] = self._load_spr()
         self._synchronize()
-
 
     def crop(self):
         if self._data_raw.shape[0] < self._data_raw.shape[1]:
@@ -168,7 +206,6 @@ class Core(object):
 
             except FileNotFoundError:
                 self.zero_time = 0
-
 
                 # raise Exception('Could not match global and local SPR signals.')
 
@@ -569,10 +606,65 @@ class Core(object):
 
         print('Processing data for correlation')
 
-        for f in range(len(self)):
-            print('\r\t{}/ {}'.format(f + 1, len(self)), end='')
-            raw_diff[:, :, f] = self.frame(f)
-            self._data_diff_std.append(np.std(self.frame(f)))
+        processes = []
+        cpu = 4
+        # cpu = multiprocessing.cpu_count() - 2
+
+        # arguments = []
+        # for i in range(cpu - 1):
+        #     data_raw = self._data_raw[:, :, len(self) // cpu * i: len(self) // cpu * (i + 1)]
+        #     arguments.append((
+        #         data_raw,
+        #         self.k,
+        #         self._mask_fourier,
+        #         self.postprocessing_filters,
+        #         self.postprocessing))
+        #
+        # with multiprocessing.Pool(cpu) as pool:
+        #     pool.map(foo, [20]*cpu)
+        #     pool.map(frame, arguments)
+
+        queue = multiprocessing.Queue()
+        for i in range(cpu):
+            print('start: {}'.format(len(self) // cpu * i))
+            print('stop: {}'.format(len(self) // cpu * (i + 1)))
+            if i == 0:
+                data_raw = self._data_raw[:, :, len(self) // cpu * i: len(self) // cpu * (i + 1)]
+            else:
+                data_raw = self._data_raw[:, :, len(self) // cpu * i - 2 * self.k: len(self) // cpu * (i + 1)]
+
+
+            # p = multiprocessing.Process(target=foo, args=(20, ))
+            p = multiprocessing.Process(target=frame, args=(
+                data_raw,
+                self.k,
+                self._mask_fourier,
+                self.postprocessing_filters,
+                self.postprocessing,
+                queue
+            ))
+
+            processes.append(p)
+
+        [p.start() for p in processes]
+        print('all processes started')
+
+        raw_diff[:, :, 2 * self.k: len(self) // cpu] = queue.get()
+        for i in range(1, cpu):
+            print('start: {}'.format(len(self) // cpu * i))
+            print('stop: {}'.format(len(self) // cpu * (i + 1)))
+
+            raw_diff[:, :, len(self) // cpu * i: len(self) // cpu * (i + 1)] = queue.get()
+
+        [p.join() for p in processes]
+        print('all processes finished')
+
+        # for f in range(len(self)):
+        # raw_diff[:, :, f] = results[f]
+
+        # print('\r\t{}/ {}'.format(f + 1, len(self)), end='')
+        # raw_diff[:, :, f] = self.frame(f)
+        # self._data_diff_std.append(np.std(self.frame(f)))
 
         self._data_corr = scipy.signal.correlate(
             raw_diff,
