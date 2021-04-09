@@ -875,12 +875,13 @@ class MainWindow(QMainWindow):
         self.RunFilter(self.filter_fourier_checkbox.isChecked(), 'a_fourier', fn)
 
     def RunFilterThreshold(self):
-        for core in self.view.core_list:
-            core.threshold = self.filter_threshold_checkbox.isChecked()
-            core.threshold_value = self.slider_threshold.value() / 400
-            core.threshold_adaptive = self.slider_threshold_adaptive.value() / 10
+        if self.view is not None:
+            for core in self.view.core_list:
+                core.threshold = self.filter_threshold_checkbox.isChecked()
+                core.threshold_value = self.slider_threshold.value() / 400
+                core.threshold_adaptive = self.slider_threshold_adaptive.value() / 10
 
-        self.view.canvas_img.next_frame(0)
+            self.view.canvas_img.next_frame(0)
 
     def RunFilterBilateral(self):
         fn = lambda img: cv2.bilateralFilter(np.float32(img), int(self.slider_bilateral_d.value()),
@@ -913,7 +914,8 @@ class MainWindow(QMainWindow):
                 core.postprocessing_filters[ftype] = fn
 
         core.postprocessing_filters = collections.OrderedDict(sorted(core.postprocessing_filters.items()))
-        self.view.canvas_img.next_frame(0)
+        if self.view.canvas_img is not None:
+            self.view.canvas_img.next_frame(0)
 
     def export_parameters(self):
         if not os.path.isdir(self.folder + gv.FOLDER_SAVED):
@@ -961,7 +963,6 @@ class MainWindow(QMainWindow):
                 self.crop_checkbox.setChecked(p['crop_checkbox']),
                 self.slider_downsample.setValue(p['slider_downsample'])
                 self.slider_k.setValue(p['slider_k'])
-                self.filters_checkbox.setChecked(p['filters_checkbox'])
                 self.filter_wiener_checkbox.setChecked(p['filter_wiener_checkbox'])
                 self.slider_wiener.setValue(p['slider_wiener'])
                 self.slider_wiener_noise.setValue(p['slider_wiener_noise'])
@@ -976,6 +977,8 @@ class MainWindow(QMainWindow):
                 self.slider_threshold.setValue(p['slider_threshold'])
                 self.slider_threshold_adaptive.setValue(p['slider_threshold_adaptive'])
                 self.slider_distance.setValue(p['slider_distance'])
+                self.filters_checkbox.setChecked(p['filters_checkbox'])
+
 
                 self.RefreshFilters()
         if self.view is not None:

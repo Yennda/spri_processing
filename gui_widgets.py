@@ -29,7 +29,8 @@ def checkbox_filter(name, checked, fn):
     checkbox = QCheckBox(name)
     checkbox.setChecked(checked)
     checkbox.setMinimumWidth(min_label_width)
-    checkbox.clicked.connect(fn)
+    checkbox.stateChanged.connect(fn)
+    # checkbox.clicked.connect(fn)
     return checkbox
 
 
