@@ -1,3 +1,4 @@
+import copy
 import os
 import time
 
@@ -46,7 +47,7 @@ def frame(data_raw, k, mask_fourier, postprocessing_filters, postprocessing, que
         data_out[:, :, f] = image
 
     queue.put(data_out[:, :, 2 * k:])
-    print('process finished')
+    # print('process finished')
 
 
 class Core(object):
@@ -606,35 +607,23 @@ class Core(object):
 
         print('Processing data for correlation')
 
-        processes = []
         cpu = 4
+
         # cpu = multiprocessing.cpu_count() - 2
+        # for j in range(1, multiprocessing.cpu_count()):
+        tt = time.time()
+        processes = []
 
-        # arguments = []
-        # for i in range(cpu - 1):
-        #     data_raw = self._data_raw[:, :, len(self) // cpu * i: len(self) // cpu * (i + 1)]
-        #     arguments.append((
-        #         data_raw,
-        #         self.k,
-        #         self._mask_fourier,
-        #         self.postprocessing_filters,
-        #         self.postprocessing))
-        #
-        # with multiprocessing.Pool(cpu) as pool:
-        #     pool.map(foo, [20]*cpu)
-        #     pool.map(frame, arguments)
-
+    #     cpu = j + 1
         queue = multiprocessing.Queue()
         for i in range(cpu):
-            print('start: {}'.format(len(self) // cpu * i))
-            print('stop: {}'.format(len(self) // cpu * (i + 1)))
             if i == 0:
                 data_raw = self._data_raw[:, :, len(self) // cpu * i: len(self) // cpu * (i + 1)]
             else:
                 data_raw = self._data_raw[:, :, len(self) // cpu * i - 2 * self.k: len(self) // cpu * (i + 1)]
 
+            print(self.postprocessing_filters)
 
-            # p = multiprocessing.Process(target=foo, args=(20, ))
             p = multiprocessing.Process(target=frame, args=(
                 data_raw,
                 self.k,
@@ -643,28 +632,24 @@ class Core(object):
                 self.postprocessing,
                 queue
             ))
+            p.start()
 
             processes.append(p)
 
-        [p.start() for p in processes]
-        print('all processes started')
-
+        # [p.start() for p in processes]
+        # print('all processes started')
         raw_diff[:, :, 2 * self.k: len(self) // cpu] = queue.get()
+
         for i in range(1, cpu):
-            print('start: {}'.format(len(self) // cpu * i))
-            print('stop: {}'.format(len(self) // cpu * (i + 1)))
+            # print('start: {}'.format(len(self) // cpu * i))
+            # print('stop: {}'.format(len(self) // cpu * (i + 1)))
 
             raw_diff[:, :, len(self) // cpu * i: len(self) // cpu * (i + 1)] = queue.get()
 
         [p.join() for p in processes]
-        print('all processes finished')
-
-        # for f in range(len(self)):
-        # raw_diff[:, :, f] = results[f]
-
-        # print('\r\t{}/ {}'.format(f + 1, len(self)), end='')
-        # raw_diff[:, :, f] = self.frame(f)
-        # self._data_diff_std.append(np.std(self.frame(f)))
+        # print('all processes finished')
+        print('CPU: {}'.format(cpu))
+        print('duration: {}'.format(time.time() - tt))
 
         self._data_corr = scipy.signal.correlate(
             raw_diff,
