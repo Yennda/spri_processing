@@ -76,7 +76,6 @@ class Core(object):
         self.spr_time, self.graphs['spr_signal'] = self._load_spr()
         self._synchronize()
 
-
     def crop(self):
         if self._data_raw.shape[0] < self._data_raw.shape[1]:
             self._data_raw = self._data_raw[SMIN: SMAX, LMIN: LMAX, :]
@@ -168,7 +167,6 @@ class Core(object):
 
             except FileNotFoundError:
                 self.zero_time = 0
-
 
                 # raise Exception('Could not match global and local SPR signals.')
 
@@ -398,6 +396,29 @@ class Core(object):
                 mode='same'
             ) * 1e5)
 
+            return True
+        except FileNotFoundError:
+            return False
+
+    def save_masks(self):
+        if not os.path.isdir(self.folder + FOLDER_IDEAS):
+            os.mkdir(self.folder + FOLDER_IDEAS)
+
+        file_name = self.folder + FOLDER_IDEAS + '/' + self.file
+
+        for name, mask in zip(['_mask_fourier', '_mask_ommit'], [self._mask_fourier, self._mask_ommit]):
+            if tl.before_save_file(file_name + name) or name == self.file + name:
+                np.save(file_name + name + '.npy', mask)
+                print('Masks saved')
+            else:
+                print('Could not save the mask.')
+
+    def load_masks(self):
+        file_name = self.folder + FOLDER_IDEAS + '/' + self.file
+        try:
+            self._mask_fourier = np.load(file_name + '_mask_fourier' + '.npy')
+            self._mask_ommit = np.load(file_name + '_mask_ommit' + '.npy')
+            print('Masks loaded')
             return True
         except FileNotFoundError:
             return False

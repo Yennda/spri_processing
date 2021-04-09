@@ -1,5 +1,6 @@
 import collections
 import copy
+import json
 import sys
 import os
 import re
@@ -146,9 +147,9 @@ class MainWindow(QMainWindow):
         self.slider_gauss = gw.slider(0, 50, 1, 10, self.RefreshSliderGaussInfo)
         self.slider_gauss_info = gw.value_label('1')
 
-        self.filter_erode_checkbox = gw.checkbox_filter('Fourier', False, self.RunFilterErode)
-        self.slider_erode = gw.slider(0, 400, 1, 200, self.RefreshSliderErodeInfo)
-        self.slider_erode_info = gw.value_label('0')
+        self.filter_fourier_checkbox = gw.checkbox_filter('Fourier', False, self.RunFilterFourier)
+        self.slider_fourier = gw.slider(0, 400, 1, 200, self.RefreshSliderFourierInfo)
+        self.slider_fourier_info = gw.value_label('0')
 
         self.filter_threshold_checkbox = gw.checkbox_filter('Threshold', False, self.RunFilterThreshold)
         self.slider_threshold = gw.slider(0, 200, 1, 50, self.RefreshSliderThresholdInfo)
@@ -227,10 +228,21 @@ class MainWindow(QMainWindow):
                                            self.ExportCSVButtonClick)
         self.button_export_parameters = gw.button('application-export', 'Export parameters', self.font, True,
                                                   self.ExportParametersButtonClick)
+        self.button_import_parameters = gw.button('application-import', 'Import', self.font, True,
+                                                  self.ImportParametersButtonClick)
+
         self.button_export_nps = gw.button('beans', 'Export NPs', self.font, True,
                                            self.ExportNPsButtonClick)
         self.button_import_nps = gw.button(None, 'Import', self.font, True,
                                            self.ImportNPsButtonClick)
+
+        self.exim_buttons = [
+            self.button_export,
+            self.button_export_csv,
+            self.button_export_parameters,
+            self.button_export_nps,
+            self.button_import_nps
+        ]
 
         self.button_count = gw.button('count-cat-icon', 'Count NPs', self.font, True, self.CountButtonClick)
         self.button_count.setStatusTip('Counts nanoparticles.')
@@ -279,17 +291,14 @@ class MainWindow(QMainWindow):
         self.np_info_label = QLabel(self.np_info_create())
 
         self.forms_image_filters = [
-            self.filter_gauss_checkbox,
             self.slider_gauss_info,
             self.slider_gauss,
-            self.filter_wiener_checkbox,
             self.slider_wiener_info,
             self.slider_wiener,
             self.slider_wiener_noise_info,
             self.slider_wiener_noise,
             self.filter_wiener_label,
             self.filter_wiener_noise_label,
-            self.filter_bilateral_checkbox,
             self.filter_bilateral_space_label,
             self.filter_bilateral_color_label,
             self.filter_bilateral_d_label,
@@ -298,10 +307,16 @@ class MainWindow(QMainWindow):
             self.slider_bilateral_d,
             self.line_count_stop,
             self.line_count_start,
-            self.slider_erode,
-            self.slider_erode_info,
-            self.filter_erode_checkbox
+            self.slider_fourier,
+            self.slider_fourier_info,
         ]
+        self.forms_image_filters_checkoboxes = [
+            self.filter_gauss_checkbox,
+            self.filter_wiener_checkbox,
+            self.filter_bilateral_checkbox,
+            self.filter_fourier_checkbox
+        ]
+
         self.forms_np_recognition = [
             self.slider_threshold,
             self.slider_threshold_info,
@@ -339,7 +354,7 @@ class MainWindow(QMainWindow):
         self.tabs.addTab(self.NPRecognitionTabUI(), 'NP recognition')  # 2
         self.tabs.addTab(self.NPInfoUI(), 'NP Info')  # 3
         # self.tabs.addTab(self.ViewTabUI(), 'View')  # 4
-        self.tabs.addTab(self.ExportsTabUI(), 'Exports')  # 5
+        self.tabs.addTab(self.ExportsTabUI(), 'Export/Import')  # 5
         self.tabs.tabBarClicked.connect(self.RefreshTabs)
 
         layout.addWidget(self.tabs)
@@ -457,9 +472,9 @@ class MainWindow(QMainWindow):
         ))
 
         layout.addLayout(gw.layout_slider(
-            self.filter_erode_checkbox,
-            self.slider_erode,
-            self.slider_erode_info
+            self.filter_fourier_checkbox,
+            self.slider_fourier,
+            self.slider_fourier_info
         ))
 
         label_fourier = QLabel('Remove spatial freq.:')
@@ -597,7 +612,11 @@ class MainWindow(QMainWindow):
 
         layout.addWidget(self.button_export)
         layout.addWidget(self.button_export_csv)
-        layout.addWidget(self.button_export_parameters)
+
+        layout_parameters_ie = QHBoxLayout()
+        layout_parameters_ie.addWidget(self.button_export_parameters)
+        layout_parameters_ie.addWidget(self.button_import_parameters)
+        layout.addLayout(layout_parameters_ie)
 
         layout_nps_ie = QHBoxLayout()
         layout_nps_ie.addWidget(self.button_export_nps)
@@ -745,9 +764,9 @@ class MainWindow(QMainWindow):
         self.slider_gauss_info.setText(str(self.slider_gauss.value() / 10))
         self.RunFilterGaussian()
 
-    def RefreshSliderErodeInfo(self):
-        self.slider_erode_info.setText(str(self.slider_erode.value() - 200))
-        self.RunFilterErode()
+    def RefreshSliderFourierInfo(self):
+        self.slider_fourier_info.setText(str(self.slider_fourier.value() - 200))
+        self.RunFilterFourier()
 
     def RefreshSliderThresholdInfo(self):
         self.slider_threshold_info.setText(str(self.slider_threshold.value() / 400))
@@ -788,17 +807,29 @@ class MainWindow(QMainWindow):
         print(itype)
 
     def RefreshFilters(self):
+        if self.view is None:
+            if self.filters_checkbox.isChecked():
+                for item in self.forms_image_filters + self.forms_image_filters_checkoboxes:
+                    item.setDisabled(False)
+
+            else:
+                for item in self.forms_image_filters + self.forms_image_filters_checkoboxes:
+                    item.setDisabled(True)
+            return
+
         if self.filters_checkbox.isChecked():
             for core in self.view.core_list:
                 core.postprocessing = True
-            for item in self.forms_image_filters:
+            for item in self.forms_image_filters + self.forms_image_filters_checkoboxes:
                 item.setDisabled(False)
 
         else:
             for core in self.view.core_list:
                 core.postprocessing = False
-            for item in self.forms_image_filters:
+            for item in self.forms_image_filters + self.forms_image_filters_checkoboxes:
                 item.setDisabled(True)
+
+
         self.view.canvas_img.next_frame(0)
 
     def RefreshCountRange(self):
@@ -839,13 +870,9 @@ class MainWindow(QMainWindow):
         fn = lambda img: gaussian_filter(img, self.slider_gauss.value() / 10)
         self.RunFilter(self.filter_gauss_checkbox.isChecked(), 'c_gauss', fn)
 
-    def RunFilterErode(self):
-        # fn = lambda img: ndimage.maximum_filter(img, size=self.slider_erode.value())
-
-        fn = lambda img: tl.fourier_filter_threshold(img, self.slider_erode.value() - 200)
-        # fn = lambda img: tl.fourier_filter_gauss(img, self.slider_erode.value() /100 )
-
-        self.RunFilter(self.filter_erode_checkbox.isChecked(), 'a_fourier', fn)
+    def RunFilterFourier(self):
+        fn = lambda img: tl.fourier_filter_threshold(img, self.slider_fourier.value() - 200)
+        self.RunFilter(self.filter_fourier_checkbox.isChecked(), 'a_fourier', fn)
 
     def RunFilterThreshold(self):
         for core in self.view.core_list:
@@ -871,6 +898,9 @@ class MainWindow(QMainWindow):
         self.RunFilter(self.filter_wiener_checkbox.isChecked(), 'a_wiener', fn)
 
     def RunFilter(self, checked, ftype, fn):
+        if self.view is None:
+            return
+
         if not checked:
             for core in self.view.core_list:
                 try:
@@ -890,44 +920,69 @@ class MainWindow(QMainWindow):
             os.mkdir(self.folder + gv.FOLDER_SAVED)
 
         for core in self.view.core_list:
-            name = core.file
+            parameters = {
+                'orientation_checkbox': self.orientation_checkbox.isChecked(),
+                'transpose_checkbox': self.transpose_checkbox.isChecked(),
+                'crop_checkbox': self.crop_checkbox.isChecked(),
+                'slider_downsample': self.slider_downsample.value(),
+                'slider_k': self.slider_k.value(),
+                'filters_checkbox': self.filters_checkbox.isChecked(),
+                'filter_wiener_checkbox': self.filter_wiener_checkbox.isChecked(),
+                'slider_wiener': self.slider_wiener.value(),
+                'slider_wiener_noise': self.slider_wiener_noise.value(),
+                'filter_bilateral_checkbox': self.filter_bilateral_checkbox.isChecked(),
+                'slider_bilateral_d': self.slider_bilateral_d.value(),
+                'slider_bilateral_color': self.slider_bilateral_color.value(),
+                'slider_bilateral_space': self.slider_bilateral_space.value(),
+                'filter_gauss_checkbox': self.filter_gauss_checkbox.isChecked(),
+                'slider_gauss': self.slider_gauss.value(),
+                'filter_fourier_checkbox': self.filter_fourier_checkbox.isChecked(),
+                'slider_fourier': self.slider_fourier.value(),
+                'slider_threshold': self.slider_threshold.value(),
+                'slider_threshold_adaptive': self.slider_threshold_adaptive.value(),
+                'slider_distance': self.slider_distance.value()
+            }
+            core.save_masks()
 
-            file_name = self.folder + gv.FOLDER_SAVED + '/' + 'parameters_' + name + '.txt'
-
-            parameters = [
-                self.slider_downsample_info,
-                self.slider_k_info,
-                self.slider_wiener_info,
-                self.slider_wiener_noise_info,
-                self.slider_bilateral_d_info,
-                self.slider_bilateral_color_info,
-                self.slider_bilateral_space_info,
-                self.slider_gauss_info,
-                self.slider_threshold_info,
-                self.slider_threshold_adaptive_info,
-                self.slider_distance_info
-            ]
-
-            info = """
-self.slider_downsample_info,
-self.slider_k_info,
-self.slider_wiener_info,
-self.slider_wiener_noise_info,
-self.slider_bilateral_d_info,
-self.slider_bilateral_color_info,
-self.slider_bilateral_space_info,
-self.slider_gauss_info,
-self.slider_threshold_info,
-self.slider_threshold_adaptive_info,
-self.slider_distance_info
-            """
-
-            with open(file_name, mode='w') as f:
-                for p in parameters:
-                    f.write('{}\n'.format(p.text()))
-                f.write(info)
+            with open(self.folder + gv.FOLDER_SAVED + '/' + 'parameters_' + core.file + '.json', 'w') as file:
+                json.dump(parameters, file)
 
             print('Parameters exported')
+
+    def import_parameters(self):
+        for i, channel in enumerate(self.channel_checkbox_list):
+            if channel.checkState() == 2:
+
+                with open(self.folder + gv.FOLDER_SAVED + '/' + 'parameters_' + self.file + '_{}'.format(i + 1) + '.json', 'r') as file:
+                    p = json.load(file)
+
+                self.orientation_checkbox.setChecked(p['orientation_checkbox'])
+                self.transpose_checkbox.setChecked(p['transpose_checkbox'])
+                self.crop_checkbox.setChecked(p['crop_checkbox']),
+                self.slider_downsample.setValue(p['slider_downsample'])
+                self.slider_k.setValue(p['slider_k'])
+                self.filters_checkbox.setChecked(p['filters_checkbox'])
+                self.filter_wiener_checkbox.setChecked(p['filter_wiener_checkbox'])
+                self.slider_wiener.setValue(p['slider_wiener'])
+                self.slider_wiener_noise.setValue(p['slider_wiener_noise'])
+                self.filter_bilateral_checkbox.setChecked(p['filter_bilateral_checkbox'])
+                self.slider_bilateral_d.setValue(p['slider_bilateral_d'])
+                self.slider_bilateral_color.setValue(p['slider_bilateral_color'])
+                self.slider_bilateral_space.setValue(p['slider_bilateral_space'])
+                self.filter_gauss_checkbox.setChecked(p['filter_gauss_checkbox'])
+                self.slider_gauss.setValue(p['slider_gauss'])
+                self.filter_fourier_checkbox.setChecked(p['filter_fourier_checkbox'])
+                self.slider_fourier.setValue(p['slider_fourier'])
+                self.slider_threshold.setValue(p['slider_threshold'])
+                self.slider_threshold_adaptive.setValue(p['slider_threshold_adaptive'])
+                self.slider_distance.setValue(p['slider_distance'])
+
+                self.RefreshFilters()
+        if self.view is not None:
+            for core in self.view.core_list:
+                core.load_masks()
+
+        print('Parameters imported')
 
     def change_view(self, event, view_box):
         i = int(view_box.objectName())
@@ -996,6 +1051,9 @@ self.slider_distance_info
     def ExportParametersButtonClick(self):
         self.export_parameters()
 
+    def ImportParametersButtonClick(self):
+        self.import_parameters()
+
     def ExportNPsButtonClick(self):
         if self.view.core_list[0].np_container is not None:
             for core in self.view.core_list:
@@ -1021,17 +1079,12 @@ self.slider_distance_info
             self.button_build.setDisabled(False)
             self.button_correlate.setDisabled(False)
 
-            self.button_export.setDisabled(False)
-            self.button_export_csv.setDisabled(False)
-            self.button_export_parameters.setDisabled(False)
-            self.button_export_nps.setDisabled(False)
-            self.button_import_nps.setDisabled(False)
-
             self.button_fourier.setDisabled(False)
             self.button_fourier_clear.setDisabled(False)
             self.button_ommit.setDisabled(False)
             self.button_ommit_clear.setDisabled(False)
             self.button_select.setDisabled(False)
+            self.button_import_parameters.setDisabled(False)
 
             self.tool_file_info.setDisabled(False)
 
@@ -1176,6 +1229,13 @@ self.slider_distance_info
 
         for item in self.forms_image_filters + [self.filters_checkbox]:
             item.setDisabled(False)
+
+        for item in self.forms_image_filters_checkoboxes:
+            item.setChecked(False)
+            item.setDisabled(False)
+
+        for btn in self.exim_buttons:
+            btn.setDisabled(False)
 
         self.button_count.setDisabled(False)
         self.line_count_stop.setText(str(len(self.view.core_list[0])))
