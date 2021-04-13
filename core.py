@@ -378,6 +378,8 @@ class Core(object):
                 self.idea3d,
                 mode='same'
             ) * 1e5)
+            print('Autocorrelation max: {}'.format(self.autocorrelation_max))
+            print('RAW avg: {}'.format(np.average(self._data_raw)))
 
         else:
             print('Could not save the pattern.')
@@ -395,6 +397,8 @@ class Core(object):
                 self.idea3d,
                 mode='same'
             ) * 1e5)
+            print('Autocorrelation max: {}'.format(self.autocorrelation_max))
+            print('RAW avg: {}'.format(np.average(self._data_raw)))
 
             return True
         except FileNotFoundError:
@@ -514,20 +518,18 @@ class Core(object):
             if self.threshold_value > 0:
                 image = ndimage.maximum_filter(image, size=2)
 
-                # scikit.
-                # image = (image > np.std(image) * self.threshold_value) * self._range[self.type][1]
-
                 level = self._data_corr_std[f] / np.average(self._data_corr_std[self.k * 3:])
 
                 if level > 1:
 
-                    image = (
-                                    image > level ** self.threshold_adaptive * self.autocorrelation_max * self.threshold_value) * \
+                    image = (image / np.average(
+                        self._data_raw) > level ** self.threshold_adaptive * self.autocorrelation_max * self.threshold_value) * \
                             self._range[self.type][1]
                 else:
-                    image = (image > self.autocorrelation_max * self.threshold_value) * self._range[self.type][1]
+                    image = (image / np.average(self._data_raw) > self.autocorrelation_max * self.threshold_value) * \
+                            self._range[self.type][1]
 
-                image = (image > self.autocorrelation_max * self.threshold_value / 50) * self._range[self.type][1]
+                # image = (image > self.autocorrelation_max * self.threshold_value / 50) * self._range[self.type][1]
 
             else:
                 image = -ndimage.maximum_filter(-image, size=2)

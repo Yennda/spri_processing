@@ -214,7 +214,10 @@ class Canvas(FigureCanvasQTAgg):
                                   span_y[0]: span_y[1],
                                   span_x[0]: span_x[1]]
 
-            axes.core.idea3d = idea3d
+
+            print('Idea norm: {}'.format(np.sum(np.abs(idea3d))))
+
+            axes.core.idea3d = idea3d/np.sum(np.abs(idea3d))
             print('Pattern chosen')
 
             axes.core.save_idea()
