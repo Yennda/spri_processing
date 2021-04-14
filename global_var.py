@@ -4,7 +4,6 @@ FOLDER_IDEAS = 'ideas'
 FOLDER_BIOEXPORTS = '/exports_bio'
 FOLDER_SAVED = 'saved_data'
 
-
 NAME_RAW = 'raw'
 NAME_LOCAL_SPR = 'spr'
 NAME_GLOBAL_SPR = 'spr_global'

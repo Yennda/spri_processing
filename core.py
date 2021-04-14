@@ -29,7 +29,7 @@ class Core(object):
         self._range = {
             'diff': INIT_RANGE,
             'raw': [0, 1],
-            'mask': [0, 1],
+            'mask': [0, 1.1],
             'int': INIT_RANGE,
             'corr': INIT_CORR,
             'four_r': INIT_FOUR,
@@ -68,7 +68,7 @@ class Core(object):
         self.load_idea()
         self._mask_ommit = np.zeros(self.shape_img)
         self.ref_frame = 10
-        print('\n--elapsed time--\n{:.2f} s'.format(time.time() - time0))
+        # self.print('\n--elapsed time--\n{:.2f} s'.format(time.time() - time0))
 
     def _load_data(self):
         self.__video_stats = self._load_stats()
@@ -97,10 +97,10 @@ class Core(object):
 
     def _load_video(self):
         if FOLDER_SAVED in self.folder:
-            print(self.folder)
+            self.print(self.folder)
             video = np.load(self.folder + self.file + '.npy')
             self.folder = self.folder.replace(FOLDER_SAVED, '')
-            print(self.folder)
+            self.print(self.folder)
 
             return video
 
@@ -128,7 +128,7 @@ class Core(object):
 
             return time, np.array(signal)
         except FileNotFoundError:
-            print('SPR file not found. Diseable ploting of SPR. ')
+            self.print('SPR file not found. Diseable ploting of SPR. ')
             return None, None
 
     def downsample(self, k):
@@ -216,6 +216,9 @@ class Core(object):
     def range(self, r):
         self._range[self.type] = r
 
+    def print(self, string):
+        print('core {}: {}'.format(self.file[-1], string))
+
     def intensity(self, f):
         type_buffer = self.type
         self.type = 'raw'
@@ -238,14 +241,11 @@ class Core(object):
 
         if tl.before_save_file(file_name) or name == self.file:
             np.save(file_name + '.npy', data)
-            # np.save(file_name + '_frame' + '.npy', np.array(self._idea_frame))
-            # np.save(file_name + '_spanx' + '.npy', self._idea_span_x)
-            # np.save(file_name + '_spany' + '.npy', self._idea_span_y)
 
-            print('Data exported')
+            self.print('Data exported')
 
         else:
-            print('Could not export the data')
+            self.print('Could not export the data')
 
     def export_csv(self, name=None):
         if not os.path.isdir(self.folder + FOLDER_SAVED):
@@ -287,7 +287,7 @@ class Core(object):
                 'threshold, area [px], area [mm2]'
             )
 
-        print('Data exported')
+        self.print('Data exported')
 
     def export_np_csv(self, name=None):
         if not os.path.isdir(self.folder + FOLDER_SAVED):
@@ -312,7 +312,7 @@ class Core(object):
         with open(file_name + '_log.txt', mode='w') as f:
             f.write('x, y, first_frame, duration [frames]')
 
-            print('Data exported')
+            self.print('Data exported')
 
     def import_np_csv(self, name=None):
         if name == None:
@@ -350,10 +350,10 @@ class Core(object):
                 self.np_container.append(nnp)
 
             self.show_nps = True
-            print('NPs succesfully imported.')
+            self.print('NPs succesfully imported.')
 
         except FileNotFoundError:
-            print('"{}"  not found. Diseable ploting of SPR. '.format(file_name))
+            self.print('"{}"  not found. Diseable ploting of SPR. '.format(file_name))
             return None, None
 
     def save_idea(self, name=None):
@@ -367,22 +367,22 @@ class Core(object):
 
         if tl.before_save_file(file_name) or name == self.file:
             np.save(file_name + '.npy', self.idea3d)
-            # np.save(file_name + '_frame' + '.npy', np.array(self._idea_frame))
-            # np.save(file_name + '_spanx' + '.npy', self._idea_span_x)
-            # np.save(file_name + '_spany' + '.npy', self._idea_span_y)
 
-            print('Pattern saved')
+            self.print('Pattern saved')
 
             self.autocorrelation_max = np.max(scipy.signal.correlate(
                 self.idea3d,
                 self.idea3d,
                 mode='same'
             ) * 1e5)
-            print('Autocorrelation max: {}'.format(self.autocorrelation_max))
-            print('RAW avg: {}'.format(np.average(self._data_raw)))
+
+            # self.print('Autocorrelation max: {}'.format(self.autocorrelation_max))
+            # self.print('RAW avg: {}'.format(np.average(self._data_raw)))
+            self._data_avg = np.average(self._data_raw)
+
 
         else:
-            print('Could not save the pattern.')
+            self.print('Could not save the pattern.')
 
     def load_idea(self, name=None):
         if name == None:
@@ -397,8 +397,10 @@ class Core(object):
                 self.idea3d,
                 mode='same'
             ) * 1e5)
-            print('Autocorrelation max: {}'.format(self.autocorrelation_max))
-            print('RAW avg: {}'.format(np.average(self._data_raw)))
+
+            # self.print('Autocorrelation max: {}'.format(self.autocorrelation_max))
+            # self.print('RAW avg: {}'.format(np.average(self._data_raw)))
+            self._data_avg = np.average(self._data_raw)
 
             return True
         except FileNotFoundError:
@@ -413,16 +415,16 @@ class Core(object):
         for name, mask in zip(['_mask_fourier', '_mask_ommit'], [self._mask_fourier, self._mask_ommit]):
             if tl.before_save_file(file_name + name) or name == self.file + name:
                 np.save(file_name + name + '.npy', mask)
-                print('Masks saved')
+                self.print('Mask {} saved'.format(name))
             else:
-                print('Could not save the mask.')
+                self.print('Could not save the mask.')
 
     def load_masks(self):
         file_name = self.folder + FOLDER_IDEAS + '/' + self.file
         try:
             self._mask_fourier = np.load(file_name + '_mask_fourier' + '.npy')
             self._mask_ommit = np.load(file_name + '_mask_ommit' + '.npy')
-            print('Masks loaded')
+            self.print('Masks loaded')
             return True
         except FileNotFoundError:
             return False
@@ -479,7 +481,7 @@ class Core(object):
         elif self.type == 'corr':
             if self.idea3d is None:
                 image = np.zeros(self.shape_img[0])
-                print('No selected NP patter for file {}'.format(self.file))
+                self.print('No selected NP patter for file {}'.format(self.file))
                 return image
 
             if self._data_corr is not None:
@@ -522,11 +524,11 @@ class Core(object):
 
                 if level > 1:
 
-                    image = (image / np.average(
-                        self._data_raw) > level ** self.threshold_adaptive * self.autocorrelation_max * self.threshold_value) * \
+                    image = (
+                                    image / self._data_avg > level ** self.threshold_adaptive * self.autocorrelation_max * self.threshold_value) * \
                             self._range[self.type][1]
                 else:
-                    image = (image / np.average(self._data_raw) > self.autocorrelation_max * self.threshold_value) * \
+                    image = (image / self._data_avg > self.autocorrelation_max * self.threshold_value) * \
                             self._range[self.type][1]
 
                 # image = (image > self.autocorrelation_max * self.threshold_value / 50) * self._range[self.type][1]
@@ -556,7 +558,7 @@ class Core(object):
         return np.array(out)
 
     def make_intensity_raw(self, progress_callback):
-        # print('Processing raw intensity')
+        # self.print('Processing raw intensity')
         type_buffer = self.type
         self.type = 'raw'
         self.graphs['intensity_raw'] = self.apply_function(np.sum, progress_callback) / self.area
@@ -564,7 +566,7 @@ class Core(object):
         return 'done'
 
     def make_intensity_int(self, progress_callback):
-        # print('Processing int. intensity')
+        # self.print('Processing int. intensity')
         type_buffer = self.type
         self.type = 'int'
         self.graphs['intensity_int'] = self.apply_function(np.sum, progress_callback) / self.area / self.intensity(0)
@@ -572,7 +574,7 @@ class Core(object):
         return 'done'
 
     def make_std_int(self, progress_callback):
-        # print('Processing int. std')
+        # self.print('Processing int. std')
         type_buffer = self.type
         self.type = 'int'
         self.graphs['std_int'] = self.apply_function(np.std, progress_callback) / self.intensity(0)
@@ -590,7 +592,7 @@ class Core(object):
         raw_diff = np.zeros(self.shape)
         self._data_diff_std = []
 
-        print('Processing data for correlation')
+        self.print('Processing data for correlation')
 
         for f in range(len(self)):
             print('\r\t{}/ {}'.format(f + 1, len(self)), end='')
@@ -608,7 +610,7 @@ class Core(object):
         self._range['corr'] = [- np.max(self._data_corr[:, :, self.k * 3:]),
                                np.max(self._data_corr[:, :, self.k * 3:])]
 
-        print('\n--elapsed time--\n{:.2f} s'.format(time.time() - time0))
+        self.print('\n--elapsed time--\n{:.2f} s'.format(time.time() - time0))
 
     def histogram(self):
         frame = self.frame(self._f)
@@ -672,8 +674,8 @@ class Core(object):
                 slice[2].stop
             ])
 
-            # print('len {}'.format(5 > x1_np[2] - x0_np[2]))
-            # print('len {}'.format(x1_np[2] - x0_np[2]))
+            # self.print('len {}'.format(5 > x1_np[2] - x0_np[2]))
+            # self.print('len {}'.format(x1_np[2] - x0_np[2]))
 
             if 5 > x1_np[2] - x0_np[2]:
                 return duration
@@ -708,7 +710,7 @@ class Core(object):
                 ])
 
                 if np.abs(x0_i[2] + amx_i[2] - x0_np[2] - amx_np[2]) < dpx and mx_i < mx_np:
-                    blacklist_npid.append(i - 1)
+                    blacklist_npid.append(npi - 1)
                     continue
                 elif np.linalg.norm(x0_i + np.array(amx_i) - x0_np - np.array(amx_np)) <= 3 * dpx and mx_i > mx_np:
                     return minor
@@ -716,7 +718,7 @@ class Core(object):
             return success
 
         time0 = time.time()
-        print('\nDetecting NPs')
+        self.print('\nDetecting NPs')
 
         self.graphs[plot] = np.array([0 for i in range(len(self))])
         blacklist_npid = []
@@ -770,5 +772,5 @@ class Core(object):
         # self._data_mask = data_threshold
         self.show_nps = True
 
-        print('\n--elapsed time--\n{:.2f} s'.format(time.time() - time0))
+        self.print('\n--elapsed time--\n{:.2f} s'.format(time.time() - time0))
         return

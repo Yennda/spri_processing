@@ -27,7 +27,6 @@ import gui_widgets as gw
 
 matplotlib.use('Qt5Agg')
 
-
 class WorkerSignals(QObject):
     finished = pyqtSignal()
     error = pyqtSignal(tuple)
@@ -163,8 +162,8 @@ class MainWindow(QMainWindow):
 
         self.filter_distance_label = QLabel('Min. distance')
         self.filter_distance_label.setMinimumWidth(min_label_width)
-        self.slider_distance = gw.slider(0, 20, 1, 3, self.RefreshSliderDistanceInfo)
-        self.slider_distance_info = gw.value_label('3')
+        self.slider_distance = gw.slider(0, 20, 1, 0, self.RefreshSliderDistanceInfo)
+        self.slider_distance_info = gw.value_label('0')
 
         self.filter_wiener_checkbox = gw.checkbox_filter('Wiener', False, self.RunFilterWiener)
 
@@ -366,6 +365,8 @@ class MainWindow(QMainWindow):
         self.statusBar().setMinimumSize(400, 40)
         self.statusBar().setStyleSheet("border :1px solid gray;")
         self.setCentralWidget(widget)
+        
+
 
     def openTabUI(self):
 
@@ -734,9 +735,12 @@ class MainWindow(QMainWindow):
         if self.tabs.currentIndex() == 3:
             self.np_info_label.setText(self.np_info_create())
 
+    def print(self, string):
+        print('gui: {}'.format(string))
+
     def RefreshTabs(self):
         pass
-        # print(self.tabs.currentIndex())
+        # self.print(self.tabs.currentIndex())
         # if self.view is not None and self.view.core_list[0]._data_corr is not None:
         #     if self.tabs.currentIndex() == 2:
         #         self.view.change_type(None, 'corr')
@@ -769,7 +773,7 @@ class MainWindow(QMainWindow):
         self.RunFilterFourier()
 
     def RefreshSliderThresholdInfo(self):
-        self.slider_threshold_info.setText(str(self.slider_threshold.value() / 400))
+        self.slider_threshold_info.setText(str(self.slider_threshold.value() / 200))
         self.slider_threshold_adaptive_info.setText(str(self.slider_threshold_adaptive.value() / 10))
 
         self.RunFilterThreshold()
@@ -801,10 +805,10 @@ class MainWindow(QMainWindow):
             self.orientation_checkbox.setText('Horizontal layout')
 
     def RefreshRadioDirect(self, itype):
-        print(itype)
+        self.print(itype)
 
     def RefreshRadioFourier(self, itype):
-        print(itype)
+        self.print(itype)
 
     def RefreshFilters(self):
         if self.view is None:
@@ -878,7 +882,7 @@ class MainWindow(QMainWindow):
         if self.view is not None:
             for core in self.view.core_list:
                 core.threshold = self.filter_threshold_checkbox.isChecked()
-                core.threshold_value = self.slider_threshold.value() / 400
+                core.threshold_value = self.slider_threshold.value() / 200
                 core.threshold_adaptive = self.slider_threshold_adaptive.value() / 10
 
             self.view.canvas_img.next_frame(0)
@@ -907,7 +911,7 @@ class MainWindow(QMainWindow):
                 try:
                     del core.postprocessing_filters[ftype]
                 except KeyError:
-                    print('postprocessing key not found')
+                    self.print('postprocessing key not found')
         else:
 
             for core in self.view.core_list:
@@ -918,8 +922,8 @@ class MainWindow(QMainWindow):
             self.view.canvas_img.next_frame(0)
 
     def export_parameters(self):
-        if not os.path.isdir(self.folder + gv.FOLDER_SAVED):
-            os.mkdir(self.folder + gv.FOLDER_SAVED)
+        if not os.path.isdir(self.folder + gv.FOLDER_IDEAS):
+            os.mkdir(self.folder + gv.FOLDER_IDEAS)
 
         for core in self.view.core_list:
             parameters = {
@@ -946,16 +950,16 @@ class MainWindow(QMainWindow):
             }
             core.save_masks()
 
-            with open(self.folder + gv.FOLDER_SAVED + '/' + 'parameters_' + core.file + '.json', 'w') as file:
+            with open(self.folder + gv.FOLDER_IDEAS + '/' + 'parameters_' + core.file + '.json', 'w') as file:
                 json.dump(parameters, file)
 
-            print('Parameters exported')
+            self.print('Parameters exported')
 
     def import_parameters(self):
         for i, channel in enumerate(self.channel_checkbox_list):
             if channel.checkState() == 2:
 
-                with open(self.folder + gv.FOLDER_SAVED + '/' + 'parameters_' + self.file + '_{}'.format(i + 1) + '.json', 'r') as file:
+                with open(self.folder + gv.FOLDER_IDEAS + '/' + 'parameters_' + self.file + '_{}'.format(i + 1) + '.json', 'r') as file:
                     p = json.load(file)
 
                 self.orientation_checkbox.setChecked(p['orientation_checkbox'])
@@ -979,13 +983,13 @@ class MainWindow(QMainWindow):
                 self.slider_distance.setValue(p['slider_distance'])
                 self.filters_checkbox.setChecked(p['filters_checkbox'])
 
-
                 self.RefreshFilters()
+
         if self.view is not None:
             for core in self.view.core_list:
                 core.load_masks()
 
-        print('Parameters imported')
+        self.print('Parameters imported')
 
     def change_view(self, event, view_box):
         i = int(view_box.objectName())
@@ -1078,7 +1082,7 @@ class MainWindow(QMainWindow):
         dlg = QFileDialog(self)
 
         if self.ProcessPath(dlg.getOpenFileName()[0]):
-            self.file_name_label.setText('folder path: ... {}\nfile name: {}'.format(self.folder[-20:], self.file))
+            self.file_name_label.setText('folder path: {} ... {}\nfile name: {}'.format(self.folder[:10], self.folder[-20:], self.file))
             self.button_build.setDisabled(False)
             self.button_correlate.setDisabled(False)
 
@@ -1206,6 +1210,7 @@ class MainWindow(QMainWindow):
 
                 if tl.BoolFromCheckBox(self.transpose_checkbox):
                     core._data_raw = np.swapaxes(core._data_raw, 0, 1)
+                    core.ref_frame = 0
 
                 core._mask_ommit = np.zeros(core.shape_img)
 
@@ -1216,8 +1221,7 @@ class MainWindow(QMainWindow):
         self.layout_view.addStretch(1)
 
         if len(self.view.core_list) == 0:
-            OKDialog('error', 'no channels selected')
-            return
+            raise FileNotFoundError('No channels selected.')
 
         self.view.orientation = tl.BoolFromCheckBox(self.orientation_checkbox)
 
@@ -1277,9 +1281,14 @@ class MainWindow(QMainWindow):
         # self.tabs.insertTab(4, self.ViewTabUI(), 'View')
     #
     # def keyPressEvent(self, e):
-    #     print('key pressed {}'.format(e.key()))
+    #     self.print('key pressed {}'.format(e.key()))
 
+def excepthook(exc_type, exc_value, exc_tb):
+    tb = "".join(traceback.format_exception(exc_type, exc_value, exc_tb))
+    OKDialog('Error catched', '{}\n\n{}\nMore info in command line'.format(exc_value, '-'*20))
+    print(tb)
 
+sys.excepthook = excepthook
 app = QApplication(sys.argv)
 app.setFont(QFont('Courier', 8))
 

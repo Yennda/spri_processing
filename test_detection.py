@@ -35,7 +35,7 @@ axes.set_ylabel('intensity [a. u.]')
 
 
 axes.imshow(
-    core.count_nps(),
+    core.   count_nps(),
     cmap='gray',
     zorder=0,
     # vmin=core.range[0],
