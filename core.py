@@ -82,6 +82,10 @@ class Core(object):
         else:
             self._data_raw = self._data_raw[LMIN: LMAX, SMIN: SMAX, :]
 
+        self.print('intensity: {}'.format(np.average(np.sum(self._data_raw, axis = (0, 1)))))
+        self.print('average px: {}'.format(np.average(self._data_raw)))
+        self.print('average px x area: {}'.format(np.average(self._data_raw)*self.area))
+
     def _load_stats(self):
         suffix = '.tsv'
         with open(self.folder + self.file + suffix, mode='r') as fid:

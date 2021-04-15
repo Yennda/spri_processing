@@ -73,10 +73,6 @@ class Canvas(FigureCanvasQTAgg):
             self.next_frame(-1)
 
     def save_frame(self, axes):
-        """
-        checks and eventually creates the folder
-        'export_image' in the folder of data
-        """
         if not os.path.isdir(axes.core.folder + FOLDER_EXPORTS):
             os.mkdir(axes.core.folder + FOLDER_EXPORTS)
 
@@ -109,7 +105,7 @@ class Canvas(FigureCanvasQTAgg):
                   xlim[0]: xlim[1]
                   ]
 
-        current = (current - img.get_clim()[0]) / (img.get_clim()[1] - img.get_clim()[0]) * 256
+        current = (current - img.get_clim()[0]) / (img.get_clim()[1] - img.get_clim()[0]) * 255
         current = current.astype(np.uint8)
 
         pilimage = Image.fromarray(current)
