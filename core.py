@@ -414,20 +414,20 @@ class Core(object):
         if not os.path.isdir(self.folder + FOLDER_IDEAS):
             os.mkdir(self.folder + FOLDER_IDEAS)
 
-        file_name = self.folder + FOLDER_IDEAS + '/' + self.file
+        file_name = self.folder + FOLDER_IDEAS + '/'
 
-        for name, mask in zip(['_mask_fourier', '_mask_ommit'], [self._mask_fourier, self._mask_ommit]):
+        for name, mask in zip(['mask_fourier_', 'mask_ommit_'], [self._mask_fourier, self._mask_ommit]):
             if tl.before_save_file(file_name + name) or name == self.file + name:
-                np.save(file_name + name + '.npy', mask)
+                np.save(file_name + name + self.file + '.npy', mask)
                 self.print('Mask {} saved'.format(name))
             else:
                 self.print('Could not save the mask.')
 
     def load_masks(self):
-        file_name = self.folder + FOLDER_IDEAS + '/' + self.file
+        file_name = self.folder + FOLDER_IDEAS + '/'
         try:
-            self._mask_fourier = np.load(file_name + '_mask_fourier' + '.npy')
-            self._mask_ommit = np.load(file_name + '_mask_ommit' + '.npy')
+            self._mask_fourier = np.load(file_name + 'mask_fourier_' + self.file + '.npy')
+            self._mask_ommit = np.load(file_name + 'mask_ommit_' + self.file + '.npy')
             self.print('Masks loaded')
             return True
         except FileNotFoundError:
