@@ -426,8 +426,8 @@ class Core(object):
     def load_masks(self):
         file_name = self.folder + FOLDER_IDEAS + '/'
         try:
-            self._mask_fourier = np.load(file_name + 'mask_fourier_' + self.file + '.npy')
             self._mask_ommit = np.load(file_name + 'mask_ommit_' + self.file + '.npy')
+            self._mask_fourier = np.load(file_name + 'mask_fourier_' + self.file + '.npy')
             self.print('Masks loaded')
             return True
         except FileNotFoundError:
