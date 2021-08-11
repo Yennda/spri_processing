@@ -1,5 +1,6 @@
 FOLDER_EXPORTS = 'exports'
 FOLDER_EXPORTS_NP = 'exports_np'
+FOLDER_EXPORTS_NP_SURROUNDINGS = 'exports_np_surroundings'
 FOLDER_IDEAS = 'ideas'
 FOLDER_BIOEXPORTS = '/exports_bio'
 FOLDER_SAVED = 'saved_data'

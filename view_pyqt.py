@@ -251,6 +251,9 @@ class Canvas(FigureCanvasQTAgg):
         elif event.key == 'f':
             self.main_window.filters_checkbox.click()
             self.main_window.filter_threshold_checkbox.click()
+        elif event.key == 'd':
+            for core in self.view.core_list:
+                core.export_np_surroundings()
 
         if event.canvas.figure is self.view.fig and event.inaxes is not None:
             core_list = [event.inaxes.core]

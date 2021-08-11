@@ -1,6 +1,6 @@
 import os
 import time
-
+import math as m
 import numpy as np
 import scipy.signal
 from scipy import ndimage
@@ -82,9 +82,9 @@ class Core(object):
         else:
             self._data_raw = self._data_raw[LMIN: LMAX, SMIN: SMAX, :]
 
-        self.print('intensity: {}'.format(np.average(np.sum(self._data_raw, axis = (0, 1)))))
+        self.print('intensity: {}'.format(np.average(np.sum(self._data_raw, axis=(0, 1)))))
         self.print('average px: {}'.format(np.average(self._data_raw)))
-        self.print('average px x area: {}'.format(np.average(self._data_raw)*self.area))
+        self.print('average px x area: {}'.format(np.average(self._data_raw) * self.area))
 
     def _load_stats(self):
         suffix = '.tsv'
@@ -359,6 +359,42 @@ class Core(object):
         except FileNotFoundError:
             self.print('"{}"  not found. Diseable ploting of SPR. '.format(file_name))
             return None, None
+
+    def export_np_surroundings(self):
+        if self.np_container == []:
+            raise Exception('No detected NPs yet')
+
+        if not os.path.isdir(self.folder + FOLDER_EXPORTS_NP_SURROUNDINGS):
+            os.mkdir(self.folder + FOLDER_EXPORTS_NP_SURROUNDINGS)
+        self.print('Exporting surroundings of nps')
+
+        i = 0
+        for npp in self.np_container:
+            print('\r\t{}/ {}'.format(i, len(self.np_container)), end='')
+            f = (npp.first_frame + npp.last_frame) // 2
+
+            size = 25
+            ind_0 = [
+                int(npp.position(f)[1] - size),
+                int(npp.position(f)[1] + size)
+            ]
+
+            if ind_0[0] < 0: ind_0[0] = 0
+            if ind_0[1] > self.shape_img[0]: ind_0[1] = self.shape_img[0]
+
+            ind_1 = [
+                int(npp.position(f)[0] - size),
+                int(npp.position(f)[0] + size)
+            ]
+            if ind_1[0] < 0: ind_1[0] = 0
+            if ind_1[1] > self.shape_img[1]: ind_1[1] = self.shape_img[1]
+
+            surroundings = self.frame(f)[ind_0[0]: ind_0[1], ind_1[0]: ind_1[1]]
+
+            file_name = self.folder + FOLDER_EXPORTS_NP_SURROUNDINGS + '/' + self.file + '_{:04.0f}'.format(npp.np_id)
+            np.save(file_name + '.npy', surroundings)
+
+            i += 1
 
     def save_idea(self, name=None):
         if not os.path.isdir(self.folder + FOLDER_IDEAS):

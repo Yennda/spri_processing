@@ -8,6 +8,7 @@ class NanoParticle():
         self.first_frame = first_frame
         self.color = tl.random_color()
         self.positive = positive
+        self.last_frame = first_frame + len(positions)
 
     def position(self, f):
         return self.positions[f - self.first_frame][::-1]
