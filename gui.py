@@ -27,6 +27,7 @@ import gui_widgets as gw
 
 matplotlib.use('Qt5Agg')
 
+
 class WorkerSignals(QObject):
     finished = pyqtSignal()
     error = pyqtSignal(tuple)
@@ -236,8 +237,7 @@ class MainWindow(QMainWindow):
                                            self.ImportNPsButtonClick)
 
         self.button_analyse_nps = gw.button('magnifier', 'Analyse NPs', self.font, True,
-                                           self.AnalyseNPsButtonClick)
-
+                                            self.AnalyseNPsButtonClick)
 
         self.exim_buttons = [
             self.button_export,
@@ -309,8 +309,6 @@ class MainWindow(QMainWindow):
             self.slider_bilateral_space,
             self.slider_bilateral_color,
             self.slider_bilateral_d,
-            self.line_count_stop,
-            self.line_count_start,
             self.slider_fourier,
             self.slider_fourier_info,
         ]
@@ -370,8 +368,6 @@ class MainWindow(QMainWindow):
         self.statusBar().setMinimumSize(400, 40)
         self.statusBar().setStyleSheet("border :1px solid gray;")
         self.setCentralWidget(widget)
-        
-
 
     def openTabUI(self):
 
@@ -840,7 +836,6 @@ class MainWindow(QMainWindow):
             for item in self.forms_image_filters + self.forms_image_filters_checkoboxes:
                 item.setDisabled(True)
 
-
         self.view.canvas_img.next_frame(0)
 
     def RefreshCountRange(self):
@@ -965,8 +960,9 @@ class MainWindow(QMainWindow):
     def import_parameters(self):
         for i, channel in enumerate(self.channel_checkbox_list):
             if channel.checkState() == 2:
-
-                with open(self.folder + gv.FOLDER_IDEAS + '/' + 'parameters_' + self.file + '_{}'.format(i + 1) + '.json', 'r') as file:
+                with open(
+                        self.folder + gv.FOLDER_IDEAS + '/' + 'parameters_' + self.file + '_{}'.format(i + 1) + '.json',
+                        'r') as file:
                     p = json.load(file)
 
                 self.orientation_checkbox.setChecked(p['orientation_checkbox'])
@@ -1076,7 +1072,7 @@ class MainWindow(QMainWindow):
     def AnalyseNPsButtonClick(self):
         if self.view.core_list[0].np_container is not None:
             for core in self.view.core_list:
-                core.print('analysis')
+                core.np_analysis()
 
     def ImportNPsButtonClick(self):
         if self.view.core_list[0].np_container is not None:
@@ -1094,7 +1090,8 @@ class MainWindow(QMainWindow):
         dlg = QFileDialog(self)
 
         if self.ProcessPath(dlg.getOpenFileName()[0]):
-            self.file_name_label.setText('folder path: {} ... {}\nfile name: {}'.format(self.folder[:10], self.folder[-20:], self.file))
+            self.file_name_label.setText(
+                'folder path: {} ... {}\nfile name: {}'.format(self.folder[:10], self.folder[-20:], self.file))
             self.button_build.setDisabled(False)
             self.button_correlate.setDisabled(False)
 
@@ -1246,7 +1243,7 @@ class MainWindow(QMainWindow):
 
         self.progress_bar.setVisible(True)
 
-        for item in self.forms_image_filters + [self.filters_checkbox]:
+        for item in self.forms_image_filters + [self.filters_checkbox, self.line_count_stop, self.line_count_start]:
             item.setDisabled(False)
 
         for item in self.forms_image_filters_checkoboxes:
@@ -1295,10 +1292,12 @@ class MainWindow(QMainWindow):
     # def keyPressEvent(self, e):
     #     self.print('key pressed {}'.format(e.key()))
 
+
 def excepthook(exc_type, exc_value, exc_tb):
     tb = "".join(traceback.format_exception(exc_type, exc_value, exc_tb))
-    OKDialog('Error catched', '{}\n\n{}\nMore info in command line'.format(exc_value, '-'*20))
+    OKDialog('Error catched', '{}\n\n{}\nMore info in command line'.format(exc_value, '-' * 20))
     print(tb)
+
 
 sys.excepthook = excepthook
 app = QApplication(sys.argv)

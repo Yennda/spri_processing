@@ -360,17 +360,19 @@ class Core(object):
             self.print('"{}"  not found. Diseable ploting of SPR. '.format(file_name))
             return None, None
 
-    def export_np_surroundings(self):
+    def np_analysis(self):
         if self.np_container == []:
             raise Exception('No detected NPs yet')
 
-        if not os.path.isdir(self.folder + FOLDER_EXPORTS_NP_SURROUNDINGS):
-            os.mkdir(self.folder + FOLDER_EXPORTS_NP_SURROUNDINGS)
-        self.print('Exporting surroundings of nps')
+        d = 0
+        list_results = []
+        if len(self.np_container) > 1000:
+            step = len(self.np_container)//1000
+        else:
+            step = 1
 
-        i = 0
-        for npp in self.np_container:
-            print('\r\t{}/ {}'.format(i, len(self.np_container)), end='')
+        for i, npp in enumerate(self.np_container[::step]):
+            print('\r\t{}/ {}'.format(i, len(self.np_container[::step])), end='')
             f = (npp.first_frame + npp.last_frame) // 2
 
             size = 25
@@ -391,10 +393,57 @@ class Core(object):
 
             surroundings = self.frame(f)[ind_0[0]: ind_0[1], ind_1[0]: ind_1[1]]
 
-            file_name = self.folder + FOLDER_EXPORTS_NP_SURROUNDINGS + '/' + self.file + '_{:04.0f}'.format(npp.np_id)
-            np.save(file_name + '.npy', surroundings)
+            result = tl.np_analysis(surroundings)
 
-            i += 1
+            if type(result) is list:
+                list_results.append(result)
+                npp.color = blue
+                d += 1
+            else:
+                npp.color = purple
+
+        self.print('\nAnalyzed: {:.1f} %'.format(d / i * 100))
+
+        results = np.matrix(list_results)
+
+        self.print('area: {:.1f} +- {:.1f}'.format(np.average(results[:, 0]), np.std(results[:, 0])))
+        self.print('intensity: {:.5f} +- {:.5f}'.format(np.average(results[:, 1]), np.std(results[:, 1])))
+        self.print('intensity/px: {:.5f} +- {:.5f}'.format(np.average(results[:, 2]), np.std(results[:, 2])))
+        self.print('intensity_bg/px: {:.5f} +- {:.5f}'.format(np.average(results[:, 3]), np.std(results[:, 3])))
+        self.print('SNR: {:.1f} +- {:.1f}'.format(np.average(results[:, 4]), np.std(results[:, 4])))
+
+        if not os.path.isdir(self.folder + FOLDER_SAVED):
+            os.mkdir(self.folder + FOLDER_SAVED)
+
+        file_name = self.folder + FOLDER_SAVED + '/np_analysis_' + self.file
+
+        with open(file_name + '.csv', mode='w') as f:
+            f.write(
+                'area, intensity, intensity_px, intensity_bg_px, snr, success/count\n'
+            )
+            f.write(
+                '{}, {}, {}, {}, {}, {}\n'.format(
+                    np.average(results[:, 0]),
+                    np.average(results[:, 1]),
+                    np.average(results[:, 2]),
+                    np.average(results[:, 3]),
+                    np.average(results[:, 4]),
+                    d / i
+                )
+            )
+
+            f.write(
+                '{}, {}, {}, {}, {}, {}\n'.format(
+                    np.std(results[:, 0]),
+                    np.std(results[:, 1]),
+                    np.std(results[:, 2]),
+                    np.std(results[:, 3]),
+                    np.std(results[:, 4]),
+                    d
+                )
+            )
+        self.print('Analysis saved as: {}'.format(file_name + '.csv'))
+
 
     def save_idea(self, name=None):
         if not os.path.isdir(self.folder + FOLDER_IDEAS):
@@ -462,8 +511,8 @@ class Core(object):
     def load_masks(self):
         file_name = self.folder + FOLDER_IDEAS + '/'
         try:
-            self._mask_ommit = np.load(file_name + 'mask_ommit_' + self.file + '.npy')
-            self._mask_fourier = np.load(file_name + 'mask_fourier_' + self.file + '.npy')
+            self._mask_ommit = np.load(file_name + 'mask_ommit_' + self.file + '.npy', allow_pickle=True)
+            self._mask_fourier = np.load(file_name + 'mask_fourier_' + self.file + '.npy', allow_pickle=True)
             self.print('Masks loaded')
             return True
         except FileNotFoundError:
@@ -767,16 +816,21 @@ class Core(object):
         data_corr = np.zeros(self.shape)
         self._data_mask = np.zeros(self.shape)
 
-        for f in range(start + self.k * 2, stop):
+        if start < self.k*2:
+            start_p = self.k * 2
+        else:
+            start_p = start
+
+        for f in range(start_p, stop):
             data_threshold[:, :, f] = self.frame(f)
 
         data_threshold[data_threshold > 0.1] = 1
         data_threshold = data_threshold.astype(np.uint8)
 
         if self.threshold_value > 0:
-            data_corr[:, :, start + self.k * 2:stop] = self._data_corr[:, :, start + self.k * 2:stop]
+            data_corr[:, :, start_p:stop] = self._data_corr[:, :, start_p:stop]
         else:
-            data_corr[:, :, start + self.k * 2:stop] = self._data_corr[:, :, start + self.k * 2:stop] * -1
+            data_corr[:, :, start_p:stop] = self._data_corr[:, :, start_p:stop] * -1
 
         data_labeled, _ = ndimage.label(data_threshold, np.ones((3, 3, 3)))
         np_slices = ndimage.find_objects(data_labeled)
