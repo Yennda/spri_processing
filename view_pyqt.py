@@ -106,6 +106,8 @@ class Canvas(FigureCanvasQTAgg):
                   ]
 
         current = (current - img.get_clim()[0]) / (img.get_clim()[1] - img.get_clim()[0]) * 255
+        current[current > 255] = 255
+        current[current < 0] = 0
         current = current.astype(np.uint8)
 
         pilimage = Image.fromarray(current)
