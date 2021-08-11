@@ -4,6 +4,8 @@ import os
 import random
 from scipy.ndimage import gaussian_filter
 import scipy.optimize as opt
+from global_var import FOLDER_NP_IMAGES
+import matplotlib.pyplot as plt
 
 from scipy import ndimage
 
@@ -116,7 +118,7 @@ def before_save_file(path):
     return True
 
 
-def np_analysis(npp):
+def np_analysis(npp, folder, file, image = False):
     def twoD_Gaussian(xy, amplitude, xo, yo, sigma_x, sigma_y, theta, offset):
         x, y = xy
         xo = float(xo)
@@ -156,5 +158,21 @@ def np_analysis(npp):
     if any(perr > 1) or any(np.isnan(perr)) or np.abs(popt[3]) > 15 or np.abs(popt[4]) > 15 or popt[0] < 0 or popt[
         0] < lim:
         return False
+    if image:
+        fig, ax = plt.subplots(1, 1)
+        ax.imshow(npp, cmap='gray', origin='lower')
+        ax.imshow(threshold, cmap='plasma', origin='lower', alpha=0.5)
+
+        if not os.path.isdir(folder + FOLDER_NP_IMAGES):
+            os.mkdir(folder + FOLDER_NP_IMAGES)
+
+        file_name = folder + FOLDER_NP_IMAGES + '/' + file + '_fit'
+
+        i = 1
+        while os.path.isfile(file_name + '_{:02d}.png'.format(i)):
+            i += 1
+        file_name += '_{:02d}'.format(i)
+
+        fig.savefig(file_name + '.png', dpi=300, bbox_inches='tight')
 
     return [area, intensity, intensity_px, intensity_bg_px, snr]

@@ -393,7 +393,7 @@ class Core(object):
 
             surroundings = self.frame(f)[ind_0[0]: ind_0[1], ind_1[0]: ind_1[1]]
 
-            result = tl.np_analysis(surroundings)
+            result = tl.np_analysis(surroundings, self.folder, self.file, i%20 == 0)
 
             if type(result) is list:
                 list_results.append(result)

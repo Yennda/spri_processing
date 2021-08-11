@@ -4,6 +4,7 @@ FOLDER_EXPORTS_NP_SURROUNDINGS = 'exports_np_surroundings'
 FOLDER_IDEAS = 'ideas'
 FOLDER_BIOEXPORTS = '/exports_bio'
 FOLDER_SAVED = 'saved_data'
+FOLDER_NP_IMAGES = 'exports_np_images'
 
 NAME_RAW = 'raw'
 NAME_LOCAL_SPR = 'spr'
