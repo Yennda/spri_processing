@@ -140,6 +140,7 @@ class Core(object):
             return
         self._data_raw = scipy.signal.decimate(self._data_raw, k, axis=2)
         self._time_info = scipy.signal.decimate(self._time_info, k, axis=0)
+        self._time_info[:, 1] *= k
 
         if self.spr_time is not None:
             self.spr_time = scipy.signal.decimate(self.spr_time, k)

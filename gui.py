@@ -4,6 +4,7 @@ import json
 import sys
 import os
 import re
+import time
 import traceback
 
 import cv2
@@ -239,13 +240,16 @@ class MainWindow(QMainWindow):
         self.button_analyse_nps = gw.button('magnifier', 'Analyse NPs', self.font, True,
                                             self.AnalyseNPsButtonClick)
 
+        self.button_export_gif = gw.button('film', 'Create GIF', self.font, True, self.ExportGIFButtonClick)
+
         self.exim_buttons = [
             self.button_export,
             self.button_export_csv,
             self.button_export_parameters,
             self.button_export_nps,
             self.button_import_nps,
-            self.button_analyse_nps
+            self.button_analyse_nps,
+            self.button_export_gif
         ]
 
         self.button_count = gw.button('count-cat-icon', 'Count NPs', self.font, True, self.CountButtonClick)
@@ -626,6 +630,7 @@ class MainWindow(QMainWindow):
         layout.addLayout(layout_nps_ie)
 
         layout.addWidget(self.button_analyse_nps)
+        layout.addWidget(self.button_export_gif)
 
         layout.addStretch(1)
         Tab.setLayout(layout)
@@ -1073,6 +1078,14 @@ class MainWindow(QMainWindow):
         if self.view.core_list[0].np_container is not None:
             for core in self.view.core_list:
                 core.np_analysis()
+
+    def ExportGIFButtonClick(self):
+
+        start = int(self.line_export_start.text())
+        stop = int(self.line_export_stop.text())
+
+        self.view.canvas_img.save_gif(start, stop)
+        pass
 
     def ImportNPsButtonClick(self):
         if self.view.core_list[0].np_container is not None:

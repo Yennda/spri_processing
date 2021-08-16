@@ -1,5 +1,5 @@
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageDraw
 import os
 
 import matplotlib
@@ -116,6 +116,56 @@ class Canvas(FigureCanvasQTAgg):
         pilimage.save(name + '.png', 'png')
 
         print('File SAVED @{}'.format(name))
+
+    def save_gif(self, start = 0, stop = 50):
+        for axes in self.view.axes:
+            if not os.path.isdir(axes.core.folder + FOLDER_EXPORTS):
+                os.mkdir(axes.core.folder + FOLDER_EXPORTS)
+
+            # creates the name, appends the rigth numeb at the end
+
+            name = '{}/gif_{}_f{:04.0f}'.format(
+                axes.core.folder + FOLDER_EXPORTS,
+                axes.core.file,
+                self.view.f
+            )
+
+            i = 1
+            while os.path.isfile(name + '_{:02d}.gif'.format(i)):
+                i += 1
+            name += '_{:02d}'.format(i)
+
+            self.view.next_frame(- self.view.f)
+            sequence = []
+
+            for i in range(stop - start):
+                print('\r\t{}/ {}'.format(i + 1, stop - start), end='')
+
+                self.view.next_frame(1)
+
+                img = axes.get_images()[0]
+                xlim = [int(i) for i in axes.get_xlim()]
+                ylim = [int(i) for i in axes.get_ylim()]
+
+                current = img.get_array()[
+                          ylim[1]: ylim[0],
+                          xlim[0]: xlim[1]
+                          ]
+
+                current = (current - img.get_clim()[0]) / (img.get_clim()[1] - img.get_clim()[0]) * 255
+                current[current > 255] = 255
+                current[current < 0] = 0
+                current = current.astype(np.uint8)
+
+
+                pilimage = Image.fromarray(current)
+                sequence.append(pilimage.convert("P"))
+
+            duration = np.median(axes.core._time_info[:, 1])
+            sequence[0].save(name + '.gif', save_all=True, append_images=sequence[1:], optimize=False,
+                             duration=duration, loop=0)
+
+        axes.core.print('\nFile SAVED @{}.gif'.format(name))
 
     def select_area(self, axes, what):
         if self.mask is None:
@@ -253,9 +303,6 @@ class Canvas(FigureCanvasQTAgg):
         elif event.key == 'f':
             self.main_window.filters_checkbox.click()
             self.main_window.filter_threshold_checkbox.click()
-        elif event.key == 'd':
-            for core in self.view.core_list:
-                core.export_np_surroundings()
 
         if event.canvas.figure is self.view.fig and event.inaxes is not None:
             core_list = [event.inaxes.core]
@@ -263,24 +310,8 @@ class Canvas(FigureCanvasQTAgg):
 
             if event.key == 'a':
                 self.save_frame(event.inaxes)
-            # elif event.key == 'd':
-            #     axes = event.inaxes
-            #     xlim = [int(i) for i in axes.get_xlim()]
-            #     ylim = [int(i) for i in axes.get_ylim()]
-            #     print(xlim)
-            #     print(ylim)
-            #     axes.core._data_raw = axes.core._data_raw[
-            #                           ylim[1]: ylim[0],
-            #                           xlim[0]: xlim[1],
-            #                           :
-            #                           ]
-            #
-            #     axes.cla()
-            #     self.next_frame(0)
-            #
-            #     print('po')
-            #     print(xlim)
-            #     print(ylim)
+            elif event.key == 'd':
+                self.save_gif()
 
         else:
             core_list = self.view.core_list
