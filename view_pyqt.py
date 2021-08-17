@@ -119,23 +119,14 @@ class Canvas(FigureCanvasQTAgg):
 
         print('File SAVED @{}'.format(name))
 
-    def save_gif(self, start=0, stop=50):
+    def save_gif(self, start=0, stop=50, gif=True):
         for axes in self.view.axes:
             if not os.path.isdir(axes.core.folder + FOLDER_EXPORTS):
                 os.mkdir(axes.core.folder + FOLDER_EXPORTS)
 
-            # creates the name, appends the rigth numeb at the end
-
-            name = '{}/gif_{}_f{:04.0f}'.format(
-                axes.core.folder + FOLDER_EXPORTS,
-                axes.core.file,
-                self.view.f
-            )
-
-            i = 1
-            while os.path.isfile(name + '_{:02d}.gif'.format(i)):
-                i += 1
-            name += '_{:02d}'.format(i)
+            if not gif:
+                if not os.path.isdir(axes.core.folder + FOLDER_EXPORTS + '/tmp'):
+                    os.mkdir(axes.core.folder + FOLDER_EXPORTS + '/tmp')
 
             self.view.next_frame(- self.view.f)
             sequence = []
@@ -160,37 +151,62 @@ class Canvas(FigureCanvasQTAgg):
                 current = current.astype(np.uint8)
 
                 pilimage = Image.fromarray(current)
+
+                name = '{}/{}'.format(
+                    axes.core.folder + FOLDER_EXPORTS + '/tmp',
+                    axes.core.file,
+                )
+
+                if not gif:
+                    pilimage.save(name + '_{:04d}.png'.format(i), 'png')
+
                 sequence.append(pilimage.convert("P"))
 
             print('\n')
+
+            name_gif = '{}/gif_{}'.format(
+                axes.core.folder + FOLDER_EXPORTS,
+                axes.core.file
+            )
+
+            i = 1
+            while os.path.isfile(name_gif + '_{:02d}.gif'.format(i)):
+                i += 1
+            name_gif += '_{:02d}'.format(i)
+
             duration = np.median(axes.core._time_info[:, 1])
-            sequence[0].save(name + '.gif', save_all=True, append_images=sequence[1:], optimize=False,
-                             duration=duration, loop=0)
+            if gif:
+                sequence[0].save(name_gif + '.gif', save_all=True, append_images=sequence[1:], optimize=False,
+                                 duration=duration, loop=0)
+                axes.core.print('File SAVED @{}.gif'.format(name_gif))
 
-            # def seq_to_movie(t):
-            #     length = duration * len(sequence)
-            #     frame = int(np.round(length/t * (stop - start)))
-            #     return cv2.cvtColor(sequence[frame], cv2.COLOR_GRAY2RGB)
-            #
-            # clip = mpy.VideoClip(make_frame, duration=2)  # 2 seconds
-            # clip.write_gif("circle.gif", fps=15)
+                return
 
-            # height, width = axes.core.shape_img
-            #
-            # video = cv2.VideoWriter(name + '.avi', cv2.VideoWriter_fourcc(*"H264"), 10, (width, height))
-            # videoi = cv2.VideoWriter(name + 'i.avi', cv2.VideoWriter_fourcc(*"H264"), 10, (height, width))
-            #
-            #
-            # sequence_cv = [np.array(s) for s in sequence]
-            # # sequence_cv = [cv2.cvtColor(s, cv2.COLOR_GRAY2RGB) for s in sequence_cv]
-            # for s in sequence_cv:
-            #     video.write(s.astype('uint8'))
-            #     videoi.write(s.astype('uint8'))
-            #
-            # video.release()
-            # videoi.release()
+            name_vid = '{}/vid_{}'.format(
+                axes.core.folder + FOLDER_EXPORTS,
+                axes.core.file
+            )
+            i = 1
+            while os.path.isfile(name_vid + '_{:02d}.avi'.format(i)):
+                i += 1
+            name_vid += '_{:02d}'.format(i)
 
-        axes.core.print('\nFile SAVED @{}.gif'.format(name))
+            images = [img for img in os.listdir(axes.core.folder + FOLDER_EXPORTS + '/tmp') if img.endswith(".png")]
+            frame = cv2.imread(os.path.join(axes.core.folder + FOLDER_EXPORTS + '/tmp', images[0]))
+            height, width, layers = frame.shape
+
+            video = cv2.VideoWriter(name_vid + '.avi', 0, 1 / duration, (width, height))
+
+            for image in images:
+                video.write(cv2.imread(os.path.join(axes.core.folder + FOLDER_EXPORTS + '/tmp', image)))
+                os.remove(os.path.join(axes.core.folder + FOLDER_EXPORTS + '/tmp', image))
+
+            cv2.destroyAllWindows()
+            video.release()
+
+
+
+        axes.core.print('File SAVED @{}.avi'.format(name_vid))
 
     def select_area(self, axes, what):
         if self.mask is None:

@@ -242,6 +242,8 @@ class MainWindow(QMainWindow):
 
         self.button_export_gif = gw.button('film', 'Create GIF', self.font, True, self.ExportGIFButtonClick)
 
+        self.button_export_video = gw.button('films', 'Create Video', self.font, True, self.ExportVideoButtonClick)
+
         self.exim_buttons = [
             self.button_export,
             self.button_export_csv,
@@ -249,7 +251,8 @@ class MainWindow(QMainWindow):
             self.button_export_nps,
             self.button_import_nps,
             self.button_analyse_nps,
-            self.button_export_gif
+            self.button_export_gif,
+            self.button_export_video
         ]
 
         self.button_count = gw.button('count-cat-icon', 'Count NPs', self.font, True, self.CountButtonClick)
@@ -631,6 +634,7 @@ class MainWindow(QMainWindow):
 
         layout.addWidget(self.button_analyse_nps)
         layout.addWidget(self.button_export_gif)
+        layout.addWidget(self.button_export_video)
 
         layout.addStretch(1)
         Tab.setLayout(layout)
@@ -1080,12 +1084,17 @@ class MainWindow(QMainWindow):
                 core.np_analysis()
 
     def ExportGIFButtonClick(self):
-
         start = int(self.line_export_start.text())
         stop = int(self.line_export_stop.text())
 
-        self.view.canvas_img.save_gif(start, stop)
-        pass
+        self.view.canvas_img.save_gif(start, stop, True)
+
+    def ExportVideoButtonClick(self):
+        start = int(self.line_export_start.text())
+        stop = int(self.line_export_stop.text())
+
+        self.view.canvas_img.save_gif(start, stop, False)
+
 
     def ImportNPsButtonClick(self):
         if self.view.core_list[0].np_container is not None:
