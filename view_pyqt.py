@@ -1,5 +1,4 @@
 import numpy as np
-from PIL import Image, ImageDraw
 import os
 
 import matplotlib
@@ -10,6 +9,9 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 from matplotlib.backend_bases import key_press_handler
 from matplotlib.widgets import RectangleSelector
 from mpl_toolkits.axes_grid1.anchored_artists import AnchoredSizeBar
+
+import cv2
+from PIL import Image, ImageDraw
 
 from global_var import *
 import tools as tl
@@ -117,7 +119,7 @@ class Canvas(FigureCanvasQTAgg):
 
         print('File SAVED @{}'.format(name))
 
-    def save_gif(self, start = 0, stop = 50):
+    def save_gif(self, start=0, stop=50):
         for axes in self.view.axes:
             if not os.path.isdir(axes.core.folder + FOLDER_EXPORTS):
                 os.mkdir(axes.core.folder + FOLDER_EXPORTS)
@@ -157,13 +159,36 @@ class Canvas(FigureCanvasQTAgg):
                 current[current < 0] = 0
                 current = current.astype(np.uint8)
 
-
                 pilimage = Image.fromarray(current)
                 sequence.append(pilimage.convert("P"))
 
+            print('\n')
             duration = np.median(axes.core._time_info[:, 1])
             sequence[0].save(name + '.gif', save_all=True, append_images=sequence[1:], optimize=False,
                              duration=duration, loop=0)
+
+            # def seq_to_movie(t):
+            #     length = duration * len(sequence)
+            #     frame = int(np.round(length/t * (stop - start)))
+            #     return cv2.cvtColor(sequence[frame], cv2.COLOR_GRAY2RGB)
+            #
+            # clip = mpy.VideoClip(make_frame, duration=2)  # 2 seconds
+            # clip.write_gif("circle.gif", fps=15)
+
+            # height, width = axes.core.shape_img
+            #
+            # video = cv2.VideoWriter(name + '.avi', cv2.VideoWriter_fourcc(*"H264"), 10, (width, height))
+            # videoi = cv2.VideoWriter(name + 'i.avi', cv2.VideoWriter_fourcc(*"H264"), 10, (height, width))
+            #
+            #
+            # sequence_cv = [np.array(s) for s in sequence]
+            # # sequence_cv = [cv2.cvtColor(s, cv2.COLOR_GRAY2RGB) for s in sequence_cv]
+            # for s in sequence_cv:
+            #     video.write(s.astype('uint8'))
+            #     videoi.write(s.astype('uint8'))
+            #
+            # video.release()
+            # videoi.release()
 
         axes.core.print('\nFile SAVED @{}.gif'.format(name))
 
@@ -262,10 +287,9 @@ class Canvas(FigureCanvasQTAgg):
                                   span_y[0]: span_y[1],
                                   span_x[0]: span_x[1]]
 
-
             print('Idea norm: {}'.format(np.sum(np.abs(idea3d))))
 
-            axes.core.idea3d = idea3d/np.sum(np.abs(idea3d))
+            axes.core.idea3d = idea3d / np.sum(np.abs(idea3d))
             print('Pattern chosen')
 
             axes.core.save_idea()
