@@ -767,7 +767,7 @@ class Core(object):
             # self.print('len {}'.format(5 > x1_np[2] - x0_np[2]))
             # self.print('len {}'.format(x1_np[2] - x0_np[2]))
 
-            if 5 > x1_np[2] - x0_np[2]:
+            if self.k//2 > x1_np[2] - x0_np[2]:
                 return duration
 
             amx_np = np.argmax(data_corr[slice])
