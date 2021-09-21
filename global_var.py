@@ -79,7 +79,7 @@ This work is licensed under a Creative Commons Attribution-NonCommercial-ShareAl
 Jan Bukáček, bukacek@ufe.cz
 https://github.com/Yennda/spri_processing
 
-Institute of Photonics and Elctronics, Czech Academy of Sciences
+Institute of Photonics and Electronics, Czech Academy of Sciences
 www.ufe.cz
 
 2021
