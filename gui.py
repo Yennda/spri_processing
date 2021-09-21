@@ -236,6 +236,8 @@ class MainWindow(QMainWindow):
                                            self.ExportNPsButtonClick)
         self.button_import_nps = gw.button(None, 'Import', self.font, True,
                                            self.ImportNPsButtonClick)
+        self.button_import_nps_old = gw.button(None, 'Import NPs old', self.font, True,
+                                           self.ImportNPsButtonClickOld)
 
         self.button_analyse_nps = gw.button('magnifier', 'Analyse NPs', self.font, True,
                                             self.AnalyseNPsButtonClick)
@@ -250,6 +252,7 @@ class MainWindow(QMainWindow):
             self.button_export_parameters,
             self.button_export_nps,
             self.button_import_nps,
+            self.button_import_nps_old,
             self.button_analyse_nps,
             self.button_export_gif,
             self.button_export_video
@@ -631,6 +634,14 @@ class MainWindow(QMainWindow):
         layout_nps_ie.addWidget(self.button_export_nps)
         layout_nps_ie.addWidget(self.button_import_nps)
         layout.addLayout(layout_nps_ie)
+
+        layout_nps_ie_old = QHBoxLayout()
+
+        layout_nps_ie_old.addStretch(1)
+        layout_nps_ie_old.addWidget(self.button_import_nps_old)
+
+        layout.addLayout(layout_nps_ie_old)
+
 
         layout.addWidget(self.button_analyse_nps)
         layout.addWidget(self.button_export_gif)
@@ -1100,6 +1111,18 @@ class MainWindow(QMainWindow):
         if self.view.core_list[0].np_container is not None:
             for core in self.view.core_list:
                 core.import_np_csv()
+
+            canvas_plot = self.view.show_plots(self.chosen_plots)
+            canvas_plot.main_window = self
+
+            self.plot_window.close()
+            self.plot_window = PlotWindow(canvas_plot)
+            self.plot_window.show()
+
+    def ImportNPsButtonClickOld(self):
+        if self.view.core_list[0].np_container is not None:
+            for core in self.view.core_list:
+                core.import_np_csv_old()
 
             canvas_plot = self.view.show_plots(self.chosen_plots)
             canvas_plot.main_window = self

@@ -4,6 +4,7 @@ import math as m
 import numpy as np
 import scipy.signal
 from scipy import ndimage
+from PIL import Image
 
 from global_var import *
 import tools as tl
@@ -39,6 +40,7 @@ class Core(object):
         self.__video_stats = None
 
         self.k = 1
+        self.downsample_k = 1
         self.type = 'diff'
         self._f = int()
         self.fourier_level = 30
@@ -141,6 +143,7 @@ class Core(object):
         self._data_raw = scipy.signal.decimate(self._data_raw, k, axis=2)
         self._time_info = scipy.signal.decimate(self._time_info, k, axis=0)
         self._time_info[:, 1] *= k
+        self.downsample_k = k
 
         if self.spr_time is not None:
             self.spr_time = scipy.signal.decimate(self.spr_time, k)
@@ -310,7 +313,7 @@ class Core(object):
                         '{}, {}, {}, {}\n'.format(
                             npp.positions[0][0],
                             npp.positions[0][1],
-                            npp.first_frame,
+                            npp.first_frame * self.downsample_k,
                             len(npp.positions)
                         ))
 
@@ -320,7 +323,75 @@ class Core(object):
             self.print('Data exported')
 
     def import_np_csv(self, name=None):
+        if name is None:
+            name = self.file
+
+        file_name = self.folder + FOLDER_SAVED + '/nps_' + name
+        try:
+            with open(file_name + '.csv', 'r') as csv:
+                contents = csv.readlines()
+
+            self.np_container = []
+            self.nps_in_frame = [[] for i in range(len(self))]
+            self.graphs['nps_pos'] = np.array([0] * len(self))
+
+            for i, line in enumerate(contents):
+                line_split = line.split(', ')
+
+                first_frame = int(np.round(int(line_split[2]) / self.downsample_k))
+                duration = int(np.round(int(line_split[3])))
+                positions = [np.array([float(line_split[0]), float(line_split[1])])] * duration
+
+                nnp = NanoParticle(
+                    i,
+                    first_frame,
+                    positions,
+                    positive=True
+                )
+                nnp.color = green
+
+                self.graphs['nps_pos'][first_frame] += 1
+
+                for j in range(duration):
+                    if first_frame + j < len(self):
+                        self.nps_in_frame[first_frame + j].append(i)
+
+                self.np_container.append(nnp)
+
+            self.show_nps = True
+            self.print('NPs succesfully imported.')
+
+        except FileNotFoundError:
+            self.print('"{}"  not found. Diseable ploting of SPR. '.format(file_name))
+            return None, None
+
+    def export_np_csv_old(self, name=None):
+        if not os.path.isdir(self.folder + FOLDER_SAVED):
+            os.mkdir(self.folder + FOLDER_SAVED)
+
         if name == None:
+            name = self.file
+
+        file_name = self.folder + FOLDER_SAVED + '/nps_' + name
+
+        with open(file_name + '.csv', mode='w') as f:
+            for npp in self.np_container:
+                if npp.color == green:
+                    f.write(
+                        '{}, {}, {}, {}\n'.format(
+                            npp.positions[0][0],
+                            npp.positions[0][1],
+                            npp.first_frame,
+                            len(npp.positions)
+                        ))
+
+        with open(file_name + '_log.txt', mode='w') as f:
+            f.write('x, y, first_frame, duration [frames]')
+
+            self.print('Data exported')
+
+    def import_np_csv_old(self, name=None):
+        if name is None:
             name = self.file
 
         file_name = self.folder + FOLDER_SAVED + '/nps_' + name
@@ -368,7 +439,7 @@ class Core(object):
         d = 0
         list_results = []
         if len(self.np_container) > 1000:
-            step = len(self.np_container)//1000
+            step = len(self.np_container) // 1000
         else:
             step = 1
 
@@ -392,9 +463,27 @@ class Core(object):
             if ind_1[0] < 0: ind_1[0] = 0
             if ind_1[1] > self.shape_img[1]: ind_1[1] = self.shape_img[1]
 
-            surroundings = self.frame(f)[ind_0[0]: ind_0[1], ind_1[0]: ind_1[1]]
+            np_intensity = [
+                np.average(
+                    np.abs(
+                        self.frame(f)[ind_0[0]: ind_0[1], ind_1[0]: ind_1[1]]
+                    )
+                )
+                for f in range(npp.first_frame, npp.last_frame)
+            ]
 
-            result = tl.np_analysis(surroundings, self.folder, self.file, i%20 == 0)
+            fc = npp.first_frame + np.argmax(np_intensity)
+            surroundings = self.frame(fc)[ind_0[0]: ind_0[1], ind_1[0]: ind_1[1]]
+            #
+            # current = (surroundings - np.min(surroundings)) / (np.max(surroundings) - np.min(surroundings)) * 255
+            # current[current > 255] = 255
+            # current[current < 0] = 0
+            #
+            # pilimage = Image.fromarray(current.astype(np.uint8))
+            #
+            # pilimage.save(self.folder + FOLDER_SAVED + '/np_{:04d}.png'.format(i), 'png')
+
+            result = tl.np_analysis(surroundings, self.folder, self.file, i % 5 == 0)
 
             if type(result) is list:
                 list_results.append(result)
@@ -406,6 +495,8 @@ class Core(object):
         self.print('\nAnalyzed: {:.1f} %'.format(d / i * 100))
 
         results = np.matrix(list_results)
+
+        print(results)
 
         self.print('area: {:.1f} +- {:.1f}'.format(np.average(results[:, 0]), np.std(results[:, 0])))
         self.print('intensity: {:.5f} +- {:.5f}'.format(np.average(results[:, 1]), np.std(results[:, 1])))
@@ -444,7 +535,6 @@ class Core(object):
                 )
             )
         self.print('Analysis saved as: {}'.format(file_name + '.csv'))
-
 
     def save_idea(self, name=None):
         if not os.path.isdir(self.folder + FOLDER_IDEAS):
@@ -817,7 +907,7 @@ class Core(object):
         data_corr = np.zeros(self.shape)
         self._data_mask = np.zeros(self.shape)
 
-        if start < self.k*2:
+        if start < self.k * 2:
             start_p = self.k * 2
         else:
             start_p = start
