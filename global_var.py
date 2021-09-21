@@ -17,6 +17,7 @@ INIT_CORR = [-50, 200]
 INIT_FOUR = [-50, 50]
 
 PX = 2.93e-3 #mm
+PX_DEPTH = 32700
 
 # LMIN, LMAX = [0, -1]
 # SMIN, SMAX = [0, -1]

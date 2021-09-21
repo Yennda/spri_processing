@@ -351,7 +351,7 @@ class Canvas(FigureCanvasQTAgg):
             if event.key == 'a':
                 self.save_frame(event.inaxes)
             elif event.key == 'd':
-                self.save_gif()
+                self.view.core_list[0].noise_analysis(self.view.main_window.avg)
 
         else:
             core_list = self.view.core_list

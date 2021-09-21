@@ -432,6 +432,16 @@ class Core(object):
             self.print('"{}"  not found. Diseable ploting of SPR. '.format(file_name))
             return None, None
 
+    def noise_analysis(self, avg):
+        intensity = np.average(self._data_raw) * PX_DEPTH
+        std = np.average(np.std(self._data_raw, axis=2)) * PX_DEPTH
+        shot_noise = (1 / intensity / avg) ** 0.5
+        noise = std / intensity
+
+        self.print('shot_noise: {}'.format(shot_noise))
+        self.print('noise: {}'.format(noise))
+        self.print('{:.1f} % of shot noise'.format(noise/shot_noise*100))
+
     def np_analysis(self):
         if self.np_container == []:
             raise Exception('No detected NPs yet')
@@ -857,7 +867,7 @@ class Core(object):
             # self.print('len {}'.format(5 > x1_np[2] - x0_np[2]))
             # self.print('len {}'.format(x1_np[2] - x0_np[2]))
 
-            if self.k//2 > x1_np[2] - x0_np[2]:
+            if self.k // 2 > x1_np[2] - x0_np[2]:
                 return duration
 
             amx_np = np.argmax(data_corr[slice])

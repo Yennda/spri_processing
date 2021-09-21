@@ -1270,6 +1270,9 @@ class MainWindow(QMainWindow):
 
                 core.k = self.slider_k.value()
                 core.downsample(self.slider_downsample.value())
+
+                core.noise_analysis(self.avg * self.slider_downsample.value())
+
                 self.view.add_core(core)
 
         self.layout_view.addStretch(1)
