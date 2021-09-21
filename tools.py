@@ -118,7 +118,7 @@ def before_save_file(path):
     return True
 
 
-def np_analysis(npp, folder, file, image = False):
+def np_analysis(npp, folder, file, image=False):
     def twoD_Gaussian(xy, amplitude, xo, yo, sigma_x, sigma_y, theta, offset):
         x, y = xy
         xo = float(xo)
@@ -155,9 +155,14 @@ def np_analysis(npp, folder, file, image = False):
 
     snr = intensity_px / intensity_bg_px
 
-    if any(perr > 1) or any(np.isnan(perr)) or np.abs(popt[3]) > 15 or np.abs(popt[4]) > 15 or popt[0] < 0 or popt[
-        0] < lim:
+    if any(perr > 1) or \
+            any(np.isnan(perr)) or \
+            np.abs(popt[3]) > 15 or \
+            np.abs(popt[4]) > 15 or \
+            popt[0] < 0 or \
+            popt[0] < lim:
         return False
+
     if image:
         fig, ax = plt.subplots(1, 1)
         ax.imshow(npp, cmap='gray', origin='lower')
@@ -171,8 +176,8 @@ def np_analysis(npp, folder, file, image = False):
         i = 1
         while os.path.isfile(file_name + '_{:02d}.png'.format(i)):
             i += 1
-        file_name += '_{:02d}'.format(i)
 
+        file_name += '_{:02d}'.format(i)
         fig.savefig(file_name + '.png', dpi=300, bbox_inches='tight')
 
     return [area, intensity, intensity_px, intensity_bg_px, snr]

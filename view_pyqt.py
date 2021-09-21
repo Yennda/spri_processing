@@ -129,6 +129,7 @@ class Canvas(FigureCanvasQTAgg):
                     os.mkdir(axes.core.folder + FOLDER_EXPORTS + '/tmp')
 
             self.view.next_frame(- self.view.f)
+            self.view.next_frame(start)
             sequence = []
 
             for i in range(stop - start):
@@ -148,9 +149,8 @@ class Canvas(FigureCanvasQTAgg):
                 current = (current - img.get_clim()[0]) / (img.get_clim()[1] - img.get_clim()[0]) * 255
                 current[current > 255] = 255
                 current[current < 0] = 0
-                current = current.astype(np.uint8)
 
-                pilimage = Image.fromarray(current)
+                pilimage = Image.fromarray(current.astype(np.uint8))
 
                 name = '{}/{}'.format(
                     axes.core.folder + FOLDER_EXPORTS + '/tmp',
