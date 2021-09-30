@@ -135,6 +135,8 @@ class Core(object):
             return time, np.array(signal)
         except FileNotFoundError:
             self.print('SPR file not found. Diseable ploting of SPR. ')
+
+
             return None, None
 
     def downsample(self, k):
@@ -274,11 +276,17 @@ class Core(object):
 
         with open(file_name + '.csv', mode='w') as f:
             nps_add = [sum(self.graphs['nps_pos'][:i]) for i in range(len(self))]
+
+            if self.spr_time is None:
+                time = self._time_info[:, 0]
+            else:
+                time = self.spr_time
+
             for i in range(len(self)):
                 f.write('{}, {}, {}, {}, {}, {}, {}, {}, {}, {}\n'.format(
                     i,
-                    self.spr_time[i],
-                    self.spr_time[i] + self.zero_time,
+                    time[i],
+                    time[i] + self.zero_time,
                     self.graphs['nps_pos'][i],
                     nps_add[i],
                     self.graphs['nps_pos'][i] / self.active_area / PX ** 2,
@@ -440,7 +448,7 @@ class Core(object):
 
         self.print('shot_noise: {}'.format(shot_noise))
         self.print('noise: {}'.format(noise))
-        self.print('{:.1f} % of shot noise'.format(noise/shot_noise*100))
+        self.print('{:.1f} % of shot noise'.format(noise / shot_noise * 100))
 
     def np_analysis(self):
         if self.np_container == []:

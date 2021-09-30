@@ -1060,7 +1060,9 @@ class MainWindow(QMainWindow):
         canvas_plot = self.view.show_plots(self.chosen_plots)
         canvas_plot.main_window = self
 
-        self.plot_window.close()
+        if self.plot_window is not None:
+            self.plot_window.close()
+
         self.plot_window = PlotWindow(canvas_plot)
         self.plot_window.show()
 
