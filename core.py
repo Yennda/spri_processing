@@ -135,8 +135,6 @@ class Core(object):
             return time, np.array(signal)
         except FileNotFoundError:
             self.print('SPR file not found. Diseable ploting of SPR. ')
-
-
             return None, None
 
     def downsample(self, k):
@@ -448,7 +446,7 @@ class Core(object):
 
         self.print('shot_noise: {}'.format(shot_noise))
         self.print('noise: {}'.format(noise))
-        self.print('{:.1f} % of shot noise'.format(noise / shot_noise * 100))
+        self.print('{:.1f} % of shot noise'.format(noise/shot_noise*100))
 
     def np_analysis(self):
         if self.np_container == []:
@@ -715,6 +713,7 @@ class Core(object):
                     image = p(image)
 
         if self.threshold and self.type == 'corr':
+
             if self.threshold_value > 0:
                 image = ndimage.maximum_filter(image, size=2)
 

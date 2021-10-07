@@ -153,7 +153,15 @@ class MainWindow(QMainWindow):
         self.slider_fourier_info = gw.value_label('0')
 
         self.filter_threshold_checkbox = gw.checkbox_filter('Threshold', False, self.RunFilterThreshold)
-        self.slider_threshold = gw.slider(0, 200, 1, 50, self.RefreshSliderThresholdInfo)
+        # self.slider_threshold = gw.slider(0, 200, 1, 50, self.RefreshSliderThresholdInfo)
+        self.slider_threshold = QtWidgets.QDoubleSpinBox()
+        self.slider_threshold.setValue(0.125)
+        self.slider_threshold.setMinimum(0)
+        self.slider_threshold.setMaximum(10)
+        self.slider_threshold.setSingleStep(0.005)
+        self.slider_threshold.setDecimals(3)
+        self.slider_threshold.valueChanged.connect(self.RefreshSliderThresholdInfo)
+
         self.slider_threshold_info = gw.value_label('0.125')
 
         self.slider_threshold_adaptive = gw.slider(0, 50, 1, 0, self.RefreshSliderThresholdInfo)
@@ -800,7 +808,7 @@ class MainWindow(QMainWindow):
         self.RunFilterFourier()
 
     def RefreshSliderThresholdInfo(self):
-        self.slider_threshold_info.setText(str(self.slider_threshold.value() / 200))
+        self.slider_threshold_info.setText(str(self.slider_threshold.value()))
         self.slider_threshold_adaptive_info.setText(str(self.slider_threshold_adaptive.value() / 10))
 
         self.RunFilterThreshold()
@@ -908,7 +916,7 @@ class MainWindow(QMainWindow):
         if self.view is not None:
             for core in self.view.core_list:
                 core.threshold = self.filter_threshold_checkbox.isChecked()
-                core.threshold_value = self.slider_threshold.value() / 200
+                core.threshold_value = self.slider_threshold.value()
                 core.threshold_adaptive = self.slider_threshold_adaptive.value() / 10
 
             self.view.canvas_img.next_frame(0)
@@ -976,7 +984,9 @@ class MainWindow(QMainWindow):
                 'slider_fourier': self.slider_fourier.value(),
                 'slider_threshold': self.slider_threshold.value(),
                 'slider_threshold_adaptive': self.slider_threshold_adaptive.value(),
-                'slider_distance': self.slider_distance.value()
+                'slider_distance': self.slider_distance.value(),
+                'filter_absolute_checkbox': self.filter_absolute_checkbox.isChecked()
+
             }
             core.save_masks()
 
@@ -1009,11 +1019,18 @@ class MainWindow(QMainWindow):
                 self.slider_gauss.setValue(p['slider_gauss'])
                 self.filter_fourier_checkbox.setChecked(p['filter_fourier_checkbox'])
                 self.slider_fourier.setValue(p['slider_fourier'])
-                self.slider_threshold.setValue(p['slider_threshold'])
+
+                if type(p['slider_threshold']) is int:
+                    self.slider_threshold.setValue(p['slider_threshold']/200)
+                else:
+                    self.slider_threshold.setValue(p['slider_threshold'])
+
                 self.slider_threshold_adaptive.setValue(p['slider_threshold_adaptive'])
                 self.slider_distance.setValue(p['slider_distance'])
                 self.filters_checkbox.setChecked(p['filters_checkbox'])
 
+                if 'filter_absolute_checkbox' in p.keys():
+                    self.filter_absolute_checkbox.setChecked(p['filter_absolute_checkbox'])
                 self.RefreshFilters()
 
         if self.view is not None:
