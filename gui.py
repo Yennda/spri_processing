@@ -196,6 +196,8 @@ class MainWindow(QMainWindow):
         self.slider_bilateral_color = gw.slider(0, 40, 1, 10, self.RefreshSliderBilateralInfo)
         self.slider_bilateral_color_info = gw.value_label('{:.2e}'.format(10 ** (10 / 10 - 5)))
 
+        self.filter_absolute_checkbox = gw.checkbox_filter('Absolute value', False, self.RunFilterAbsolute)
+
         self.filters_checkbox = gw.checkbox_filter('all filters', True, self.RefreshFilters)
 
         self.forms_pre_processing = self.channel_checkbox_list + [
@@ -237,7 +239,7 @@ class MainWindow(QMainWindow):
         self.button_import_nps = gw.button(None, 'Import', self.font, True,
                                            self.ImportNPsButtonClick)
         self.button_import_nps_old = gw.button(None, 'Import NPs old', self.font, True,
-                                           self.ImportNPsButtonClickOld)
+                                               self.ImportNPsButtonClickOld)
 
         self.button_analyse_nps = gw.button('magnifier', 'Analyse NPs', self.font, True,
                                             self.AnalyseNPsButtonClick)
@@ -326,7 +328,8 @@ class MainWindow(QMainWindow):
             self.filter_gauss_checkbox,
             self.filter_wiener_checkbox,
             self.filter_bilateral_checkbox,
-            self.filter_fourier_checkbox
+            self.filter_fourier_checkbox,
+            self.filter_absolute_checkbox
         ]
 
         self.forms_np_recognition = [
@@ -489,6 +492,8 @@ class MainWindow(QMainWindow):
             self.slider_fourier_info
         ))
 
+        layout.addWidget(self.filter_absolute_checkbox)
+
         label_fourier = QLabel('Remove spatial freq.:')
         label_fourier.setMinimumWidth(200)
         layout_fourier_buttons = QHBoxLayout()
@@ -641,7 +646,6 @@ class MainWindow(QMainWindow):
         layout_nps_ie_old.addWidget(self.button_import_nps_old)
 
         layout.addLayout(layout_nps_ie_old)
-
 
         layout.addWidget(self.button_analyse_nps)
         layout.addWidget(self.button_export_gif)
@@ -924,6 +928,10 @@ class MainWindow(QMainWindow):
                                                  )
         self.RunFilter(self.filter_wiener_checkbox.isChecked(), 'a_wiener', fn)
 
+    def RunFilterAbsolute(self):
+        fn = lambda img: np.abs(img)
+        self.RunFilter(self.filter_absolute_checkbox.isChecked(), 'a_absolute', fn)
+
     def RunFilter(self, checked, ftype, fn):
         if self.view is None:
             return
@@ -1107,7 +1115,6 @@ class MainWindow(QMainWindow):
         stop = int(self.line_export_stop.text())
 
         self.view.canvas_img.save_gif(start, stop, False)
-
 
     def ImportNPsButtonClick(self):
         if self.view.core_list[0].np_container is not None:
