@@ -444,6 +444,8 @@ class Core(object):
         shot_noise = (1 / intensity / avg) ** 0.5
         noise = std / intensity
 
+
+        self.print('intensity px: {}'.format(intensity * avg))
         self.print('shot_noise: {}'.format(shot_noise))
         self.print('noise: {}'.format(noise))
         self.print('{:.1f} % of shot noise'.format(noise/shot_noise*100))
