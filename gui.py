@@ -808,7 +808,7 @@ class MainWindow(QMainWindow):
         self.RunFilterFourier()
 
     def RefreshSliderThresholdInfo(self):
-        self.slider_threshold_info.setText(str(self.slider_threshold.value()))
+        self.slider_threshold_info.setText('{:.4e}'.format(self.slider_threshold.value()))
         self.slider_threshold_adaptive_info.setText(str(self.slider_threshold_adaptive.value() / 10))
 
         self.RunFilterThreshold()

@@ -5,6 +5,8 @@ import numpy as np
 import scipy.signal
 from scipy import ndimage
 from PIL import Image
+import cv2
+from scipy.ndimage import gaussian_filter
 
 from global_var import *
 import tools as tl
@@ -24,6 +26,7 @@ class Core(object):
 
         self._mask_fourier = None
         self._mask_ommit = None
+        self._mask_defects = None
 
         self._time_info = None
         self._ref_frame = 0
@@ -69,6 +72,7 @@ class Core(object):
         self._load_data()
         self.load_idea()
         self._mask_ommit = np.zeros(self.shape_img)
+
         self.ref_frame = 10
         # self.print('\n--elapsed time--\n{:.2f} s'.format(time.time() - time0))
 
@@ -438,17 +442,39 @@ class Core(object):
             self.print('"{}"  not found. Diseable ploting of SPR. '.format(file_name))
             return None, None
 
+    def defects_removal(self):
+        k_buffer = self.k
+        type_bufer = self.type
+
+        self.type = 'diff'
+        self.k = 1
+
+        mask_defects = np.zeros(self.shape)
+
+        background = np.average(np.abs(self._data_raw[:, :, :-1] - self._data_raw[:, :, 1:]))
+        print('background: {}'.format(background))
+
+        for f in range(len(self)):
+            print(f)
+            mask_defects[:, :, f] = (np.abs(self.frame(f)) < background * 5) * 1
+
+            mask_defects[:, :, f] = (gaussian_filter(mask_defects[:, :, f], 2) > 0.8) * 1
+
+        self._mask_defects = mask_defects
+
+        self.type = type_bufer
+        self.k = k_buffer
+
     def noise_analysis(self, avg):
         intensity = np.average(self._data_raw) * PX_DEPTH
         std = np.average(np.std(self._data_raw, axis=2)) * PX_DEPTH
         shot_noise = (1 / intensity / avg) ** 0.5
         noise = std / intensity
 
-
         self.print('intensity px: {}'.format(intensity * avg))
         self.print('shot_noise: {}'.format(shot_noise))
         self.print('noise: {}'.format(noise))
-        self.print('{:.1f} % of shot noise'.format(noise/shot_noise*100))
+        self.print('{:.1f} % of shot noise'.format(noise / shot_noise * 100))
 
     def np_analysis(self):
         if self.np_container == []:
@@ -631,6 +657,7 @@ class Core(object):
             return False
 
     def frame_diff(self, f):
+
         current = np.sum(
             self._data_raw[:, :, f - self.k + 1: f + 1],
             axis=2
@@ -639,7 +666,30 @@ class Core(object):
             self._data_raw[:, :, f - 2 * self.k + 1: f - self.k + 1],
             axis=2
         ) / self.k
-        return current - previous
+        if self._mask_defects is None:
+            return current - previous
+
+        else:
+            mask_current = np.sum(
+                self._mask_defects[:, :, f - self.k + 1: f + 1],
+                axis=2
+            ) / self.k
+            mask_previous = np.sum(
+                self._mask_defects[:, :, f - 2 * self.k + 1: f - self.k + 1],
+                axis=2
+            ) / self.k
+
+            mask = ((mask_current - mask_previous) == 0) * 1
+
+
+            mask_pre = np.sum(
+                self._mask_defects[:, :, f - 2 * self.k + 1: f + 1],
+                axis=2
+            ) / self.k / 2
+
+            mask = (mask_pre == 1) * 1
+
+            return (current - previous) * mask
 
     def frame(self, f):
         self._f = f
@@ -653,15 +703,18 @@ class Core(object):
                 axis=2
             )
             image = current - self.reference
+            # image = current / self.reference - 1
 
         elif self.type == 'raw':
             image = self._data_raw[:, :, f]
 
         elif self.type == 'mask':
-            if self._data_mask is None:
+            # if self._data_mask is None:
+            if self._mask_defects is None:
                 image = np.zeros(self.shape_img)
             else:
-                image = self._data_mask[:, :, f]
+                # image = self._data_mask[:, :, f]
+                image = self._mask_defects[:, :, f]
 
         elif self.type == 'four_r':
             image_pre = self._data_raw[:, :, f]
