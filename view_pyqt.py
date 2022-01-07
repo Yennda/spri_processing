@@ -180,33 +180,33 @@ class Canvas(FigureCanvasQTAgg):
                                  duration=duration, loop=0)
                 axes.core.print('File SAVED @{}.gif'.format(name_gif))
 
-                return
+            else:
 
-            name_vid = '{}/vid_{}'.format(
-                axes.core.folder + FOLDER_EXPORTS,
-                axes.core.file
-            )
-            i = 1
-            while os.path.isfile(name_vid + '_{:02d}.avi'.format(i)):
-                i += 1
-            name_vid += '_{:02d}'.format(i)
+                name_vid = '{}/vid_{}'.format(
+                    axes.core.folder + FOLDER_EXPORTS,
+                    axes.core.file
+                )
+                i = 1
+                while os.path.isfile(name_vid + '_{:02d}.avi'.format(i)):
+                    i += 1
+                name_vid += '_{:02d}'.format(i)
 
-            images = [img for img in os.listdir(axes.core.folder + FOLDER_EXPORTS + '/tmp') if img.endswith(".png")]
-            frame = cv2.imread(os.path.join(axes.core.folder + FOLDER_EXPORTS + '/tmp', images[0]))
-            height, width, layers = frame.shape
+                images = [img for img in os.listdir(axes.core.folder + FOLDER_EXPORTS + '/tmp') if img.endswith(".png")]
+                frame = cv2.imread(os.path.join(axes.core.folder + FOLDER_EXPORTS + '/tmp', images[0]))
+                height, width, layers = frame.shape
 
-            video = cv2.VideoWriter(name_vid + '.avi', 0, 1 / duration, (width, height))
+                video = cv2.VideoWriter(name_vid + '.avi', 0, 1 / duration, (width, height))
 
-            for image in images:
-                video.write(cv2.imread(os.path.join(axes.core.folder + FOLDER_EXPORTS + '/tmp', image)))
-                os.remove(os.path.join(axes.core.folder + FOLDER_EXPORTS + '/tmp', image))
+                for image in images:
+                    video.write(cv2.imread(os.path.join(axes.core.folder + FOLDER_EXPORTS + '/tmp', image)))
+                    os.remove(os.path.join(axes.core.folder + FOLDER_EXPORTS + '/tmp', image))
 
-            cv2.destroyAllWindows()
-            video.release()
+                cv2.destroyAllWindows()
+                video.release()
 
 
 
-        axes.core.print('File SAVED @{}.avi'.format(name_vid))
+                axes.core.print('File SAVED @{}.avi'.format(name_vid))
 
     def select_area(self, axes, what):
         if self.mask is None:

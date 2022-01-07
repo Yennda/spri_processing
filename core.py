@@ -462,6 +462,9 @@ class Core(object):
             step = 1
 
         for i, npp in enumerate(self.np_container[::step]):
+            if npp.color == red:
+                continue
+
             print('\r\t{}/ {}'.format(i, len(self.np_container[::step])), end='')
             f = (npp.first_frame + npp.last_frame) // 2
 

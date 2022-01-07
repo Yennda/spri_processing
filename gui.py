@@ -1175,10 +1175,10 @@ class MainWindow(QMainWindow):
 
             self.tool_file_info.setDisabled(False)
 
-            if self.width[0] < self.height[0]:
-                self.orientation_checkbox.setChecked(True)
-            else:
-                self.orientation_checkbox.setChecked(False)
+            # if self.width[0] < self.height[0]:
+            #     self.orientation_checkbox.setChecked(True)
+            # else:
+            #     self.orientation_checkbox.setChecked(False)
 
             for chch in self.channel_checkbox_list:
                 chch.setChecked(False)
