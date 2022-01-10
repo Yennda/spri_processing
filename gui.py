@@ -229,6 +229,11 @@ class MainWindow(QMainWindow):
         self.button_ommit = gw.button(None, 'Select', self.font_small, True, self.OmmitButtonClick)
         self.button_ommit_clear = gw.button(None, 'Clear', self.font_small, True, self.OmmitRemoveButtonClick)
 
+        self.slider_defects = gw.slider(0, 200, 1, 50, self.RefreshSliderDefectsInfo)
+        self.slider_defects_info = gw.value_label('5')
+        self.button_defects_run = gw.button(None, 'Run', self.font_small, True, self.DefectsRemoveButtonClick)
+
+
         self.button_correlate = gw.button('brain', 'Correlation', self.font, True, self.CorrelateButtonClick)
 
         self.select_box = QComboBox()
@@ -331,6 +336,8 @@ class MainWindow(QMainWindow):
             self.slider_bilateral_d,
             self.slider_fourier,
             self.slider_fourier_info,
+            self.slider_defects,
+            self.button_defects_run
         ]
         self.forms_image_filters_checkoboxes = [
             self.filter_gauss_checkbox,
@@ -518,6 +525,16 @@ class MainWindow(QMainWindow):
         layout_select_buttons.addWidget(self.select_box)
         layout_select_buttons.addWidget(self.button_select)
         layout.addLayout(layout_select_buttons)
+
+        label_defects = QLabel('Remove defects:')
+        label_defects.setMinimumWidth(150)
+        layout_defects_buttons = QHBoxLayout()
+        layout_defects_buttons.addWidget(label_defects)
+        layout_defects_buttons.addWidget(self.slider_defects)
+        layout_defects_buttons.addWidget(self.slider_defects_info)
+        layout_defects_buttons.addWidget(self.button_defects_run)
+
+        layout.addLayout(layout_defects_buttons)
 
         for item in self.forms_image_filters + [self.filters_checkbox] + self.forms_np_recognition:
             item.setDisabled(True)
@@ -815,6 +832,9 @@ class MainWindow(QMainWindow):
 
     def RefreshSliderDistanceInfo(self):
         self.slider_distance_info.setText(str(self.slider_distance.value()))
+
+    def RefreshSliderDefectsInfo(self):
+        self.slider_defects_info.setText(str(self.slider_defects.value()/10))
 
     def RefreshSliderBilateralInfo(self):
         self.slider_bilateral_d_info.setText(str(self.slider_bilateral_d.value()))
@@ -1226,6 +1246,12 @@ class MainWindow(QMainWindow):
         self.view.canvas_img.mask_img.set_array(
             self.view.canvas_img.mask
         )
+
+        self.view.next_frame(0)
+
+    def DefectsRemoveButtonClick(self):
+        for core in self.view.core_list:
+            core.defects_removal(float(self.slider_defects_info.text()))
 
         self.view.next_frame(0)
 

@@ -442,7 +442,7 @@ class Core(object):
             self.print('"{}"  not found. Diseable ploting of SPR. '.format(file_name))
             return None, None
 
-    def defects_removal(self):
+    def defects_removal(self, level):
         k_buffer = self.k
         type_bufer = self.type
 
@@ -452,12 +452,12 @@ class Core(object):
         mask_defects = np.zeros(self.shape)
 
         background = np.average(np.abs(self._data_raw[:, :, :-1] - self._data_raw[:, :, 1:]))
-        print('background: {}'.format(background))
+        self.print('background: {}'.format(background))
 
         for f in range(len(self)):
-            print(f)
-            mask_defects[:, :, f] = (np.abs(self.frame(f)) < background * 5) * 1
+            print('\r\t{}/ {}'.format(f, len(self)), end='')
 
+            mask_defects[:, :, f] = (np.abs(self.frame(f)) < background * level) * 1
             mask_defects[:, :, f] = (gaussian_filter(mask_defects[:, :, f], 2) > 0.8) * 1
 
         self._mask_defects = mask_defects
