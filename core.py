@@ -444,12 +444,13 @@ class Core(object):
 
     def defects_removal(self, level):
         k_buffer = self.k
-        type_bufer = self.type
+        type_buffer = self.type
 
         self.type = 'diff'
         self.k = 1
 
         mask_defects = np.zeros(self.shape)
+        self._mask_defects = None
 
         background = np.average(np.abs(self._data_raw[:, :, :-1] - self._data_raw[:, :, 1:]))
         self.print('background: {}'.format(background))
@@ -462,7 +463,7 @@ class Core(object):
 
         self._mask_defects = mask_defects
 
-        self.type = type_bufer
+        self.type = type_buffer
         self.k = k_buffer
 
     def noise_analysis(self, avg):
@@ -666,22 +667,11 @@ class Core(object):
             self._data_raw[:, :, f - 2 * self.k + 1: f - self.k + 1],
             axis=2
         ) / self.k
+
         if self._mask_defects is None:
             return current - previous
 
         else:
-            mask_current = np.sum(
-                self._mask_defects[:, :, f - self.k + 1: f + 1],
-                axis=2
-            ) / self.k
-            mask_previous = np.sum(
-                self._mask_defects[:, :, f - 2 * self.k + 1: f - self.k + 1],
-                axis=2
-            ) / self.k
-
-            mask = ((mask_current - mask_previous) == 0) * 1
-
-
             mask_pre = np.sum(
                 self._mask_defects[:, :, f - 2 * self.k + 1: f + 1],
                 axis=2
@@ -696,6 +686,8 @@ class Core(object):
         no_postpro = ['raw', 'four_d', 'four_i', 'mask', 'corr']
         if self.type == 'diff':
             image = self.frame_diff(f)
+            if f < 2 * self.k:
+                return image
 
         elif self.type == 'int':
             current = np.average(
@@ -703,7 +695,6 @@ class Core(object):
                 axis=2
             )
             image = current - self.reference
-            # image = current / self.reference - 1
 
         elif self.type == 'raw':
             image = self._data_raw[:, :, f]
