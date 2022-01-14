@@ -1005,7 +1005,8 @@ class MainWindow(QMainWindow):
                 'slider_threshold': self.slider_threshold.value(),
                 'slider_threshold_adaptive': self.slider_threshold_adaptive.value(),
                 'slider_distance': self.slider_distance.value(),
-                'filter_absolute_checkbox': self.filter_absolute_checkbox.isChecked()
+                'filter_absolute_checkbox': self.filter_absolute_checkbox.isChecked(),
+                'slider_defects' : self.slider_defects.value()
 
             }
             core.save_masks()
@@ -1040,6 +1041,7 @@ class MainWindow(QMainWindow):
                 self.filter_fourier_checkbox.setChecked(p['filter_fourier_checkbox'])
                 self.slider_fourier.setValue(p['slider_fourier'])
 
+
                 if type(p['slider_threshold']) is int:
                     self.slider_threshold.setValue(p['slider_threshold']/200)
                 else:
@@ -1051,6 +1053,10 @@ class MainWindow(QMainWindow):
 
                 if 'filter_absolute_checkbox' in p.keys():
                     self.filter_absolute_checkbox.setChecked(p['filter_absolute_checkbox'])
+
+                if 'slider_defects' in p.keys():
+                    self.slider_defects.setValue(p['slider_defects'])
+
                 self.RefreshFilters()
 
         if self.view is not None:
