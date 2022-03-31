@@ -655,6 +655,8 @@ class Core(object):
             self.print('Masks loaded')
             return True
         except FileNotFoundError:
+            self._mask_ommit = np.zeros(self.shape_img)
+            self._mask_fourier = np.zeros(self.shape_img)
             return False
 
     def frame_diff(self, f):
@@ -700,12 +702,12 @@ class Core(object):
             image = self._data_raw[:, :, f]
 
         elif self.type == 'mask':
-            # if self._data_mask is None:
-            if self._mask_defects is None:
+            if self._data_mask is None:
+            # if self._mask_defects is None:
                 image = np.zeros(self.shape_img)
             else:
-                # image = self._data_mask[:, :, f]
-                image = self._mask_defects[:, :, f]
+                image = self._data_mask[:, :, f]
+                # image = self._mask_defects[:, :, f]
 
         elif self.type == 'four_r':
             image_pre = self._data_raw[:, :, f]
@@ -844,6 +846,8 @@ class Core(object):
             print('\r\t{}/ {}'.format(f + 1, len(self)), end='')
             raw_diff[:, :, f] = self.frame(f)
             self._data_diff_std.append(np.std(self.frame(f)))
+
+        print('\n')
 
         self._data_corr = scipy.signal.correlate(
             raw_diff,

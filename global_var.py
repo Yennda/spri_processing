@@ -23,7 +23,9 @@ PX_DEPTH = 32700
 # SMIN, SMAX = [0, -1]
 #vertical
 LMIN, LMAX = [400, 800]
-# LMIN, LMAX = [200, 600]
+# LMIN, LMAX = [0, 350]
+# LMIN, LMAX = [600, -1]
+
 # LMIN, LMAX = [800, -1]
 SMIN, SMAX = [0, -1]
 
