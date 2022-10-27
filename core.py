@@ -488,69 +488,101 @@ class Core(object):
         else:
             step = 1
 
-        for i, npp in enumerate(self.np_container[::step]):
-            if npp.color == red:
-                continue
+        file_name = self.folder + FOLDER_SAVED + '/np_analysis_all_' + self.file
+        with open(file_name + '.csv', mode='w') as f_nps:
 
-            print('\r\t{}/ {}'.format(i, len(self.np_container[::step])), end='')
-            f = (npp.first_frame + npp.last_frame) // 2
+            for i, npp in enumerate(self.np_container[::step]):
+                if npp.color == red:
+                    continue
 
-            size = 25
-            ind_0 = [
-                int(npp.position(f)[1] - size),
-                int(npp.position(f)[1] + size)
-            ]
+                print('\r\t{}/ {}'.format(i, len(self.np_container[::step])), end='')
+                f = (npp.first_frame + npp.last_frame) // 2
 
-            if ind_0[0] < 0: ind_0[0] = 0
-            if ind_0[1] > self.shape_img[0]: ind_0[1] = self.shape_img[0]
+                size = 15
+                ind_0 = [
+                    int(npp.position(f)[1] - size),
+                    int(npp.position(f)[1] + size)
+                ]
 
-            ind_1 = [
-                int(npp.position(f)[0] - size),
-                int(npp.position(f)[0] + size)
-            ]
-            if ind_1[0] < 0: ind_1[0] = 0
-            if ind_1[1] > self.shape_img[1]: ind_1[1] = self.shape_img[1]
+                if ind_0[0] < 0:
+                    ind_0[0] = 0
+                    x0 = ind_0[0] = 0
+                else:
+                    x0 = size
 
-            np_intensity = [
-                np.average(
-                    np.abs(
-                        self.frame(f)[ind_0[0]: ind_0[1], ind_1[0]: ind_1[1]]
+                if ind_0[1] > self.shape_img[0]: ind_0[1] = self.shape_img[0]
+
+                ind_1 = [
+                    int(npp.position(f)[0] - size),
+                    int(npp.position(f)[0] + size)
+                ]
+                if ind_1[0] < 0:
+                    ind_1[0] = 0
+                    y0 = 25 + ind_1[0]
+                else:
+                    y0 = size
+
+                if ind_1[1] > self.shape_img[1]:
+                    ind_1[1] = self.shape_img[1]
+
+                np_intensity = [
+                    np.average(
+                        np.abs(
+                            self.frame(f)[ind_0[0]: ind_0[1], ind_1[0]: ind_1[1]]
+                        )
                     )
-                )
-                for f in range(npp.first_frame, npp.last_frame)
-            ]
+                    for f in range(npp.first_frame, npp.last_frame)
+                ]
 
-            fc = npp.first_frame + np.argmax(np_intensity)
-            surroundings = self.frame(fc)[ind_0[0]: ind_0[1], ind_1[0]: ind_1[1]]
-            #
-            # current = (surroundings - np.min(surroundings)) / (np.max(surroundings) - np.min(surroundings)) * 255
-            # current[current > 255] = 255
-            # current[current < 0] = 0
-            #
-            # pilimage = Image.fromarray(current.astype(np.uint8))
-            #
-            # pilimage.save(self.folder + FOLDER_SAVED + '/np_{:04d}.png'.format(i), 'png')
 
-            result = tl.np_analysis(surroundings, self.folder, self.file, i % 5 == 0)
+                # fc = npp.first_frame + np.argmax(np_intensity)
+                fc = npp.first_frame + len(npp.positions)//2
+                surroundings = self.frame(fc)[ind_0[0]: ind_0[1], ind_1[0]: ind_1[1]]
+                #
+                # current = (surroundings - np.min(surroundings)) / (np.max(surroundings) - np.min(surroundings)) * 255
+                # current[current > 255] = 255
+                # current[current < 0] = 0
+                #
+                # pilimage = Image.fromarray(current.astype(np.uint8))
+                #
+                # pilimage.save(self.folder + FOLDER_SAVED + '/np_{:04d}.png'.format(i), 'png')
 
-            if type(result) is list:
-                list_results.append(result)
-                npp.color = blue
-                d += 1
-            else:
-                npp.color = purple
+                result = tl.np_analysis(surroundings, x0, y0, self.folder, self.file, i % 5 == 0)
+
+                if type(result) is list:
+                    f_nps.write(
+                        '{}, {}, {}, {}, {}, {} \n'.format(
+                            result[0],
+                            result[1],
+                            result[2],
+                            result[3],
+                            result[4],
+                            result[5]
+                        )
+                    )
+
+                    list_results.append(result)
+                    npp.color = blue
+                    d += 1
+                else:
+                    npp.color = purple
+
+        with open(file_name + '_log.txt', mode='w') as f:
+            f.write(
+                'area [px], intensity, intensity_px, intensity_bg_px, max, snr [intensity_px/ intensity_bg_px]'
+            )
 
         self.print('\nAnalyzed: {:.1f} %'.format(d / i * 100))
 
         results = np.matrix(list_results)
 
-        print(results)
-
         self.print('area: {:.1f} +- {:.1f}'.format(np.average(results[:, 0]), np.std(results[:, 0])))
         self.print('intensity: {:.5f} +- {:.5f}'.format(np.average(results[:, 1]), np.std(results[:, 1])))
         self.print('intensity/px: {:.5f} +- {:.5f}'.format(np.average(results[:, 2]), np.std(results[:, 2])))
         self.print('intensity_bg/px: {:.5f} +- {:.5f}'.format(np.average(results[:, 3]), np.std(results[:, 3])))
-        self.print('SNR: {:.1f} +- {:.1f}'.format(np.average(results[:, 4]), np.std(results[:, 4])))
+        self.print('max: {:.3f} +- {:.3f}'.format(np.average(results[:, 4]), np.std(results[:, 4])))
+
+        self.print('SNR: {:.1f} +- {:.1f}'.format(np.average(results[:, 5]), np.std(results[:, 5])))
 
         if not os.path.isdir(self.folder + FOLDER_SAVED):
             os.mkdir(self.folder + FOLDER_SAVED)
@@ -559,26 +591,28 @@ class Core(object):
 
         with open(file_name + '.csv', mode='w') as f:
             f.write(
-                'area, intensity, intensity_px, intensity_bg_px, snr, success/count\n'
+                'area, intensity, intensity_px, intensity_bg_px, max, snr, success/count\n'
             )
             f.write(
-                '{}, {}, {}, {}, {}, {}\n'.format(
+                '{}, {}, {}, {}, {}, {}, {}\n'.format(
                     np.average(results[:, 0]),
                     np.average(results[:, 1]),
                     np.average(results[:, 2]),
                     np.average(results[:, 3]),
                     np.average(results[:, 4]),
+                    np.average(results[:, 5]),
                     d / i
                 )
             )
 
             f.write(
-                '{}, {}, {}, {}, {}, {}\n'.format(
+                '{}, {}, {}, {}, {}, {}, {}\n'.format(
                     np.std(results[:, 0]),
                     np.std(results[:, 1]),
                     np.std(results[:, 2]),
                     np.std(results[:, 3]),
                     np.std(results[:, 4]),
+                    np.std(results[:, 5]),
                     d
                 )
             )
@@ -671,7 +705,7 @@ class Core(object):
         ) / self.k
 
         if self._mask_defects is None:
-            return current - previous
+            return (current - previous)
 
         else:
             mask_pre = np.sum(
@@ -682,6 +716,8 @@ class Core(object):
             mask = (mask_pre == 1) * 1
 
             return (current - previous) * mask
+
+            # return (current - previous) * mask
 
     def frame(self, f):
         self._f = f
@@ -703,7 +739,7 @@ class Core(object):
 
         elif self.type == 'mask':
             if self._data_mask is None:
-            # if self._mask_defects is None:
+                # if self._mask_defects is None:
                 image = np.zeros(self.shape_img)
             else:
                 image = self._data_mask[:, :, f]
@@ -881,7 +917,13 @@ class Core(object):
         for idnp in self.nps_in_frame[f]:
             nnp = self.np_container[idnp]
             positions.append(nnp.position(f))
-            colors.append(nnp.color)
+
+            if f == nnp.first_frame + len(nnp.positions)//2:
+                # colors.append(red)
+                colors.append(nnp.color)
+            else:
+                colors.append(nnp.color)
+
 
         return positions, colors
 

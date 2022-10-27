@@ -20,6 +20,7 @@ matplotlib.rc('font', family='serif')
 matplotlib.rc('font', serif='Palatino Linotype')
 matplotlib.rc('text', usetex='false')
 # matplotlib.rcParams.update({'font.size': 30})
+
 matplotlib.rcParams['mathtext.fontset'] = 'custom'
 matplotlib.rcParams['mathtext.rm'] = 'Palatino Linotype'
 matplotlib.rcParams['mathtext.it'] = 'Palatino Linotype:italic'
@@ -113,13 +114,15 @@ class Canvas(FigureCanvasQTAgg):
         current = current.astype(np.uint8)
 
         pilimage = Image.fromarray(current)
+        pilimage.save(name + '.tiff', 'tiff')
+
         pilimage.convert("L")
 
         pilimage.save(name + '.png', 'png')
 
         print('File SAVED @{}'.format(name))
 
-    def save_gif(self, start=0, stop=50, gif=True):
+    def save_gif(self, start=0, stop=50, speed = 1, gif=True):
         for axes in self.view.axes:
             if not os.path.isdir(axes.core.folder + FOLDER_EXPORTS):
                 os.mkdir(axes.core.folder + FOLDER_EXPORTS)
@@ -174,7 +177,7 @@ class Canvas(FigureCanvasQTAgg):
                 i += 1
             name_gif += '_{:02d}'.format(i)
 
-            duration = np.median(axes.core._time_info[:, 1])
+            duration = np.median(axes.core._time_info[:, 1]) * speed
             if gif:
                 sequence[0].save(name_gif + '.gif', save_all=True, append_images=sequence[1:], optimize=False,
                                  duration=duration, loop=0)
@@ -329,13 +332,19 @@ class Canvas(FigureCanvasQTAgg):
         key_press_handler(event, self, self.toolbar)
 
         if event.key == '9':
-            self.next_frame(self.view.core_list[0].k * 10)
+            # self.next_frame(self.view.core_list[0].k * 10)
+            self.next_frame(100)
+
         elif event.key == '7':
-            self.next_frame(-self.view.core_list[0].k * 10)
+            # self.next_frame(-self.view.core_list[0].k * 10)
+            self.next_frame(-100)
         elif event.key == '6':
-            self.next_frame(self.view.core_list[0].k)
+            # self.next_frame(self.view.core_list[0].k)
+            self.next_frame(10)
+
         elif event.key == '4':
-            self.next_frame(-self.view.core_list[0].k)
+            # self.next_frame(-self.view.core_list[0].k)
+            self.next_frame(-10)
         elif event.key == '3':
             self.next_frame(1)
         elif event.key == '1':
@@ -608,25 +617,33 @@ class View(object):
             self.axes[i].toggle_selector = None
 
             fontprops = fm.FontProperties(size=20)
+            # show_scalebar = AnchoredSizeBar(self.axes[i].transData,
+            #                                 34, '100 $\mu m$', 'lower right',
+            #                                 pad=0.1,
+            #                                 color='black',
+            #                                 frameon=False,
+            #                                 size_vertical=1,
+            #                                 fontproperties=fontprops)
+
             show_scalebar = AnchoredSizeBar(self.axes[i].transData,
-                                            34, '100 $\mu m$', 'lower right',
+                                            64, '100 $\mu m$', 'lower right',
                                             pad=0.1,
                                             color='black',
                                             frameon=False,
                                             size_vertical=1,
                                             fontproperties=fontprops)
 
-            self.text.append(self.axes[i].text(
-                0.1,
-                0.1,
-                'rng = {}'.format(core.range[1]),
-                color='white',
-                backgroundcolor='black',
-                fontsize=10,
-                horizontalalignment='center',
-                verticalalignment='center',
-                transform=self.axes[i].transAxes
-            ))
+            # self.text.append(self.axes[i].text(
+            #     0.1,
+            #     0.1,
+            #     'rng = {}'.format(core.range[1]),
+            #     color='white',
+            #     backgroundcolor='black',
+            #     fontsize=10,
+            #     horizontalalignment='center',
+            #     verticalalignment='center',
+            #     transform=self.axes[i].transAxes
+            # ))
 
             self.axes[i].add_artist(show_scalebar)
             # self.axes[i].add_artist(text)

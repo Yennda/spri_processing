@@ -261,17 +261,10 @@ class MainWindow(QMainWindow):
 
         self.button_export_video = gw.button('films', 'Create Video', self.font, True, self.ExportVideoButtonClick)
 
-        self.exim_buttons = [
-            self.button_export,
-            self.button_export_csv,
-            self.button_export_parameters,
-            self.button_export_nps,
-            self.button_import_nps,
-            self.button_import_nps_old,
-            self.button_analyse_nps,
-            self.button_export_gif,
-            self.button_export_video
-        ]
+        self.line_export_speed = QLineEdit()
+        self.line_export_speed.setText('1')
+
+
 
         self.button_count = gw.button('count-cat-icon', 'Count NPs', self.font, True, self.CountButtonClick)
         self.button_count.setStatusTip('Counts nanoparticles.')
@@ -296,6 +289,18 @@ class MainWindow(QMainWindow):
         self.progress_bar.setGeometry(200, 80, 250, 20)
         self.progress_bar.setVisible(False)
         # self.progress_bar.setValue(50)
+
+        self.exim_buttons = [
+            self.button_export,
+            self.button_export_csv,
+            self.button_export_parameters,
+            self.button_export_nps,
+            self.button_import_nps,
+            self.button_import_nps_old,
+            self.button_analyse_nps,
+            self.button_export_gif,
+            self.button_export_video,
+        ]
 
         self.info = QLabel()
         self.info.setVisible(False)
@@ -652,6 +657,13 @@ class MainWindow(QMainWindow):
         np_analysis_layout.addWidget(self.line_export_stop)
         layout.addLayout(np_analysis_layout)
 
+        speed_layout = QHBoxLayout()
+        speed_layout.addWidget(QLabel('slowdown:'))
+        speed_layout.addWidget(self.line_export_speed)
+        speed_layout.addStretch(1)
+        layout.addLayout(speed_layout)
+
+
         layout.addWidget(self.button_export)
         layout.addWidget(self.button_export_csv)
 
@@ -675,6 +687,10 @@ class MainWindow(QMainWindow):
         layout.addWidget(self.button_analyse_nps)
         layout.addWidget(self.button_export_gif)
         layout.addWidget(self.button_export_video)
+
+
+
+
 
         layout.addStretch(1)
         Tab.setLayout(layout)
@@ -1150,14 +1166,16 @@ class MainWindow(QMainWindow):
     def ExportGIFButtonClick(self):
         start = int(self.line_export_start.text())
         stop = int(self.line_export_stop.text())
+        speed = float(self.line_export_speed.text())
 
-        self.view.canvas_img.save_gif(start, stop, True)
+        self.view.canvas_img.save_gif(start, stop, speed, True)
 
     def ExportVideoButtonClick(self):
         start = int(self.line_export_start.text())
         stop = int(self.line_export_stop.text())
+        speed = float(self.line_export_speed.text())
 
-        self.view.canvas_img.save_gif(start, stop, False)
+        self.view.canvas_img.save_gif(start, stop, speed, False)
 
     def ImportNPsButtonClick(self):
         if self.view.core_list[0].np_container is not None:

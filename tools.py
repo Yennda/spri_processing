@@ -118,7 +118,7 @@ def before_save_file(path):
     return True
 
 
-def np_analysis(npp, folder, file, image=False):
+def np_analysis(npp, x0, y0, folder, file, image=False):
     def twoD_Gaussian(xy, amplitude, xo, yo, sigma_x, sigma_y, theta, offset):
         x, y = xy
         xo = float(xo)
@@ -130,7 +130,11 @@ def np_analysis(npp, folder, file, image=False):
                                            + c * ((y - yo) ** 2)))
         return g.ravel()
 
-    initial_guess = (0.03, 25, 25, 2, 2, 0, 10)
+    # initial_guess = (0.03, x0, y0, 2, 2, 0, 10)
+
+
+    initial_guess = (0.03, x0, y0, 2, 2, 0, 0.0001)
+    # initial_guess_xy = (0.03, 2, 2, 0, 10)
 
     x = np.linspace(0, npp.shape[0] - 1, npp.shape[0])
     y = np.linspace(0, npp.shape[1] - 1, npp.shape[1])
@@ -139,9 +143,17 @@ def np_analysis(npp, folder, file, image=False):
     try:
         popt, pcov = opt.curve_fit(twoD_Gaussian, (x, y), np.abs(npp).reshape(npp.shape[0] * npp.shape[1]),
                                    p0=initial_guess)
+
+        # twoD_Gaussian_xy = lambda xy, amplitude, sigma_x, sigma_y, theta, offset: twoD_Gaussian(xy, amplitude, x0,
+        #                                                                                             y0, sigma_x,
+        #                                                                                             sigma_y, theta,
+        #                                                                                             offset)
+        #
+        # popt, pcov = opt.curve_fit(twoD_Gaussian_xy, (x, y), np.abs(npp).reshape(npp.shape[0] * npp.shape[1]),
+        #                            p0=initial_guess_xy)
     except RuntimeError:
         return False
-
+    # popt = [popt[0], x0, y0] + [p for p in popt[1:]]
     data_fitted = twoD_Gaussian((x, y), *popt)
     lim = np.average(np.abs(npp)) * 4
     perr = np.sqrt(np.diag(pcov))
@@ -150,8 +162,17 @@ def np_analysis(npp, folder, file, image=False):
 
     area = np.sum(threshold * 1)
     intensity = np.sum(np.abs(npp)[threshold])
-    intensity_px = np.average(np.abs(npp)[threshold])
     intensity_bg_px = np.average(np.abs(npp)[threshold == False])
+
+
+    try:
+        max_intensity = np.max(np.abs(npp)[threshold]) - intensity_bg_px
+    except ValueError:
+        max_intensity = 0
+
+    # intensity_px = np.average(np.abs(npp)[threshold])
+    intensity -= intensity_bg_px * area
+    intensity_px = intensity / area
 
     snr = intensity_px / intensity_bg_px
 
@@ -165,8 +186,8 @@ def np_analysis(npp, folder, file, image=False):
 
     if image:
         fig, ax = plt.subplots(1, 1)
-        ax.imshow(npp, cmap='gray', origin='lower')
-        ax.imshow(threshold, cmap='plasma', origin='lower', alpha=0.5)
+        ax.imshow(np.abs(npp), cmap='gray', origin='lower')
+        ax.imshow(threshold, cmap='plasma', origin='lower', alpha=0.2)
 
         if not os.path.isdir(folder + FOLDER_NP_IMAGES):
             os.mkdir(folder + FOLDER_NP_IMAGES)
@@ -180,4 +201,4 @@ def np_analysis(npp, folder, file, image=False):
         file_name += '_{:02d}'.format(i)
         fig.savefig(file_name + '.png', dpi=300, bbox_inches='tight')
 
-    return [area, intensity, intensity_px, intensity_bg_px, snr]
+    return [area, intensity, intensity_px, intensity_bg_px, max_intensity, snr]
