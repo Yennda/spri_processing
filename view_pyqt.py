@@ -178,9 +178,13 @@ class Canvas(FigureCanvasQTAgg):
             name_gif += '_{:02d}'.format(i)
 
             duration = np.median(axes.core._time_info[:, 1]) * speed
+
+
+
+
             if gif:
                 sequence[0].save(name_gif + '.gif', save_all=True, append_images=sequence[1:], optimize=False,
-                                 duration=duration, loop=0)
+                                 duration=duration*1000, loop=0)
                 axes.core.print('File SAVED @{}.gif'.format(name_gif))
 
             else:
